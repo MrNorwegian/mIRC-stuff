@@ -47,18 +47,23 @@ alias massmode {
   }
 }
 alias massv2 {
+  ; Popups
+  ; Mass
+  ; .voice:{ massv2 $chan voice $iif($?"Enter a number nothing for all" > 0,$v1,$nick($chan,0)) }
+  ; .devoice:{ massv2 $chan devoice $iif($?"Enter a number nothing for all" > 0,$v1,$nick($chan,0)) }
   ; /massv2 #chan voice\devoice 10 (voice\devoice 10 of the channel users
   ; /massv2 #chan voice\devoice 2 d (voice\devoice 1\2 of the channel users
   ; /massv2 #chan voice\devoice 4 d (voice\devoice 1\4 of the channel users, etc
-  if ( $2 = voice ) || ( $2 == devoice ) {
-    var %x = $iif($2 = voice,$nick($1,0,r),$nick($1,0,v)) }, %m v 
-    if ( $4 = d ) { var %x $iif($chr(46) isin $calc(%x / $3),$gettok($calc(%x / $3),1,46),$calc(%x / $3)) }
-    elseif ( $isnum($3) ) { var %x $3 }
-    while (%x) { 
-      var %n = %n $iif($2 = voice,$nick($1,%x,r),$nick($1,%x,v))
-      if ($numtok(%n,32) = $modespl) { mode $1 $+($iif($2 = voice,$chr(43),$chr(45)),$str(%m,$modespl)) %n | unset %n } 
-      dec %x
+  if (($2 = voice) || ($2 == devoice)) {
+    if ( $isnum($3) ) { var %nx.mass.num $3 }
+    elseif ( $4 = d ) { var %nx.mass.num $iif($chr(46) isin $calc(%nx.mass.num / $3),$gettok($calc(%nx.mass.num / $3),1,46),$calc(%nx.mass.num / $3)) }
+    else { var %nx.mass.num = $iif($2 = voice,$nick($1,0,r),$nick($1,0,v)) }
+    var %nx.mass.mode v 
+    while (%nx.mass.num) { 
+      var %nx.mass.nicks = %nx.mass.nicks $iif($2 = voice,$nick($1,%nx.mass.num,r),$nick($1,%nx.mass.num,v))
+      if ($numtok(%nx.mass.nicks,32) = $modespl) { mode $1 $+($iif($2 = voice,$chr(43),$chr(45)),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks | unset %nx.mass.nicks } 
+      dec %nx.mass.num
     }
-    if (%n) { mode $1 $+($iif($2 = voice,$chr(43),$chr(45)),$str(%m,$modespl)) %n | unset %n }
+    if (%nx.mass.nicks) { mode $1 $+($iif($2 = voice,$chr(43),$chr(45)),$str(%nx.mass.mode,$numtok(%nx.mass.nicks,32))) %nx.mass.nicks | unset %nx.mass.nicks }
   }
 }
