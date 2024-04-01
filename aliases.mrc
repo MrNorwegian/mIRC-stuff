@@ -27,23 +27,23 @@ alias massmode {
   ; TODO på deop, sjekk om bruker er +k, skipp dem eller legg de til helt på slutten (så man ikke går glipp av antall deops i begynnelsen)
   if ( $3 ) {
     if ( $1 ) {
-      if ( $left($1,2) = de ) { var %m $iif($1 = deop,o,v), %mt take }
-      else { var %m $iif($1 = op,o,v), %mt give }
+      if ( $left($1,2) = de ) { var %nx.mass.mode $iif($1 = deop,o,v), %nx.mass.action take }
+      else { var %nx.mass.mode $iif($1 = op,o,v), %nx.mass.action give }
     }
-    var %n $numtok($3-,32)
-    while (%n) { 
-      if ( %mt = take ) {
-        if ( $gettok($3-,%n,32) isop $chan ) && ( %m = o ) { .var %nicks $addtok(%nicks,$gettok($3-,%n,32),32) }
-        elseif ( $gettok($3-,%n,32) isvoice $chan ) && ( %m = v ) { .var %nicks $addtok(%nicks,$gettok($3-,%n,32),32) }
+    var %nx.mass.num $numtok($3-,32)
+    while (%nx.mass.num) { 
+      if ( %nx.mass.action = take ) {
+        if ( $gettok($3-,%nx.mass.num,32) isop $chan ) && ( %nx.mass.mode = o ) { .var %nx.mass.nicks $addtok(%nx.mass.nicks,$gettok($3-,%nx.mass.num,32),32) }
+        elseif ( $gettok($3-,%nx.mass.num,32) isvoice $chan ) && ( %nx.mass.mode = v ) { .var %nx.mass.nicks $addtok(%nx.mass.nicks,$gettok($3-,%nx.mass.num,32),32) }
       }
-      if ( %mt = give ) {
-        if ( $gettok($3-,%n,32) !isop $chan ) && ( %m = o ) { .var %nicks $addtok(%nicks,$gettok($3-,%n,32),32) }
-        elseif ( $gettok($3-,%n,32) !isvoice $chan ) && ( %m = v ) { .var %nicks $addtok(%nicks,$gettok($3-,%n,32),32) }
+      if ( %nx.mass.action = give ) {
+        if ( $gettok($3-,%nx.mass.num,32) !isop $chan ) && ( %nx.mass.mode = o ) { .var %nx.mass.nicks $addtok(%nx.mass.nicks,$gettok($3-,%nx.mass.num,32),32) }
+        elseif ( $gettok($3-,%nx.mass.num,32) !isvoice $chan ) && ( %nx.mass.mode = v ) { .var %nx.mass.nicks $addtok(%nx.mass.nicks,$gettok($3-,%nx.mass.num,32),32) }
       }
-      if ( $numtok(%nicks,32) = $modespl ) { .mode $2 $+($iif(%mt = take,-,+),$str(%m,$modespl)) %nicks | unset %nicks }
-      dec %n
+      if ( $numtok(%nx.mass.nicks,32) = $modespl ) { .mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks | unset %nx.mass.nicks }
+      dec %nx.mass.num
     }
-    if ( %nicks ) { .mode $2 $+($iif(%mt = take,-,+),$str(%m,$numtok(%nicks,32))) %nicks }
+    if ( %nx.mass.nicks ) { .mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$numtok(%nx.mass.nicks,32))) %nx.mass.nicks }
   }
 }
 alias massv2 {
