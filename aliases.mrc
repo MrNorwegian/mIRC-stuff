@@ -56,9 +56,12 @@ alias massv2 {
   ; /massv2 #chan voice\devoice 4 d (voice\devoice 1\4 of the channel users, etc
   if (($2 = voice) || ($2 == devoice)) {
     if ( $isnum($3) ) { 
-      var %nx.mass.num = $iif($2 = voice,$nick($1,$3,r),$nick($1,$3,v))
-      if ( $4 = d ) { var %nx.mass.tc $calc(%nx.mass.num / $3) | echo TEST %nx.mass.tc | var %nx.mass.num $iif($chr(46) isin %nx.mass.tc,$gettok(%nx.mass.tc,1,46),%nx.mass.tc) }
-      else { var %nx.mass.num $3 }
+      var %nx.mass.num $3
+      if ( $4 = d ) { 
+        var %nx.mass.num = $iif($2 = voice,$nick($1,0,r),$nick($1,0,v)) 
+        var %nx.mass.tc $calc(%nx.mass.num / $3) 
+        var %nx.mass.num $iif($chr(46) isin %nx.mass.tc,$gettok(%nx.mass.tc,1,46),%nx.mass.tc) 
+      }
     }
     else { var %nx.mass.num = $iif($2 = voice,$nick($1,0,r),$nick($1,0,v)) }
     var %nx.mass.mode v 
@@ -70,4 +73,3 @@ alias massv2 {
     if (%nx.mass.nicks) { mode $1 $+($iif($2 = voice,$chr(43),$chr(45)),$str(%nx.mass.mode,$numtok(%nx.mass.nicks,32))) %nx.mass.nicks | unset %nx.mass.nicks }
   }
 }
-
