@@ -23,12 +23,14 @@ alias join {
 }
 alias massmode {
   ; /massmode op\deop\voice\devoice #chan nick nick1 nick2
-  ; POPUPS: .Op:{ massmode op $chan $1- }
+  ; POPUPS: .Op:{ massmode op $chan $$1- }
+  ; POPUPS: .Op:{ massmode botnetop $chan $$1- }
   ; TODO på deop, sjekk om bruker er +k, skipp dem eller legg de til helt på slutten (så man ikke går glipp av antall deops i begynnelsen)
   if ( $3 ) {
     if ( $1 ) {
-      if ( $left($1,2) = de ) { var %nx.mass.mode $iif($1 = deop,o,v), %nx.mass.action take }
-      else { var %nx.mass.mode $iif($1 = op,o,v), %nx.mass.action give }
+      if ( $left($1,6) = botnet ) { var %nx.mass.usebotnet 1 }
+      if ( $left($remove($1,botnet),2) = de ) { var %nx.mass.mode $iif($remove($1,botnet) = deop,o,v), %nx.mass.action take }
+      else { var %nx.mass.mode $iif($remove($1,botnet) = op,o,v), %nx.mass.action give }
     }
     var %nx.mass.num $numtok($3-,32)
     while (%nx.mass.num) { 
@@ -40,10 +42,29 @@ alias massmode {
         if ( $gettok($3-,%nx.mass.num,32) !isop $chan ) && ( %nx.mass.mode = o ) { .var %nx.mass.nicks $addtok(%nx.mass.nicks,$gettok($3-,%nx.mass.num,32),32) }
         elseif ( $gettok($3-,%nx.mass.num,32) !isvoice $chan ) && ( %nx.mass.mode = v ) { .var %nx.mass.nicks $addtok(%nx.mass.nicks,$gettok($3-,%nx.mass.num,32),32) }
       }
-      if ( $numtok(%nx.mass.nicks,32) = $modespl ) { .mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks | unset %nx.mass.nicks }
+      if ( $numtok(%nx.mass.nicks,32) = $modespl ) { 
+        if ( %nx.mass.usebotnet = 1 ) { msg $nx.mass.pickbot .tcl putserv "mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks " | unset %nx.mass.nicks }
+        else { .mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks | unset %nx.mass.nicks }
+      }
       dec %nx.mass.num
     }
-    if ( %nx.mass.nicks ) { .mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$numtok(%nx.mass.nicks,32))) %nx.mass.nicks }
+    if ( %nx.mass.nicks ) {
+      if ( %nx.mass.usebotnet = 1 ) { msg $nx.mass.pickbot .tcl putserv "mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$numtok(%nx.mass.nicks,32))) %nx.mass.nicks " | unset %nx.mass.nicks %nx.mass.usebotnet %nx.mass.bots }
+      else { .mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$numtok(%nx.mass.nicks,32))) %nx.mass.nicks | unset %nx.mass.nicks }
+    }
+  }
+}
+alias nx.mass.pickbot {
+  ; Need to redo this alias, check if dcc chat is open
+  ; Note to self: $chat(botnick).status
+  var %nx.mass.findbot $numtok(%nx.botnet,32)
+  while (%nx.mass.findbot) { 
+    :mx.mass.pickbot
+    if ( %nx.mass.bots > 1 ) { dec %nx.mass.bots }
+    else { set %nx.mass.bots $numtok(%nx.botnet,32) }
+    if ( $gettok(%nx.botnet,%nx.mass.bots,32) isop $chan ) { return $+(=,$v1) }
+    else { goto mx.mass.pickbot }
+    dec %nx.mass.findbot
   }
 }
 alias massv2 {
