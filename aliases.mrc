@@ -46,3 +46,19 @@ alias massmode {
     if ( %nicks ) { .mode $2 $+($iif(%mt = take,-,+),$str(%m,$numtok(%nicks,32))) %nicks }
   }
 }
+alias massv2 {
+  ; /massv2 #chan voice\devoice 10 (voice\devoice 10 of the channel users
+  ; /massv2 #chan voice\devoice 2 d (voice\devoice 1\2 of the channel users
+  ; /massv2 #chan voice\devoice 4 d (voice\devoice 1\4 of the channel users, etc
+  if ( $2 = voice ) || ( $2 == devoice ) {
+    var %x = $iif($2 = voice,$nick($1,0,r),$nick($1,0,v)) }, %m v 
+    if ( $4 = d ) { var %x $iif($chr(46) isin $calc(%x / $3),$gettok($calc(%x / $3),1,46),$calc(%x / $3)) }
+    elseif ( $isnum($3) ) { var %x $3 }
+    while (%x) { 
+      var %n = %n $iif($2 = voice,$nick($1,%x,r),$nick($1,%x,v))
+      if ($numtok(%n,32) = $modespl) { mode $1 $+($iif($2 = voice,$chr(43),$chr(45)),$str(%m,$modespl)) %n | unset %n } 
+      dec %x
+    }
+    if (%n) { mode $1 $+($iif($2 = voice,$chr(43),$chr(45)),$str(%m,$modespl)) %n | unset %n }
+  }
+}
