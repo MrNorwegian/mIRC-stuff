@@ -1,6 +1,6 @@
 alias join {
   ; /join #chan1,chan2,#chan3 key,chan4 key
-  ; Todo, check for & also. for now vanilla /join &localchan
+  ; Todo, check for &localchan, for now it's vanilla /join &localchan
   if ($1) {
     if ( $left($1,1) = $chr(38) ) { join $1- }
     else {
@@ -72,6 +72,9 @@ alias nx.mass.pickbot {
 
 alias nx.botnet.control {
   ; Note to self, in the future make this compact
+  ; /nx.botnet.control join\part #chan bot1 bot2 bot3
+  ; POPUPS: .join:{ nx.botnet.control join $$?="Channel?" $$1- }
+  ; POPUPS: .say:{ nx.botnet.control say $$?="Channel?" $$1- }
   if ( $istok(join part,$1,32) ) && ( $3 ) {
     var %i $numtok($2-,32)
     while (%i) { 
