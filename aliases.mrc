@@ -21,6 +21,7 @@ alias join {
   }
   else { echo -at Usage /join #chan1,chan2,#chan3 key,chan4 key }
 }
+
 alias massmode {
   ; /massmode op\deop\voice\devoice #chan nick nick1 nick2
   ; POPUPS: .Op:{ massmode op $chan $$1- }
@@ -54,6 +55,7 @@ alias massmode {
     }
   }
 }
+
 alias nx.mass.pickbot {
   ; Need to redo this alias, check if dcc chat is open
   ; Note to self: $chat(botnick).status
@@ -67,6 +69,34 @@ alias nx.mass.pickbot {
     dec %nx.mass.findbot
   }
 }
+
+alias nx.botnet.control {
+  ; Note to self, in the future make this compact
+  if ( $istok(join part,$1,32) ) && ( $3 ) {
+    var %i $numtok($2-,32)
+    while (%i) { 
+      if ( $chat($gettok($3-,%i,32)).status = active) && ( $istok(%nx.botnet_ [ $+ [ $network ] ],$gettok($3-,%i,32),32) ) {
+        msg $+(=,$gettok($3-,%i,32)) $iif($1 = join,.+chan,.-chan) $2
+      }
+      elseif ( $gettok($3-,%i,32) != $null ) { echo 4 -at During Botnet Controll ( $1 ) No dcc chat active with $gettok($3-,%i,32) }
+      dec %i
+    }
+  }
+  elseif ( $istok(say,$1,32) ) && ( $3 ) {
+    var %nx.botnet.say $?="What to say" 
+    if ( %nx.botnet.say ) { 
+      var %i $numtok($3-,32)
+      while (%i) { 
+        if ( $chat($gettok($3-,%i,32)).status = active ) && ( $istok(%nx.botnet_ [ $+ [ $network ] ],$gettok($3-,%i,32),32) ) {
+          msg $+(=,$gettok($3-,%i,32)) .tcl putquick "privmsg $2 $+(:,%nx.botnet.say,")
+        }
+        elseif ( $gettok($3-,%i,32) != $null ) { echo 4 -at During Botnet Controll ( $1 ) No dcc chat active with $gettok($3-,%i,32) }
+        dec %i
+      }
+    }
+  }
+}
+
 alias massv2 {
   ; Popups
   ; Mass
