@@ -18,7 +18,6 @@ menu Nicklist {
   .say:{ nx.botnet.control say $$?="Channel?" $$1- }
   .join:{ nx.botnet.control join $$?="Channel?" $$1- }
   .part:{ nx.botnet.control part $$?="Channel?" $$1- }
-
   CTCP
   .Ping:/ctcp $$1 ping
   .Time:/ctcp $$1 time
