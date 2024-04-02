@@ -43,13 +43,13 @@ alias massmode {
         elseif ( $gettok($3-,%nx.mass.num,32) !isvoice $chan ) && ( %nx.mass.mode = v ) { .var %nx.mass.nicks $addtok(%nx.mass.nicks,$gettok($3-,%nx.mass.num,32),32) }
       }
       if ( $numtok(%nx.mass.nicks,32) = $modespl ) { 
-        if ( %nx.mass.usebotnet = 1 ) { msg $nx.mass.pickbot .tcl putserv "mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks " | unset %nx.mass.nicks }
+        if ( %nx.mass.usebotnet = 1 ) { msg $nx.mass.pickbot .tcl putquick "mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks " | unset %nx.mass.nicks }
         else { .mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks | unset %nx.mass.nicks }
       }
       dec %nx.mass.num
     }
     if ( %nx.mass.nicks ) {
-      if ( %nx.mass.usebotnet = 1 ) { msg $nx.mass.pickbot .tcl putserv "mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$numtok(%nx.mass.nicks,32))) %nx.mass.nicks " | unset %nx.mass.nicks %nx.mass.usebotnet %nx.mass.bots }
+      if ( %nx.mass.usebotnet = 1 ) { msg $nx.mass.pickbot .tcl putquick "mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$numtok(%nx.mass.nicks,32))) %nx.mass.nicks " | unset %nx.mass.nicks %nx.mass.usebotnet %nx.mass.bots }
       else { .mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$numtok(%nx.mass.nicks,32))) %nx.mass.nicks | unset %nx.mass.nicks }
     }
   }
@@ -57,12 +57,12 @@ alias massmode {
 alias nx.mass.pickbot {
   ; Need to redo this alias, check if dcc chat is open
   ; Note to self: $chat(botnick).status
-  var %nx.mass.findbot $numtok(%nx.botnet,32)
+  var %nx.mass.findbot $numtok(%nx.botnet_ [ $+ [ $network ] ],32)
   while (%nx.mass.findbot) { 
     :mx.mass.pickbot
     if ( %nx.mass.bots > 1 ) { dec %nx.mass.bots }
-    else { set %nx.mass.bots $numtok(%nx.botnet,32) }
-    if ( $gettok(%nx.botnet,%nx.mass.bots,32) isop $chan ) { return $+(=,$v1) }
+    else { set %nx.mass.bots $numtok(%nx.botnet_ [ $+ [ $network ] ],32) }
+    if ( $gettok(%nx.botnet_ [ $+ [ $network ] ],%nx.mass.bots,32) isop $chan ) { return $+(=,$v1) }
     else { goto mx.mass.pickbot }
     dec %nx.mass.findbot
   }
