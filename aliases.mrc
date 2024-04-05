@@ -25,13 +25,18 @@ alias join {
 alias massmode {
   ; /massmode op\deop\voice\devoice #chan nick nick1 nick2
   ; POPUPS: .Op:{ massmode op $chan $$1- }
-  ; POPUPS: .Op:{ massmode botnetop $chan $$1- }
-  ; TODO på deop, sjekk om bruker er +k, skipp dem eller legg de til helt på slutten (så man ikke går glipp av antall deops i begynnelsen)
+  ; POPUPS: .Op:{ massmode botnet_op $chan $$1- }
+  ; POPUPS: .Op:{ massmode oper_op $chan $$1- }
+  ; TODO: Check if user is +k then skip it ( Use cached info from /who channel ? )
+  ; TODO: Idea, use X, Q, ChanServ ?
+  ; TODO: Idea, when ircop use uworld\opmode\samode ?
+  ; - Check if $me has +go usermode, p10 use opmode, unrealircd samode, etc
   if ( $3 ) {
     if ( $1 ) {
-      if ( $left($1,6) = botnet ) { var %nx.mass.usebotnet 1 }
-      if ( $left($remove($1,botnet),2) = de ) { var %nx.mass.mode $iif($remove($1,botnet) = deop,o,v), %nx.mass.action take }
-      else { var %nx.mass.mode $iif($remove($1,botnet) = op,o,v), %nx.mass.action give }
+      if ( $left($1,7) = botnet_ ) { var %nx.mass.usebotnet 1 }
+      if ( $left($1,5) = oper_ ) { var %nx.mass.useopermode 1 }
+      if ( $left($remove($1,botnet_,oper_),2) = de ) { var %nx.mass.mode $iif($remove($1,botnet_,oper_) = deop,o,v), %nx.mass.action take }
+      else { var %nx.mass.mode $iif($remove($1,botnet_,oper_) = op,o,v), %nx.mass.action give }
     }
     var %nx.mass.num $numtok($3-,32)
     while (%nx.mass.num) { 
@@ -43,30 +48,49 @@ alias massmode {
         if ( $gettok($3-,%nx.mass.num,32) !isop $chan ) && ( %nx.mass.mode = o ) { .var %nx.mass.nicks $addtok(%nx.mass.nicks,$gettok($3-,%nx.mass.num,32),32) }
         elseif ( $gettok($3-,%nx.mass.num,32) !isvoice $chan ) && ( %nx.mass.mode = v ) { .var %nx.mass.nicks $addtok(%nx.mass.nicks,$gettok($3-,%nx.mass.num,32),32) }
       }
+      ; Finished gather nicks for this round
       if ( $numtok(%nx.mass.nicks,32) = $modespl ) { 
-        if ( %nx.mass.usebotnet = 1 ) { msg $nx.mass.pickbot .tcl putquick "mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks " | unset %nx.mass.nicks }
-        else { .mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks | unset %nx.mass.nicks }
+        if ( %nx.mass.usebotnet = 1 ) { 
+          var %nx.mass.bot $nx.mass.pickbot
+          if ( %nx.mass.bot ) { msg %nx.mass.bot .tcl putquick "mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks " | unset %nx.mass.nicks }
+          else { echo 4 -at No bots active or oped in chan }
+        }
+        elseif ( %nx.mass.useopermode = 1 ) { .opmode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks | unset %nx.mass.nicks } 
+        elseif ( $me isop $chan ) { .mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks | unset %nx.mass.nicks } 
+        else { echo -at $me - You're not channel operator }
       }
       dec %nx.mass.num
     }
+    ; Finish off
     if ( %nx.mass.nicks ) {
-      if ( %nx.mass.usebotnet = 1 ) { msg $nx.mass.pickbot .tcl putquick "mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$numtok(%nx.mass.nicks,32))) %nx.mass.nicks " | unset %nx.mass.nicks %nx.mass.usebotnet %nx.mass.bots }
-      else { .mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$numtok(%nx.mass.nicks,32))) %nx.mass.nicks | unset %nx.mass.nicks }
+      if ( %nx.mass.usebotnet = 1 ) {
+        var %nx.mass.bot $nx.mass.pickbot
+        if ( %nx.mass.bot ) { msg %nx.mass.bot .tcl putquick "mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$numtok(%nx.mass.nicks,32))) %nx.mass.nicks " | unset %nx.mass.nicks %nx.mass.usebotnet }
+        else { echo 4 -at No bots active or oped in chan }
+      }
+      elseif ( %nx.mass.useopermode = 1 ) { .opmode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks | unset %nx.mass.nicks } 
+      elseif ( $me isop $chan ) { .mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$numtok(%nx.mass.nicks,32))) %nx.mass.nicks | unset %nx.mass.nicks }
+      else { echo -at $me - You're not channel operator }
     }
   }
 }
 
 alias nx.mass.pickbot {
   ; Need to redo this alias, check if dcc chat is open
-  ; Note to self: $chat(botnick).status
-  var %nx.mass.findbot $numtok(%nx.botnet_ [ $+ [ $network ] ],32)
-  while (%nx.mass.findbot) { 
-    :mx.mass.pickbot
-    if ( %nx.mass.bots > 1 ) { dec %nx.mass.bots }
-    else { set %nx.mass.bots $numtok(%nx.botnet_ [ $+ [ $network ] ],32) }
-    if ( $gettok(%nx.botnet_ [ $+ [ $network ] ],%nx.mass.bots,32) isop $chan ) { return $+(=,$v1) }
-    else { goto mx.mass.pickbot }
-    dec %nx.mass.findbot
+  ; Note to self: $chat(botnick).status, check if nz.botnet_$network is set
+  ; Bug, if no bots is OP the loop doesnt stop (ctrl + break)
+  var %nx.botnet.pickbot $numtok(%nx.botnet_ [ $+ [ $network ] ],32)
+  ;;;;
+  ; Idea, while doesnt get used, skip it and just do the gogo loop with while ?
+  while (%nx.botnet.pickbot) { 
+    :nx.botnet.pickbot
+    if ( %nx.botnet.nextbot >= %nx.botnet.pickbot ) { set %nx.botnet.nextbot 1 }
+    else { inc %nx.botnet.nextbot }
+    ; Find next bot
+    var %nx.botnet.tmpbot $gettok(%nx.botnet_ [ $+ [ $network ] ],%nx.botnet.nextbot,32)
+    if ( %nx.botnet.tmpbot isop $chan ) && ( $chat(%nx.botnet.tmpbot).status = active ) { return $+(=,%nx.botnet.tmpbot) }
+    else { goto nx.botnet.pickbot }
+    dec %nx.botnet.pickbot
   }
 }
 
@@ -76,13 +100,28 @@ alias nx.botnet.control {
   ; POPUPS: .join:{ nx.botnet.control join $$?="Channel?" $$1- }
   ; POPUPS: .say:{ nx.botnet.control say $$?="Channel?" $$1- }
   if ( $istok(join part,$1,32) ) && ( $3 ) {
-    var %i $numtok($2-,32)
-    while (%i) { 
-      if ( $chat($gettok($3-,%i,32)).status = active) && ( $istok(%nx.botnet_ [ $+ [ $network ] ],$gettok($3-,%i,32),32) ) {
-        msg $+(=,$gettok($3-,%i,32)) $iif($1 = join,.+chan,.-chan) $2
+    var %nx.botnet_loop_i $numtok($2-,32)
+    while (%nx.botnet_loop_i) { 
+      if ( $chat($gettok($3-,%nx.botnet_loop_i,32)).status = active) && ( $istok(%nx.botnet_ [ $+ [ $network ] ],$gettok($3-,%nx.botnet_loop_i,32),32) ) {
+        msg $+(=,$gettok($3-,%nx.botnet_loop_i,32)) $iif($1 = join,.+chan,.-chan) $2
       }
-      elseif ( $gettok($3-,%i,32) != $null ) { echo 4 -at During Botnet Controll ( $1 ) No dcc chat active with $gettok($3-,%i,32) }
-      dec %i
+      elseif ( $gettok($3-,%nx.botnet_loop_i,32) != $null ) { echo 4 -at During Botnet Controll ( $1 ) No dcc chat active with $gettok($3-,%nx.botnet_loop_i,32) }
+      dec %nx.botnet_loop_i
+    }
+  }
+  elseif ( $istok(chattr,$1,32) ) && ( $3 ) {
+    var %nx.botnet.chattr.nick $?="Type a nick" 
+    var %nx.botnet.chattr.flags $?="+- flags"
+    var %nx.botnet.chattr.where $?="where GLOBAL for global"
+    if ( %nx.botnet.chattr.nick ) && ( %nx.botnet.chattr.flags ) { 
+      var %i $numtok($3-,32)
+      while (%i) { 
+        if ( $chat($gettok($3-,%i,32)).status = active ) && ( $istok(%nx.botnet_ [ $+ [ $network ] ],$gettok($3-,%i,32),32) ) {
+          msg $+(=,$gettok($3-,%i,32)) .chattr %nx.botnet.chattr.nick %nx.botnet.chattr.flags $iif(%nx.botnet.chattr.where = GLOBAL,$NULL,$chan)
+        }
+        elseif ( $gettok($3-,%i,32) != $null ) { echo 4 -at During Botnet Controll ( $1 ) No dcc chat active with $gettok($3-,%i,32) }
+        dec %i
+      }
     }
   }
   elseif ( $istok(say,$1,32) ) && ( $3 ) {
