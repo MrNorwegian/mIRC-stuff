@@ -24,72 +24,88 @@ alias join {
 
 alias massmode {
   ; /massmode op\deop\voice\devoice #chan nick nick1 nick2
-  ; POPUPS: .Op:{ massmode op $chan $$1- }
-  ; POPUPS: .Op:{ massmode botnet_op $chan $$1- }
-  ; POPUPS: .Op:{ massmode oper_op $chan $$1- }
+  ; /massmode botnet_op\botnet_deop\oper_op\oper_deop #chan nick nick1 nick2
+  ; - botnet_ checks for %nx.botnet_NetWork botnick1 botnick2 and required active dcc chat with bot.
   ; TODO: Check if user is +k then skip it ( Use cached info from /who channel ? )
   ; TODO: Idea, use X, Q, ChanServ ?
-  ; TODO: Idea, when ircop use uworld\opmode\samode ?
-  ; - Check if $me has +go usermode, p10 use opmode, unrealircd samode, etc
+  ; TODO: Idea, when ircop use uworld\opmode\samode ? - Check if $me has +go usermode, p10 use opmode, unrealircd samode, etc
   if ( $3 ) {
-    if ( $1 ) {
-      if ( $left($1,7) = botnet_ ) { var %nx.mass.usebotnet 1 }
-      if ( $left($1,5) = oper_ ) { var %nx.mass.useopermode 1 }
-      if ( $left($remove($1,botnet_,oper_),2) = de ) { var %nx.mass.mode $iif($remove($1,botnet_,oper_) = deop,o,v), %nx.mass.action take }
-      else { var %nx.mass.mode $iif($remove($1,botnet_,oper_) = op,o,v), %nx.mass.action give }
-    }
-    var %nx.mass.num $numtok($3-,32)
-    while (%nx.mass.num) { 
-      if ( %nx.mass.action = take ) {
-        if ( $gettok($3-,%nx.mass.num,32) isop $chan ) && ( %nx.mass.mode = o ) { .var %nx.mass.nicks $addtok(%nx.mass.nicks,$gettok($3-,%nx.mass.num,32),32) }
-        elseif ( $gettok($3-,%nx.mass.num,32) isvoice $chan ) && ( %nx.mass.mode = v ) { .var %nx.mass.nicks $addtok(%nx.mass.nicks,$gettok($3-,%nx.mass.num,32),32) }
+    if ( $2 ) {
+      var %nx.mass.tmpmode $remove($1,botnet_,oper_)
+      if ( $istok(owner deowner admin deadmin op deop halfop dehalfop voice devoice,%nx.mass.tmpmode,32) ) {
+        if ( $left($1,7) = botnet_ ) { var %nx.mass.usebotnet 1 }
+        if ( $left($1,5) = oper_ ) { var %nx.mass.useopermode 1 }
+
+        var %nx.mass.action $iif($left(%nx.mass.tmpmode,2) = de,take,give)
+        if (%nx.mass.tmpmode = deowner) || (%nx.mass.tmpmode = owner) { var %nx.mass.mode q }
+        elseif (%nx.mass.tmpmode = deadmin) || (%nx.mass.tmpmode = admin) { var %nx.mass.mode a }
+        elseif (%nx.mass.tmpmode = deop) || (%nx.mass.tmpmode = op) { var %nx.mass.mode o }
+        elseif (%nx.mass.tmpmode = dehalfop) || (%nx.mass.tmpmode = halfop) { var %nx.mass.mode h }
+        elseif (%nx.mass.tmpmode = devoice) || (%nx.mass.tmpmode = voice) { var %nx.mass.mode v }
+        else { echo -at Invalid mode %nx.mass.tmpmode | return }
+        if ( %nx.mass.mode !isin $nickmode ) { echo -at Unsupported mode: %nx.mass.tmpmode | return } 
       }
-      if ( %nx.mass.action = give ) {
-        if ( $gettok($3-,%nx.mass.num,32) !isop $chan ) && ( %nx.mass.mode = o ) { .var %nx.mass.nicks $addtok(%nx.mass.nicks,$gettok($3-,%nx.mass.num,32),32) }
-        elseif ( $gettok($3-,%nx.mass.num,32) !isvoice $chan ) && ( %nx.mass.mode = v ) { .var %nx.mass.nicks $addtok(%nx.mass.nicks,$gettok($3-,%nx.mass.num,32),32) }
+      var %nx.mass.num $numtok($3-,32)
+      while (%nx.mass.num) { 
+        if ( %nx.mass.action = take ) {
+          if ( $nx.ismode(%nx.mass.mode,$2,$gettok($3-,%nx.mass.num,32)) = $true ) { var %nx.mass.nicks $addtok(%nx.mass.nicks,$gettok($3-,%nx.mass.num,32),32) }
+        }
+        if ( %nx.mass.action = give ) {
+          if ( $nx.ismode(%nx.mass.mode,$2,$gettok($3-,%nx.mass.num,32)) = $false ) { var %nx.mass.nicks $addtok(%nx.mass.nicks,$gettok($3-,%nx.mass.num,32),32) }
+        }
+        ; Finished gather nicks for this round
+        if ( $numtok(%nx.mass.nicks,32) = $modespl ) { 
+          if ( %nx.mass.usebotnet = 1 ) { 
+            var %nx.mass.bot $nx.mass.pickbot
+            if ( %nx.mass.bot ) { msg %nx.mass.bot .tcl putquick "mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks " | unset %nx.mass.nicks }
+            else { echo -at No bots active or is channel operator }
+          }
+          elseif ( %nx.mass.useopermode = 1 ) { .opmode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks | unset %nx.mass.nicks } 
+          elseif ( $me isop $chan ) { .mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks | unset %nx.mass.nicks } 
+          else { echo -at $me - You're not channel operator }
+        }
+        dec %nx.mass.num
       }
-      ; Finished gather nicks for this round
-      if ( $numtok(%nx.mass.nicks,32) = $modespl ) { 
-        if ( %nx.mass.usebotnet = 1 ) { 
+      ; Finish off
+      if ( %nx.mass.nicks ) {
+        if ( %nx.mass.usebotnet = 1 ) {
           var %nx.mass.bot $nx.mass.pickbot
-          if ( %nx.mass.bot ) { msg %nx.mass.bot .tcl putquick "mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks " | unset %nx.mass.nicks }
-          else { echo 4 -at No bots active or oped in chan }
+          if ( %nx.mass.bot ) { msg %nx.mass.bot .tcl putquick "mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$numtok(%nx.mass.nicks,32))) %nx.mass.nicks " | unset %nx.mass.nicks %nx.mass.usebotnet }
+          else { echo -at No bots active or is channel operator }
         }
         elseif ( %nx.mass.useopermode = 1 ) { .opmode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks | unset %nx.mass.nicks } 
-        elseif ( $me isop $chan ) { .mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks | unset %nx.mass.nicks } 
+        elseif ( $me isop $chan ) { .mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$numtok(%nx.mass.nicks,32))) %nx.mass.nicks | unset %nx.mass.nicks }
         else { echo -at $me - You're not channel operator }
       }
-      dec %nx.mass.num
     }
-    ; Finish off
-    if ( %nx.mass.nicks ) {
-      if ( %nx.mass.usebotnet = 1 ) {
-        var %nx.mass.bot $nx.mass.pickbot
-        if ( %nx.mass.bot ) { msg %nx.mass.bot .tcl putquick "mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$numtok(%nx.mass.nicks,32))) %nx.mass.nicks " | unset %nx.mass.nicks %nx.mass.usebotnet }
-        else { echo 4 -at No bots active or oped in chan }
-      }
-      elseif ( %nx.mass.useopermode = 1 ) { .opmode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks | unset %nx.mass.nicks } 
-      elseif ( $me isop $chan ) { .mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$numtok(%nx.mass.nicks,32))) %nx.mass.nicks | unset %nx.mass.nicks }
-      else { echo -at $me - You're not channel operator }
-    }
+    else { echo -at Usage /massmode op\deop\voice\devoice #chan nick nick1 nick2 }
   }
+  else { echo -at Usage /massmode op\deop\voice\devoice #chan nick nick1 nick2 }
 }
 
+; This alias is not finished, +a modes cannot be checked with $nick()
+; I need to use a own hash table for this, or use $ialchan() and $ialchan().mode
+alias nx.ismode {
+  ; $nx.ismode(q,channel,nick) - Check if nick is +q in channel
+  if ($istok(q a o h v r,$1,32)) && ($3) {
+    var %nx.ismode.mode $nick($2,0,$1)
+    while (%nx.ismode.mode) { 
+      if ($nick($2,%nx.ismode.mode,$1) = $3) { return $true }
+      dec %nx.ismode.mode
+    }
+    return $false
+  }
+}
 alias nx.mass.pickbot {
-  ; Need to redo this alias, check if dcc chat is open
-  ; Note to self: $chat(botnick).status, check if nz.botnet_$network is set
-  ; Bug, if no bots is OP the loop doesnt stop (ctrl + break)
+  ; Need to redo this alias, it's a mess
+  ; Idea, not use botnick but botnick!ident@host ?
   var %nx.botnet.pickbot $numtok(%nx.botnet_ [ $+ [ $network ] ],32)
-  ;;;;
-  ; Idea, while doesnt get used, skip it and just do the gogo loop with while ?
   while (%nx.botnet.pickbot) { 
-    :nx.botnet.pickbot
     if ( %nx.botnet.nextbot >= %nx.botnet.pickbot ) { set %nx.botnet.nextbot 1 }
     else { inc %nx.botnet.nextbot }
     ; Find next bot
     var %nx.botnet.tmpbot $gettok(%nx.botnet_ [ $+ [ $network ] ],%nx.botnet.nextbot,32)
     if ( %nx.botnet.tmpbot isop $chan ) && ( $chat(%nx.botnet.tmpbot).status = active ) { return $+(=,%nx.botnet.tmpbot) }
-    else { goto nx.botnet.pickbot }
     dec %nx.botnet.pickbot
   }
 }
@@ -97,8 +113,8 @@ alias nx.mass.pickbot {
 alias nx.botnet.control {
   ; Note to self, in the future make this compact
   ; /nx.botnet.control join\part #chan bot1 bot2 bot3
-  ; POPUPS: .join:{ nx.botnet.control join $$?="Channel?" $$1- }
-  ; POPUPS: .say:{ nx.botnet.control say $$?="Channel?" $$1- }
+  ; POPUPS: .join:nx.botnet.control join $$?="Channel?" $$1-
+  ; POPUPS: .say:nx.botnet.control say $$?="Channel?" $$1-
   if ( $istok(join part,$1,32) ) && ( $3 ) {
     var %nx.botnet_loop_i $numtok($2-,32)
     while (%nx.botnet_loop_i) { 
@@ -117,7 +133,7 @@ alias nx.botnet.control {
       var %i $numtok($3-,32)
       while (%i) { 
         if ( $chat($gettok($3-,%i,32)).status = active ) && ( $istok(%nx.botnet_ [ $+ [ $network ] ],$gettok($3-,%i,32),32) ) {
-          msg $+(=,$gettok($3-,%i,32)) .chattr %nx.botnet.chattr.nick %nx.botnet.chattr.flags $iif(%nx.botnet.chattr.where = GLOBAL,$NULL,$chan)
+          msg $+(=,$gettok($3-,%i,32)) .chattr %nx.botnet.chattr.nick %nx.botnet.chattr.flags $iif(%nx.botnet.chattr.where = GLOBAL,$NULL,%nx.botnet.chattr.where)
         }
         elseif ( $gettok($3-,%i,32) != $null ) { echo 4 -at During Botnet Controll ( $1 ) No dcc chat active with $gettok($3-,%i,32) }
         dec %i
@@ -142,8 +158,8 @@ alias nx.botnet.control {
 alias massv2 {
   ; Popups
   ; Mass
-  ; .voice:{ massv2 $chan voice $iif($?"Enter a number nothing for all" > 0,$v1,$nick($chan,0)) }
-  ; .devoice:{ massv2 $chan devoice $iif($?"Enter a number nothing for all" > 0,$v1,$nick($chan,0)) }
+  ; .voice:massv2 $chan voice $iif($input"Enter a number nothing for all" > 0,$v1,$nick($chan,0))
+  ; .devoice:massv2 $chan devoice $iif($input"Enter a number nothing for all" > 0,$v1,$nick($chan,0))
   ; /massv2 #chan voice\devoice 10 (voice\devoice 10 of the channel users
   ; /massv2 #chan voice\devoice 2 d (voice\devoice 1\2 of the channel users
   ; /massv2 #chan voice\devoice 4 d (voice\devoice 1\4 of the channel users, etc
