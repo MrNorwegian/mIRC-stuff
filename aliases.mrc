@@ -22,7 +22,7 @@ alias join {
   else { echo -at Usage /join #chan1,chan2,#chan3 key,chan4 key }
 }
 
-alias massmode {
+alias nx.massmode {
   ; /massmode op\deop\voice\devoice #chan nick nick1 nick2
   ; /massmode botnet_op\botnet_deop\oper_op\oper_deop #chan nick nick1 nick2
   ; - botnet_ checks for %nx.botnet_NetWork botnick1 botnick2 and required active dcc chat with bot.
@@ -60,8 +60,8 @@ alias massmode {
             if ( %nx.mass.bot ) { msg %nx.mass.bot .tcl putquick "mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks " | unset %nx.mass.nicks }
             else { echo -at No bots active or is channel operator }
           }
-          elseif ( %nx.mass.useopermode = 1 ) { .opmode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks | unset %nx.mass.nicks } 
-          elseif ( $me isop $chan ) { .mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks | unset %nx.mass.nicks } 
+          elseif ( %nx.mass.useopermode = 1 ) { nx.opmode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks | unset %nx.mass.nicks } 
+          elseif ( $me isop $chan ) { nx.mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks | unset %nx.mass.nicks } 
           else { echo -at $me - You're not channel operator }
         }
         dec %nx.mass.num
@@ -73,8 +73,8 @@ alias massmode {
           if ( %nx.mass.bot ) { msg %nx.mass.bot .tcl putquick "mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$numtok(%nx.mass.nicks,32))) %nx.mass.nicks " | unset %nx.mass.nicks %nx.mass.usebotnet }
           else { echo -at No bots active or is channel operator }
         }
-        elseif ( %nx.mass.useopermode = 1 ) { .opmode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks | unset %nx.mass.nicks } 
-        elseif ( $me isop $chan ) { .mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$numtok(%nx.mass.nicks,32))) %nx.mass.nicks | unset %nx.mass.nicks }
+        elseif ( %nx.mass.useopermode = 1 ) { nx.opmode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks | unset %nx.mass.nicks } 
+        elseif ( $me isop $chan ) { nx.mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$numtok(%nx.mass.nicks,32))) %nx.mass.nicks | unset %nx.mass.nicks }
         else { echo -at $me - You're not channel operator }
       }
     }
@@ -83,6 +83,40 @@ alias massmode {
   else { echo -at Usage /massmode op\deop\voice\devoice #chan nick nick1 nick2 }
 }
 
+alias nx.opmode {
+  ; Placeholder for custom anti excess flood stuff
+  if ($istok(%nx.supnet.opmode,$network,32)) { opmode $1- }
+  elseif ($istok(%nx.supnet.samode,$network,32)) { samode $1- }
+  else { echo -at Unsupported ircd, no opmode or samode | haltdef }
+}
+alias nx.mode {
+  ; Placeholder for custom anti excess flood stuff
+  mode $1-
+}
+alias nx.kick {
+  ; Placeholder for custom anti excess flood stuff
+  kick $1-
+}
+alias nx.whois {
+  ; Placeholder for custom anti excess flood stuff
+  whois $1-
+}
+alias nx.msg {
+  ; Placeholder for custom anti excess flood stuff
+  msg $1-
+}
+alias nx.say {
+  ; Placeholder for custom anti excess flood stuff
+  say $1-
+}
+alias nx.me {
+  ; Placeholder for custom anti excess flood stuff
+  me $1-
+}
+alias nx.ctcp {
+  ; Placeholder for custom anti excess flood stuff
+  ctcp $1-
+}
 ; This alias is not finished, +a modes cannot be checked with $nick()
 ; I need to use a own hash table for this, or use $ialchan() and $ialchan().mode
 alias nx.ismode {
@@ -155,11 +189,75 @@ alias nx.botnet.control {
   }
 }
 
+alias nx.masskick {
+  if ($3) { 
+    var %nx.kick.num $numtok($3-,32)
+    while (%nx.kick.num) {
+      if ( $left($1,7) = botnet_ ) {
+        var %nx.kick.bot $nx.mass.pickbot
+        if ( %nx.kick.bot ) { msg %nx.kick.bot .tcl putquick "kick $2 $gettok($3-,%nx.kick.num,32) $iif(%nx.masskick.reason,%nx.masskick.reason,$null) " }
+        else { echo -at No bots active or is channel operator }
+      }
+      elseif ( $me isop $2 ) { nx.kick $2 $gettok($3-,%nx.kick.num,32) $iif(%nx.masskick.reason,%nx.masskick.reason,$null) }
+      else { echo -at $me - You're not channel operator }
+      dec %nx.kick.num
+    }
+    unset %nx.masskick.reason
+  }
+  else { echo -at Usage /nx.masskick kick\botnet_kick #chan nick nick1 nick2 }
+}
+; Idea: is it possible to merge this to massmode ?
+alias nx.massban {
+  if ($3) && ( $istok(ban unban botnet_ban botnet_unban,$1,32) ) { 
+    if ( $left($1,7) = botnet_ ) { var %nx.ban.usebotnet 1 }
+    var %nx.ban.num $numtok($3-,32)
+    while (%nx.ban.num) { 
+      var %nx.ban.tmpaddr $address($gettok($3-,%nx.ban.num,32),5)
+      if ( $istok(ban botnet_ban ,$1,32) ) { 
+        if ( %nx.ban.nextrund isop $2 ) { 
+          var %nx.ban.addrNick $addtok(%nx.ban.addrNick,$address(%nx.ban.addrNick,5),32) 
+          var %nx.ban.mode $iif(%nx.ban.mode,$+(%nx.ban.mode,-o),-o) 
+          unset %nx.ban.nextrund
+        }
+        var %nx.ban.addrNick $addtok(%nx.ban.addrNick,%nx.ban.tmpaddr,32)
+        var %nx.ban.mode $iif(%nx.ban.mode,$+(%nx.ban.mode,+b),+b)
+        ; Here, check if nick is +qao
+        if ( $gettok($3-,%nx.ban.num,32) isop $2 ) {
+          if ($numtok(%nx.ban.addrNick,32) != $modespl) { 
+            var %nx.ban.mode $iif(%nx.ban.mode,$+(%nx.ban.mode,-o),-o)
+            var %nx.ban.addrNick $addtok(%nx.ban.addrNick,$gettok($3-,%nx.ban.num,32),32) 
+          }
+          else { set %nx.ban.nextrund $gettok($3-,%nx.ban.num,32) }
+        }
+      }
+      ; Take is not finished or tested, need to check if user is banned
+      if ( $istok(unban botnet_unban ,$1,32) ) { 
+        var %nx.ban.addrNick $addtok(%nx.ban.addrNick,%nx.ban.tmpaddr,32) 
+        var %nx.ban.mode $iif(%nx.ban.mode,$+(%nx.ban.mode,-b),-b)
+      }
+      ; Finished gather address for this round
+      if ($numtok(%nx.ban.addrNick,32) = $modespl) { 
+        if ( %nx.ban.usebotnet = 1 ) { msg $nx.mass.pickbot .tcl putquick "mode $2 %nx.ban.mode %nx.ban.addrNick | unset %nx.ban.mode %nx.ban.addrNick }
+        elseif ( $me isop $2 ) { nx.mode $2 %nx.ban.mode %nx.ban.addrNick | unset %nx.ban.mode %nx.ban.addrNick }
+        else { echo -at $me - You're not channel operator }
+      }
+      dec %nx.ban.num
+    }
+    ; Finish off
+    if ( %nx.ban.addrNick ) { 
+      if ( %nx.ban.usebotnet = 1 ) { msg $nx.mass.pickbot .tcl putquick "mode $2 %nx.ban.mode %nx.ban.addrNick | unset %nx.ban.mode %nx.ban.addrNick }
+      elseif ( $me isop $2 ) { nx.mode $2 %nx.ban.mode %nx.ban.addrNick | unset %nx.ban.mode %nx.ban.addrNick }
+      else { echo -at $me - You're not channel operator }
+    }
+    unset %nx.masskick.reason
+  }
+  else { echo -at Usage /massban ban\unban #chan nick nick1 nick2 }
+}
 alias massv2 {
   ; Popups
   ; Mass
-  ; .voice:massv2 $chan voice $iif($input"Enter a number nothing for all" > 0,$v1,$nick($chan,0))
-  ; .devoice:massv2 $chan devoice $iif($input"Enter a number nothing for all" > 0,$v1,$nick($chan,0))
+  ; .voice:massv2 $chan voice $iif($?"Enter a number nothing for all" > 0,$v1,$nick($chan,0))
+  ; .devoice:massv2 $chan devoice $iif($?"Enter a number nothing for all" > 0,$v1,$nick($chan,0))
   ; /massv2 #chan voice\devoice 10 (voice\devoice 10 of the channel users
   ; /massv2 #chan voice\devoice 2 d (voice\devoice 1\2 of the channel users
   ; /massv2 #chan voice\devoice 4 d (voice\devoice 1\4 of the channel users, etc
