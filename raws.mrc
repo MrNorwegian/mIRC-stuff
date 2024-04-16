@@ -45,19 +45,60 @@ raw *:*:{
   elseif ($event = 005) { return }
 
   ; /map return (unrealircd)
-  elseif ($event = 006) { return }
-
-  ; End of /map
-  elseif ($event = 007) { return }
-
-  ; /map sumary (last line in /map)
-  elseif ($event = 018) { return }
+  ; End of /map (unrealircd)
+  ; /map sumary (last line in /map) (unrealircd)
+  elseif ($event = 006) { echo -t $+(@,$network,_,status) -t $1- | return }
+  elseif ($event = 007) { echo -t $+(@,$network,_,status) -t $1- | return }
+  elseif ($event = 018) { echo -t $+(@,$network,_,status) $2- | return }
 
   ; /map return (ircu)
-  elseif ($event = 015) { return }
+  ; End of /map (ircu)
+  elseif ($event = 015) { echo -t $+(@,$network,_,status) $2- | return }
+  elseif ($event = 017) { echo -t $+(@,$network,_,status) $2- | return }
 
-  ; End of /map
-  elseif ($event = 017) { return }
+  ; stats l
+  elseif ($event = 211) { return }
+
+  ; stats m
+  elseif ($event = 212) { return }
+
+  ; Stats c (ircu)
+  elseif ($event = 213) { return }
+
+  ; stats i
+  elseif ($event = 215) { return }
+  
+  ; stats p
+  elseif ($event = 217) { return }
+
+  ; stats y
+  elseif ($event = 218) { return }
+
+  ; End of /stats
+  elseif ($event = 219) { return }
+
+  ; stats v
+  elseif ($event = 236) { return }
+
+  ; Stats f
+  elseif ($event = 238) { return }
+  ; Server up
+  elseif ($event = 242) { return }
+
+  ; stats o
+  elseif ($event = 243) { return }
+
+  ; Stats h
+  elseif ($event = 244) { return }
+
+  ; stats t
+  elseif ($event = 249) { return }
+
+  ; Permission denied
+  elseif ($event = 481) { return }
+
+  ; Higest connection count
+  elseif ($event = 250) { return }
 
   ; serverinfo ( ircu)
   ; There are 1 users and 69 invisible on 3 servers
@@ -74,6 +115,9 @@ raw *:*:{
   ; Current global users: 70  Max: 1540
   elseif ($event = 265) { return }
   elseif ($event = 266) { return }
+
+  ; Server load is temporarily too heavy
+  elseif ($event = 263) { return }
 
   ; Channel mode is
   elseif ($event = 324) { return }
@@ -128,6 +172,9 @@ raw *:*:{
   ; topic creator with timestamp ????
   elseif ($event = 333) { return }
 
+  ; server info (OS etc)
+  ; RAW 351 naka UnrealIRCd-6.1.4. Champingvogna.da9.no Fhn6OoErmM [Linux IrcStuff 6.1.0-17-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.69-1 (2023-12-30) x86_64=6100]
+  elseif ($event = 351) { return }
   ; This is gonna be a part of my custom $ial 
   ; RAW 352 naka #valhalla UWorld H*@diw UWorld@UWorld.deepnet.chat :3 UWorld
   ; RAW 352 naka^ #oslo.no iron 172.16.164.2 *.undernet.org MrIron H*@ 3 MrIron
@@ -139,7 +186,34 @@ raw *:*:{
 
   ; RAW 353 MYNICK = #CHANNEL nick1!ident@host +nick2!ident@host @nick3!ident@host ~@nick3!ident@host @+nick3!ident@host 
    ; /NAMES list
-  elseif ($event = 353) { return }
+   ; &nakauser!nakauser@10.13.37.31
+   ; +Biggs!Biggs@172.19.211.133
+   ; @%+Cade!Cade@172.19.215.245
+   ; ~@%Cohbert!Cohbert@172.19.100.185/
+  elseif ($event = 353) { 
+    var %nx.ial.n 4
+    while ($gettok($1-,%nx.ial.n,32)) {
+      ; $remove is used to remove the [ from the nick because of bug
+      var %nx.ial.tmpnick $remove($gettok($gettok($1-,%nx.ial.n,32),1,33),$chr(91)), %nx.ial.mi 1
+      if ( $readini($+(ial\,$network,.ini),$3,%nx.ial.tmpnick) ) { remini -n $+(ial\,$network,.ini) $3 %nx.ial.tmpnick }
+      while (%nx.ial.mi) {
+        if ($mid(%nx.ial.tmpnick,%nx.ial.mi,1) = ~) { var %nx.ial.tmpmode $addtok(%nx.ial.tmpmode,q,46) | goto nx.ial.nextmode }
+        elseif ($mid(%nx.ial.tmpnick,%nx.ial.mi,1) = &) { var %nx.ial.tmpmode $addtok(%nx.ial.tmpmode,a,46) | goto nx.ial.nextmode }
+        elseif ($mid(%nx.ial.tmpnick,%nx.ial.mi,1) = @) { var %nx.ial.tmpmode $addtok(%nx.ial.tmpmode,o,46) | goto nx.ial.nextmode }
+        elseif ($mid(%nx.ial.tmpnick,%nx.ial.mi,1) = %) { var %nx.ial.tmpmode $addtok(%nx.ial.tmpmode,h,46) | goto nx.ial.nextmode }
+        elseif ($mid(%nx.ial.tmpnick,%nx.ial.mi,1) = +) { var %nx.ial.tmpmode $addtok(%nx.ial.tmpmode,v,46) | goto nx.ial.nextmode }
+        elseif ( %nx.ial.tmpmode ) { writeini -n $+(ial\,$network,.ini) $3 $mid(%nx.ial.tmpnick,%nx.ial.mi,$len(%nx.ial.tmpnick)) %nx.ial.tmpmode | unset %nx.ial.tmpmode | goto nx.ial.nextnick }
+        else { writeini -n $+(ial\,$network,.ini) $3 %nx.ial.tmpnick r | goto nx.ial.nextnick }
+        :nx.ial.nextmode
+        inc %nx.ial.mi
+      }
+      :nx.ial.nextnick
+      inc %nx.ial.n
+    }
+    echo -st Saved userlist in $3 with $numtok($4-,32) users
+    return
+  }
+  ;writeini -n $+(ial\,$network,.ini) $3 $remove(%nx.ial.tmpnick,~&@%+) v
   ; End of /NAMES list
   elseif ($event = 366) { return }
 
@@ -147,8 +221,6 @@ raw *:*:{
   elseif ($event = 364) { return }
   ; end of /links list
   elseif ($event = 365) { return }
-
-
 
   ; MOTD start
   elseif ($event = 375) { return }
@@ -160,7 +232,7 @@ raw *:*:{
   elseif ($event = 376) { return }
 
   ; You are now an IRC operator
-  elseif ($event = 381) { return }
+  elseif ($event = 381) { window -De $+(@,$network,_,status) | return }
   ; naka^ +bcdfkoqsBOS Server notice mask
   elseif ($event = 8) { return }
 
@@ -169,6 +241,9 @@ raw *:*:{
 
   ; no souch nick ( RAW 401 naka idlerpg No such nick )
   elseif ($event = 401) { return }
+
+  ; Unknown command
+  elseif ($event = 421) { return }
 
   ; MOTD file missing
   elseif ($event = 422) { return }
