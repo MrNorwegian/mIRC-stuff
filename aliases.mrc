@@ -280,3 +280,27 @@ alias massv2 {
     if (%nx.mass.nicks) { mode $1 $+($iif($2 = voice,$chr(43),$chr(45)),$str(%nx.mass.mode,$numtok(%nx.mass.nicks,32))) %nx.mass.nicks | unset %nx.mass.nicks }
   }
 }
+
+; Thanks wikichip (https://en.wikichip.org/wiki/mirc/thread)
+alias pause {
+  if ($1 !isnum 1-) return
+  var %a = $ticks $+ .vbs
+  write %a wscript.sleep $1
+  .comopen %a wscript.shell
+  if (!$comerr) .comclose %a $com(%a,Run,3,bstr,%a,uint,0,bool,true) 
+  .remove %a
+}
+
+alias showhash {
+  if ( $1 ) {
+    if ( $hget($1,0) ) { 
+      var %i = 1
+      while ( %i <= $hget($1,0).item ) { 
+        echo -a $hget($1,%i).item => $hget($1,%i).data
+        inc %i
+      }
+    }
+    else { echo -a Hash table $1 is empty }
+  }
+  else { echo -a Usage: /showhash <name> }
+}
