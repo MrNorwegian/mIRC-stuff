@@ -21,6 +21,7 @@ menu Query {
 }
 Menu Channel {
   Channel Modes:/channel
+  NX Channel Central:/nx.cc $chan
   -
   Mass
   .voice:{ massv2 $chan voice $iif($?"Enter a number nothing for all" > 0,$v1,$nick($chan,0)) }
