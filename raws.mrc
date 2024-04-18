@@ -1,15 +1,12 @@
 raw *:*:{
   ; ack
   if ($event = ack) { return }
-
-  ; caps supported
   if ($event = cap) { return }
 
-  ; batch +eJ2YePPoPApi8e95KGaJfU chathistory #opers
-  ; batch -eJ2YePPoPApi8e95KGaJfU
+  ; batch +eJ2YePPoPApi8e95KGaJfU chathistory #opers ; batch -eJ2YePPoPApi8e95KGaJfU
   elseif ($event = batch) { return }
 
-  ; chghost naka netadmin.ircworld.net
+  ; chghost naka hostname.info
   elseif ($event = chghost) { return }
 
   ; Welcome
@@ -26,6 +23,10 @@ raw *:*:{
         if ( $istok(%nx.supnet.ircu2,$network,32) ) { return }
         else { set %nx.supnet.ircu2 $addtok(%nx.supnet.ircu2,$network,32) | set %nx.supnet.opmode $addtok(%nx.supnet.opmode,$network,32) | return }
       }
+      elseif ( snircdTODO isin $8 ) { 
+        if ( $istok(%nx.supnet.snircd,$network,32) ) { return }
+        else { set %nx.supnet.snircd $addtok(%nx.supnet.snircd,$network,32) | set %nx.supnet.opmode $addtok(%nx.supnet.opmode,$network,32) | return }
+      }
       ; need to confirm samode is right for ratbox, also efnet runs ratbox and something else?
       elseif ( ircd-ratbox-3 isin $8 ) { 
         if ( $istok(%nx.supnet.ratbox,$network,32) ) { return }
@@ -35,13 +36,9 @@ raw *:*:{
     }
   }
 
-  ; Server created
+  ; Server created - Server info - modes supported
   elseif ($event = 003) { return }
-
-  ; server info
   elseif ($event = 004) { return }
-
-  ; modes supported
   elseif ($event = 005) { return }
 
   ; /map return (unrealircd)
@@ -82,6 +79,7 @@ raw *:*:{
 
   ; Stats f
   elseif ($event = 238) { nx.echo.snotice $2- | halt }
+
   ; Server up
   elseif ($event = 242) { nx.echo.snotice $2- | halt }
 
@@ -119,10 +117,8 @@ raw *:*:{
   ; Server load is temporarily too heavy
   elseif ($event = 263) { return }
 
-  ; marked as away
+  ; marked as away - no longer marked as away
   elseif ($event = 306) { return }
-
-  ; no longer marked as away
   elseif ($event = 305) { return }
 
   ; Channel mode is
@@ -205,18 +201,17 @@ raw *:*:{
 
   ; end of /who
   elseif ($event = 315) { return }
-  ; /list
-  elseif ($event = 322) { return }
 
-  ; end of /list
+  ; /list - end of /list
+  elseif ($event = 322) { return }
   elseif ($event = 323) { 
-    if ( %checkforircop ) { echo 3 -at %checkforircop FERDIG ! | unset %checkforircop }
+    ; TODO merge this into custom $ial
+    if ( %checkforircop ) { echo 3 -at %checkforircop Finished scanning for Ircops. | unset %checkforircop }
+    return
   }
 
-  ; topic
+  ; topic - topic created
   elseif ($event = 332) { return }
-
-  ; topic creator with timestamp ????
   elseif ($event = 333) { return }
 
   ; server info (OS etc)
@@ -227,7 +222,8 @@ raw *:*:{
   ; RAW 352 naka^ #oslo.no iron 172.16.164.2 *.undernet.org MrIron H*@ 3 MrIron
   ; /who list
   elseif ($event = 352) {
-    if ( %checkforircop ) && ( $iif($chr(42) isin $7,true,false) = true ) { echo 3 -at %checkforircop Fant en ircop: nick ( $6 ) }
+    ; TODO merge this into custom $ial
+    if ( %checkforircop ) && ( $iif($chr(42) isin $7,true,false) = true ) { echo 3 -at %checkforircop Ircop found: nick ( $6 ) | return }
     else { return }
   }
 
@@ -262,7 +258,7 @@ raw *:*:{
       halt
     }
   }
-  ;writeini -n $+(ial\,$network,.ini) $3 $remove(%nx.ial.tmpnick,~&@%+) v
+
   ; End of /NAMES list
   elseif ($event = 366) { 
     if ( %nx.ial.update ) { echo -st Saved userlist in $2 with %nx.ial.sumnicks nicks | unset %nx.ial.sumnicks %nx.ial.update | halt }
@@ -274,13 +270,9 @@ raw *:*:{
   ; end of /links list
   elseif ($event = 365) { return }
 
-  ; MOTD start
+  ; MOTD start - motd - end of motd
   elseif ($event = 375) { return }
-
-  ; MOTD
   elseif ($event = 372) { return }
-
-  ; end of motd
   elseif ($event = 376) { return }
 
   ; You are now an IRC operator
@@ -295,7 +287,7 @@ raw *:*:{
   ; is now your displayed host
   elseif ($event = 396) { return }
 
-  ; no souch nick ( RAW 401 naka idlerpg No such nick )
+  ; no souch nick ( $2 )
   elseif ($event = 401) { return }
 
   ; No such channel
@@ -314,11 +306,9 @@ raw *:*:{
   elseif ($event = 442) { return }
 
   ; Invite only channel
-  if ( $event = 473 ) {
-    if ( $istok(%nx.network_ $+ $network $+ _operchans,$2,32) ) { .msg uworld invite $2 $me }
-  }
+  elseif ( $event = 473 ) { if ( $nx.db(settings,operchans,$network)) { .msg uworld invite $2 $me } | return }
 
-  ; invalid password (from znc)
+  ; invalid password (from znc or works this on server too ?)
   elseif ($event = 464) { return }
 
   ; Cannot join channel
