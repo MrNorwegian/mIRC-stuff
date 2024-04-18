@@ -23,13 +23,13 @@ dialog nx.dialog.cc {
   check "&Moderated +m", 152, 20 320 140 18, tab 100
   check "&Private +p", 154, 20 340 140 18, tab 100
   check "&Secret +s", 156, 20 360 140 18, tab 100
-  check "&No CTCP +c", 162, 20 420 140 18, tab 100
+  check "&No CTCP +C", 162, 20 420 140 18, tab 100
   check "&No Colors +c", 164, 20 440 140 18, tab 100
   check "&Oper only +O", 174, 250 240 140 18, tab 100
   check "&No knock +K", 185, 250 440 140 18, tab 100
   check "&SSL only +z", 147, 250 260 140 18, tab 100
-  check "&Link to +L", 172, 250 220 70 18, disable tab 100
-  edit "Link to", 173, 340 220 100 20, disable tab 100 limit 200
+  check "&Link to +L", 172, 250 220 70 18, tab 100
+  edit "Link to", 173, 340 220 100 20, tab 100 limit 200
   box "Default channel modes", 140, 11 200 220 363, tab 100
   check "&Delayed join +D", 160, 20 400 140 18, tab 100
   check "&AuthModerated +M", 177, 250 320 140 18, tab 100
@@ -43,12 +43,12 @@ dialog nx.dialog.cc {
   check "&Strip Colors +S", 176, 250 300 140 18, tab 100
   check "&Reg only +R", 175, 250 280 140 18, tab 100
   check "&Filter +G", 178, 250 340 140 18, tab 100
-  check "&Flood Protection +f", 182, 250 400 140 18, disable tab 100
-  check "&Flood Profile +F", 180, 250 380 140 18, disable tab 100
+  check "&Flood Protection +f", 182, 250 400 140 18, tab 100
+  check "&Flood Profile +F", 180, 250 380 140 18, tab 100
   check "&No Nickchanges +N", 184, 250 420 140 18, tab 100
   check "&No Invite +V", 186, 250 460 140 18, tab 100
   check "&No Kicks +Q", 188, 250 480 140 18, tab 100
-  check "&History +H", 190, 250 520 140 18, disable tab 100
+  check "&History +H", 190, 250 520 140 18, tab 100
   check "&Is Secure +Z", 192, 250 540 140 18, tab 100
   tab "Bans", 200
   list 220, 11 33 455 292, tab 200 size
@@ -96,6 +96,7 @@ on 1:dialog:nx.dialog.cc:*:*: {
     if ($did = 101) {
       if ( %nx.cc.set.topic ) { topic %nx.cc.chan %nx.cc.set.topic }
       if ( %nx.cc.setmode ) { mode %nx.cc.chan %nx.cc.setmode }
+
       unset %nx.cc.set.topic %nx.cc.setmode %nx.cc.chan %nx.cc.ismode
     }
     if ( $nx.cc.chk.id($did) ) { 
@@ -116,7 +117,7 @@ on 1:dialog:nx.dialog.cc:*:*: {
     else { dialogecho }
   }
   elseif ( $devent = active ) { dialogecho }
-  elseif ( $devent = close ) { dialogecho | unset %nx.cc.chan %nx.cc.dname %nx.cc.set.topic %nx.cc.setmode %nx.cc.ismode %nx.cc.ismode.* %nx.cc.currmode }
+  elseif ( $devent = close ) { dialogecho | unset %nx.cc.chan %nx.cc.dname %nx.cc.set.topic %nx.cc.setmode %nx.cc.ismode %nx.cc.ismode.* %nx.cc.currmode %nx.cc.chanmodes }
   elseif ( $devent = mouse ) { return }
   else { dialogecho }
 }
@@ -131,22 +132,40 @@ alias cc.refmodes {
   if ( $dialog(nx.dialog.cc) ) && ( %nx.cc.chan ischan ) {
     ; Using gettok to get only modes ( +stnlk 123 key )
     ; In this case +b isnot tested on ircu and everything else in unreal
-    set %nx.cc.currmode $gettok($mid($chan(%nx.cc.chan).mode,2,$len($chanmodes)),1,32)
+    set %nx.cc.chanmodes $gettok($chanmodes,-1,44)
+    set %nx.cc.currmode $gettok($mid($chan(%nx.cc.chan).mode,2,$len(%nx.cc.chanmodes)),1,32)
+
+    ; TODO if gettok except be,k,l (I also ? invites)
+    ; var %nx.cc.c1 beI (except be, bans and excepts are tested another alias)
+    ; var %nx.cc.c2 fkL (except k, key are tested another alias)
+    ; var %nx.cc.c3 lFH (except l, limit are tested another alias)
+
+    var %nx.cc.cm tnimpsrDcClkLOzRSMGFfNKVQPHZ
+    var %nx.cc.cmlen $len(%nx.cc.cm)
+    while (%nx.cc.cmlen) {
+      if ( $mid(%nx.cc.cm,%nx.cc.cmlen,1) !isincs %nx.cc.chanmodes ) { did -b %nx.cc.dname $nx.cc.chk.id($mid(%nx.cc.cm,%nx.cc.cmlen,1)) }
+      dec %nx.cc.cmlen
+    }
+
     var %nx.cc.i $len(%nx.cc.currmode)
     while (%nx.cc.i) { 
       ; %nx.cc.nm is nextmode to check
       var %nx.cc.nm $mid(%nx.cc.currmode,%nx.cc.i,1)
       ; check if a mode is set and mark it, also save it for later
       if ( $nx.cc.chk.id(%nx.cc.nm) ) { set %nx.cc.ismode $addtok(%nx.cc.ismode,%nx.cc.nm,32) | did -c %nx.cc.dname $nx.cc.chk.id(%nx.cc.nm) }
-      elseif (l isincs %nx.cc.nm) {
+      elseif (l isincs %nx.cc.currmode) {
+        echo limit (l isincs %nx.cc.currmode)
+        did -e %nx.cc.dname $nx.cc.chk.id(l) 
         set %nx.cc.ismode.l $chan(%nx.cc.chan).limit
-        did -c %nx.cc.dname %nx.cc.nm 
-        did -ae %nx.cc.dname $calc(%nx.cc.nm +1) $chan(%nx.cc.chan).limit
+        did -c %nx.cc.dname $nx.cc.chk.id(%nx.cc.nm) 
+        did -ae %nx.cc.dname $calc($nx.cc.chk.id(l)  +1) $chan(%nx.cc.chan).limit
       }
-      elseif (k isincs %x) {
+      elseif (k isincs %nx.cc.currmode) {
+        echo key (k isincs %nx.cc.currmode)
+        did -e %nx.cc.dname $nx.cc.chk.id(k) 
         set %nx.cc.ismode.k $chan(%nx.cc.chan).limit $chan(%nx.cc.chan).key
-        did -c %nx.cc.dname %nx.cc.nm
-        did -ae %nx.cc.dname $calc(%nx.cc.nm +1) $chan(%nx.cc.chan).key
+        did -c %nx.cc.dname $nx.cc.chk.id(k) 
+        did -ae %nx.cc.dname $calc($nx.cc.chk.id(k) +1) $chan(%nx.cc.chan).key
       }
       else { halt }
       dec %nx.cc.i
@@ -240,4 +259,3 @@ alias nx.cc.chk.id {
   if ( $1 isincs Z ) { return 192 }
   if ( $1 == 192 ) { return Z }
 }
-
