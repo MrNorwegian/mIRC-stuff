@@ -83,6 +83,14 @@ alias nx.massmode {
   else { echo -at Usage /massmode op\deop\voice\devoice #chan nick nick1 nick2 }
 }
 
+alias nx.echo.notice { 
+  var %nx.tnnick $+($chr(60),$1,$chr(62))
+  echo 40 -at %nx.tnnick $2-
+}
+alias nx.echo.snotice {
+  if ( $active = Status Window ) { echo 5 -st $1- | halt }
+  if ($window($+(@,$network,_,$cid,_,status))) { echo 5 -t $+(@,$network,_,$cid,_,status) $1- }
+}
 alias nx.opmode {
   ; Placeholder for custom anti excess flood stuff
   if ($istok(%nx.supnet.opmode,$network,32)) { opmode $1- }
@@ -116,6 +124,33 @@ alias nx.me {
 alias nx.ctcp {
   ; Placeholder for custom anti excess flood stuff
   ctcp $1-
+}
+
+alias nx.perform {
+  ; Placeholder for custom perform stuff
+}
+
+alias nx.db {
+  ; $nx.db(read,chans,$network) returns result from ini
+  ; later i wil use hashtables as db and readini as "long storage" 
+  if ( $1 = read ) {
+    if ( $3 ) {
+      if ( $1 = settings ) { return $readini(nx.settings.ini,$2,$3) }
+      if ( $1 = ial ) { return $readini($+(ial\,$network,_,$cid,.ini),$2,$3) }
+    }
+  }
+  ; nx.db write chans $network stuff
+  elseif ( $1 = write ) {
+    if ( $5 ) {
+      if ( $2 = settings ) { writeini nx.settings.ini $3 $4 $5- }
+      if ( $2 = ial ) {  writeini -n $+(ial\,$network,_,$cid,.ini) $3 $4 $5- }
+    }
+  }
+  ; nx.db rem settings <opt> <opt2>
+  elseif ( $1 rem ) {
+      if ( $2 = settings ) { remini nx.settings.ini $iif($3,$3) $iif($4,$4) }
+      if ( $2 = ial ) { remini -n $+(ial\,$network,_,$cid,.ini) $iif($3,$3) $iif($4,$4) }
+  }
 }
 ; This alias is not finished, +a modes cannot be checked with $nick()
 ; I need to use a own hash table for this, or use $ialchan() and $ialchan().mode
