@@ -1,7 +1,7 @@
 raw *:*:{
   ; ack
   if ($event = ack) { return }
-  if ($event = cap) { return }
+  elseif ($event = cap) { return }
 
   ; batch +eJ2YePPoPApi8e95KGaJfU chathistory #opers ; batch -eJ2YePPoPApi8e95KGaJfU
   elseif ($event = batch) { return }
@@ -16,23 +16,25 @@ raw *:*:{
   elseif ($event = 002) { 
     if ( $6-7 = running version ) { 
       if ( UnrealIRCd isin $8 ) { 
-        if ( $istok(%nx.supnet.unreal,$network,32) ) { return }
-        else { set %nx.supnet.unreal $addtok(%nx.supnet.unreal,$network,32) | set %nx.supnet.samode $addtok(%nx.supnet.samode,$network,32) | return }
+        if ( $istok($nx.db(read,settings,ircd,unreal),$network,32) ) && ( $istok($nx.db(read,settings,ircd,samode),$network,32) ) { return }
+        else { nx.db write settings ircd unreal $addtok($nx.db(read,settings,ircd,unreal),$network,32) | nx.db write settings ircd samode $addtok($nx.db(read,settings,ircd,samode),$network,32) | return }
       }
-      elseif ( u2.10.12 isin $8 ) { 
-        if ( $istok(%nx.supnet.ircu2,$network,32) ) { return }
-        else { set %nx.supnet.ircu2 $addtok(%nx.supnet.ircu2,$network,32) | set %nx.supnet.opmode $addtok(%nx.supnet.opmode,$network,32) | return }
+      elseif ( u2.10.12 isin $8 ) && ( snircd !isin $8 ) { 
+        if ( $istok($nx.db(read,settings,ircd,ircu2),$network,32) ) && ( $istok($nx.db(read,settings,ircd,opmode),$network,32) ) { return }
+        else { nx.db write settings ircd ircu2 $addtok($nx.db(read,settings,ircd,ircu2),$network,32) | nx.db write settings ircd opmode $addtok($nx.db(read,settings,ircd,opmode),$network,32) | return }
       }
-      elseif ( snircdTODO isin $8 ) { 
-        if ( $istok(%nx.supnet.snircd,$network,32) ) { return }
-        else { set %nx.supnet.snircd $addtok(%nx.supnet.snircd,$network,32) | set %nx.supnet.opmode $addtok(%nx.supnet.opmode,$network,32) | return }
+      elseif ( snircd isin $8 ) { 
+        if ( $istok($nx.db(read,settings,ircd,snircd),$network,32) ) && ( $istok($nx.db(read,settings,ircd,opmode),$network,32) ) { return }
+        else { nx.db write settings ircd snircd $addtok($nx.db(read,settings,ircd,snircd),$network,32) | nx.db write settings ircd opmode $addtok($nx.db(read,settings,ircd,opmode),$network,32) | return }
       }
       ; need to confirm samode is right for ratbox, also efnet runs ratbox and something else?
       elseif ( ircd-ratbox-3 isin $8 ) { 
-        if ( $istok(%nx.supnet.ratbox,$network,32) ) { return }
-        else { set %nx.supnet.ratbox $addtok(%nx.supnet.ratbox,$network,32) | set %nx.supnet.samode $addtok(%nx.supnet.samode,$network,32) | return }
+        ; && ( $istok($nx.db(read,settings,ircd,SOMEMODE),$network,32) )
+        if ( $istok($nx.db(read,settings,ircd,ratbox),$network,32) ) { return }
+        else { nx.db write settings ircd ratbox $addtok($nx.db(read,settings,ircd,ratbox),$network,32) | ;nx.db write settings ircd SOMEMODE $addtok($nx.db(read,settings,ircd,SOMEMODE),$network,32) | return }
       }
-      ; add bircd,snircd,inspircd
+      ; add bircd,inspircd,and others
+      else { return }
     }
   }
 
@@ -293,6 +295,9 @@ raw *:*:{
   ; No such channel
   elseif ($event = 403) { return }
 
+  ; Cannot send to channel
+  elseif ($event = 404) { return }
+
   ; Unknown command
   elseif ($event = 421) { return }
 
@@ -302,13 +307,19 @@ raw *:*:{
   ; Nickname is already in use
   elseif ($event = 433) { return }
 
-  ; Youre not on that channel
+  ; Nick\Channel is temporarily unavailable
+  elseif ($event = 437) { return }
+
+  ; You're not on that channel
   elseif ($event = 442) { return }
+
+  ; unkonwn mode ( nick N is unknown mode char to me )
+  elseif ($event = 472) { return }
 
   ; Invite only channel
   elseif ( $event = 473 ) { if ( $nx.db(settings,operchans,$network)) { .msg uworld invite $2 $me } | return }
 
-  ; invalid password (from znc or works this on server too ?)
+  ; invalid password
   elseif ($event = 464) { return }
 
   ; Cannot join channel
