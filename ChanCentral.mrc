@@ -49,7 +49,7 @@ dialog nx.dialog.cc {
   check "&No Invite +V", 177, 250 460 140 18, disable tab 100
   check "&No Kicks +Q", 178, 250 480 140 18, disable tab 100
   check "&History +H", 169, 250 360 90 18, disable tab 100
-  check "&Is Secure +Z", 167, 250 320 140 18, disable tab 100
+  check "&No notice (unreal)", 167, 250 320 140 18, disable tab 100
   check "&No Part msg +P ((ircu)", 181, 480 220 140 18, disable tab 100
   check "&No part\quit +u (snircd)", 183, 480 260 140 18, disable tab 100
   box "Other modes", 160, 240 200 220 363, tab 100
@@ -154,7 +154,7 @@ alias cc.refmodes {
     var %nx.cc.cm tniklmps
     var %nx.cc.cmircu rDcCPM
     var %nx.cc.cmsnircd rDucCNMT
-    var %nx.cc.cmunreal LOzRSGFfNKVQHZP
+    var %nx.cc.cmunreal zCDGKMNOPQRSTV
     var %nx.cc.cmratbox S
 
     ; Loop thru common chanmodes
@@ -248,8 +248,8 @@ alias nx.cc.chk.id {
   if ( $1 == 165 ) { return R }
   if ( $1 === S ) { return 166 }
   if ( $1 == 166 ) { return S }
-  if ( $1 === Z ) { return 167 }
-  if ( $1 == 167 ) { return Z }
+  if ( $1 === T ) && ( %nx.cc.sv = unreal ) { return 167 }
+  if ( $1 == 167 ) { return T }
   if ( $1 === G ) { return 168 }
   if ( $1 == 168 ) { return G }
   if ( $1 === H ) { return 169 }
@@ -285,6 +285,7 @@ alias nx.cc.chk.id {
   if ( $1 == 187 ) { return N }
   if ( $1 === M ) { return 188 }
   if ( $1 == 188 ) { return M }
-  if ( $1 === T ) { return 189 }
+  if ( $1 === T ) && ( %nx.cc.sv = snircd ) { return 189 }
   if ( $1 == 189 ) { return T }
+
 }
