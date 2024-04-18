@@ -51,7 +51,7 @@ dialog nx.dialog.cc {
   check "&History +H", 169, 250 360 90 18, disable tab 100
   check "&Is Secure +Z", 167, 250 320 140 18, disable tab 100
   check "&No Part msg +P ((ircu)", 181, 480 220 140 18, disable tab 100
-  check "&ModeU +u (snircd)", 183, 480 260 140 18, disable tab 100
+  check "&No part\quit +u (snircd)", 183, 480 260 140 18, disable tab 100
   box "Other modes", 160, 240 200 220 363, tab 100
   edit "", 170, 345 360 100 20, disable tab 100 limit 200
   button "Apply", 103, 420 570 80 24, tab 100
@@ -78,8 +78,9 @@ dialog nx.dialog.cc {
   button "&Cancel", 102, 600 570 80 24, cancel
   edit "", 172, 345 379 100 20, disable limit 200
   edit "", 174, 345 398 100 20, disable limit 200
-  check "&ModeT +T (snircd)", 189, 480 380 140 18, disable
+  check "&No multi msg +T (snircd)", 189, 480 380 140 18, disable
 }
+
 on 1:dialog:nx.dialog.cc:*:*: {
   if ( $devent = init ) { 
     set %nx.cc.dname $dname
@@ -105,10 +106,15 @@ on 1:dialog:nx.dialog.cc:*:*: {
       if ( %nx.cc.setmode ) { mode %nx.cc.chan %nx.cc.setmode }
       if ( %nx.cc.editbox.setmode ) { mode %nx.cc.chan %nx.cc.editbox.setmode }
     }
+    ; TODO fix mode +k and +l 
+    ; when /mode $remove kl and set them one by one or rearange them
+    ; $did(%nx.cc.dname,$calc($nx.cc.chk.id(k) +1)) $did(%nx.cc.dname,$calc($nx.cc.chk.id(l) +1))
+
+    ; BUG: check if $modespl is reached, and if use /%nx.cc.setmode2 ? dunno yet
     elseif ( $nx.cc.chk.id($did) ) { 
       set %nx.cc.chk.mode $v1
       var %nx.cc.chk.id $did
-      if ( $istok(t n i m p s r D C c M N P u T Q V K G Z S O z,%nx.cc.chk.mode,32) = $true ) { 
+      if ( $istok(l k t n i m p s r D C c M N P u T Q V K G Z S O z,%nx.cc.chk.mode,32) = $true ) { 
         ; mode is set and checked
         if ( $istok(%nx.cc.ismode,%nx.cc.chk.mode,32) = $true ) && ( $did(%nx.cc.chk.id).state = 1 ) { set %nx.cc.setmode $remtok(%nx.cc.setmode,$+($chr(45),%nx.cc.chk.mode),32) }
         ; mode is set and unchecked
@@ -138,9 +144,8 @@ alias cc.refmodes {
   if ( $dialog(nx.dialog.cc) ) && ( %nx.cc.chan ischan ) {
     ; Using gettok to get only modes ( +stnlk 123 key )
     ; In this case +b isnot tested on ircu and everything else in unreal
-    set %nx.cc.chanmodes $gettok($chanmodes,-1,44)
+    set %nx.cc.chanmodes $+($gettok($chanmodes,-1,44),$iif($gettok($chanmodes,3,44),$v1),$iif($gettok($chanmodes,2,44),$v1))
     set %nx.cc.currmode $gettok($mid($chan(%nx.cc.chan).mode,2,$len(%nx.cc.chanmodes)),1,32)
-
     ; TODO if gettok except be,k,l (I also ? invites)
     ; var %nx.cc.c1 beI (except be, bans and excepts are tested another alias)
     ; var %nx.cc.c2 fkL (except k, key are tested another alias)
@@ -158,7 +163,15 @@ alias cc.refmodes {
       var %nx.cc.cmid $nx.cc.chk.id($mid(%nx.cc.cm,%nx.cc.cmlen,1))
       if ( $mid(%nx.cc.cm,%nx.cc.cmlen,1) isincs %nx.cc.chanmodes ) { 
         did -e %nx.cc.dname %nx.cc.cmid
-        if ( $mid(%nx.cc.cm,%nx.cc.cmlen,1) isincs %nx.cc.currmode ) { set %nx.cc.ismode $addtok(%nx.cc.ismode,$mid(%nx.cc.cm,%nx.cc.cmlen,1),32) | did -c %nx.cc.dname %nx.cc.cmid }
+        if ( $mid(%nx.cc.cm,%nx.cc.cmlen,1) = l ) { did -e %nx.cc.dname $calc(%nx.cc.cmid +1) }
+        if ( $mid(%nx.cc.cm,%nx.cc.cmlen,1) = k ) { did -e %nx.cc.dname $calc(%nx.cc.cmid +1) }
+
+        if ( $mid(%nx.cc.cm,%nx.cc.cmlen,1) isincs %nx.cc.currmode ) { 
+          if ( $mid(%nx.cc.cm,%nx.cc.cmlen,1) = l ) { set %nx.cc.ismode.l $chan(%nx.cc.chan).limit | did -ae %nx.cc.dname $calc(%nx.cc.cmid +1) $chan(%nx.cc.chan).limit }
+          elseif ( $mid(%nx.cc.cm,%nx.cc.cmlen,1) = k ) { set %nx.cc.ismode.k $chan(%nx.cc.chan).key | did -ae %nx.cc.dname $calc(%nx.cc.cmid +1) $chan(%nx.cc.chan).key }
+          else { set %nx.cc.ismode $addtok(%nx.cc.ismode,$mid(%nx.cc.cm,%nx.cc.cmlen,1),32) }
+          did -c %nx.cc.dname %nx.cc.cmid 
+        }
       }
       dec %nx.cc.cmlen
     }
