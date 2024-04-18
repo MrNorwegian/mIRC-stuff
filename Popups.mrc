@@ -1,329 +1,128 @@
-raw *:*:{
-  ; ack
-  if ($event = ack) { return }
-  elseif ($event = cap) { return }
-
-  ; batch +eJ2YePPoPApi8e95KGaJfU chathistory #opers ; batch -eJ2YePPoPApi8e95KGaJfU
-  elseif ($event = batch) { return }
-
-  ; chghost naka hostname.info
-  elseif ($event = chghost) { return }
-
-  ; Welcome
-  elseif ($event = 001) { return }
-
-  ; your host
-  elseif ($event = 002) { 
-    if ( $6-7 = running version ) { 
-      if ( UnrealIRCd isin $8 ) { 
-        if ( $istok($nx.db(read,settings,ircd,unreal),$network,32) ) && ( $istok($nx.db(read,settings,ircd,samode),$network,32) ) { return }
-        else { nx.db write settings ircd unreal $addtok($nx.db(read,settings,ircd,unreal),$network,32) | nx.db write settings ircd samode $addtok($nx.db(read,settings,ircd,samode),$network,32) | return }
-      }
-      elseif ( u2.10.12 isin $8 ) && ( snircd !isin $8 ) { 
-        if ( $istok($nx.db(read,settings,ircd,ircu2),$network,32) ) && ( $istok($nx.db(read,settings,ircd,opmode),$network,32) ) { return }
-        else { nx.db write settings ircd ircu2 $addtok($nx.db(read,settings,ircd,ircu2),$network,32) | nx.db write settings ircd opmode $addtok($nx.db(read,settings,ircd,opmode),$network,32) | return }
-      }
-      elseif ( snircd isin $8 ) { 
-        if ( $istok($nx.db(read,settings,ircd,snircd),$network,32) ) && ( $istok($nx.db(read,settings,ircd,opmode),$network,32) ) { return }
-        else { nx.db write settings ircd snircd $addtok($nx.db(read,settings,ircd,snircd),$network,32) | nx.db write settings ircd opmode $addtok($nx.db(read,settings,ircd,opmode),$network,32) | return }
-      }
-      ; need to confirm samode is right for ratbox, also efnet runs ratbox and something else?
-      elseif ( ircd-ratbox-3 isin $8 ) { 
-        ; && ( $istok($nx.db(read,settings,ircd,SOMEMODE),$network,32) )
-        if ( $istok($nx.db(read,settings,ircd,ratbox),$network,32) ) { return }
-        else { nx.db write settings ircd ratbox $addtok($nx.db(read,settings,ircd,ratbox),$network,32) | ;nx.db write settings ircd SOMEMODE $addtok($nx.db(read,settings,ircd,SOMEMODE),$network,32) | return }
-      }
-      ; add bircd,inspircd,and others
-      else { return }
-    }
+; Idea
+; Menu server
+; Dialog: server type (cache from first login ??)
+; Dialog: oper(+uworld\operserv),services,botnet(nicks)
+menu Query {
+  Info:/uwho $$1
+  Whois:/whois $1 $1
+  Query:/query $$1
+  -
+  Ignore:/ignore $$1 1 | /closemsg $$1
+  -
+  CTCP
+  .Ping:/ctcp $$1 ping
+  .Time:/ctcp $$1 time
+  .Version:/ctcp $$1 version
+  DCC
+  .Send:/dcc send $$1
+  .Chat:/dcc chat $$1
+  -
+  Close:/closemsg $$1
+}
+Menu Channel {
+  Channel Modes:/channel
+  -
+  Mass
+  .voice:{ massv2 $chan voice $iif($?"Enter a number nothing for all" > 0,$v1,$nick($chan,0)) }
+  .devoice:{ massv2 $chan devoice $iif($?"Enter a number nothing for all" > 0,$v1,$nick($chan,0)) }
+  -
+  Update:{
+    set -u2 %nx.ial.update true
+    remini $+(ial\,$network,.ini) $chan
+    names $chan
   }
+  -
+  Rejoin:/hop $1
+  Part:/part $chan
+}
+menu Status {
+  Lusers:/lusers
+  Uptime:/stats u
+  Stats
+  .Operline:{ stats o }
+  .Connectline:{ stats c }
+  .Features:{ stats f }
+  -
+  Connect:/server $serverip
+  Disconnect:/disconnect
+  Reconnect:/server $serverip
+  - 
+  ; Oper:/oper $$1 $$?="Password"
+  - 
+  ; Services:/services
+  ; Botnet:/botnet
+  - 
+  Quit:/quit $$?="Reason"
+  -
+  Debug:{ debug <@window> | window -e $+(@,$network,_,$cid,_,raw) | debug $+(@,$network,_,$cid,_,raw) }
+  DebugOff:{ debug off }
 
-  ; Server created - Server info - modes supported
-  elseif ($event = 003) { return }
-  elseif ($event = 004) { return }
-  elseif ($event = 005) { return }
-
-  ; /map return (unrealircd)
-  ; /map sumary (last line in /map) (unrealircd)
-  ; End of /map (unrealircd)
-  elseif ($event = 006) { nx.echo.snotice $2- | halt }
-  elseif ($event = 018) { nx.echo.snotice $2- | halt } 
-  elseif ($event = 007) { nx.echo.snotice $2- | halt } 
-
-  ; /map return (ircu)
-  ; End of /map (ircu)
-  elseif ($event = 015) { nx.echo.snotice $2- | halt } 
-  elseif ($event = 017) { nx.echo.snotice $2- | halt } 
-
-  ; stats l
-  elseif ($event = 211) { nx.echo.snotice $2- | halt }
-
-  ; stats m
-  elseif ($event = 212) { nx.echo.snotice $2- | halt }
-
-  ; Stats c (ircu)
-  elseif ($event = 213) { nx.echo.snotice $2- | halt }
-
-  ; stats i
-  elseif ($event = 215) { nx.echo.snotice $2- | halt }
-
-  ; stats p
-  elseif ($event = 217) { nx.echo.snotice $2- | halt }
-
-  ; stats y
-  elseif ($event = 218) { nx.echo.snotice $2- | halt }
-
-  ; End of /stats
-  elseif ($event = 219) { nx.echo.snotice $2- | halt }
-
-  ; stats v
-  elseif ($event = 236) { nx.echo.snotice $2- | halt }
-
-  ; Stats f
-  elseif ($event = 238) { nx.echo.snotice $2- | halt }
-
-  ; Server up
-  elseif ($event = 242) { nx.echo.snotice $2- | halt }
-
-  ; stats o
-  elseif ($event = 243) { nx.echo.snotice $2- | halt }
-
-  ; Stats h
-  elseif ($event = 244) { nx.echo.snotice $2- | halt }
-
-  ; stats t
-  elseif ($event = 249) { nx.echo.snotice $2- | halt }
-
-  ; Permission denied
-  elseif ($event = 481) { return }
-
-  ; Higest connection count
-  elseif ($event = 250) { return }
-
-  ; serverinfo ( ircu)
-  ; There are 1 users and 69 invisible on 3 servers
-  ; 5 operator(s) online
-  ; 2 unknown connection(s)
-  ; 62 channels formed
-  ; I have 65 clients and 2 servers
-  elseif ($event = 251) { return }
-  elseif ($event = 252) { return }
-  elseif ($event = 253) { return }
-  elseif ($event = 254) { return }
-  elseif ($event = 255) { return }
-  ; Current local  users: 65  Max: 93
-  ; Current global users: 70  Max: 1540
-  elseif ($event = 265) { return }
-  elseif ($event = 266) { return }
-
-  ; Server load is temporarily too heavy
-  elseif ($event = 263) { return }
-
-  ; marked as away - no longer marked as away
-  elseif ($event = 306) { return }
-  elseif ($event = 305) { return }
-
-  ; Channel mode is
-  elseif ($event = 324) { return }
-
-  ; Channel mode set timestap ????
-  elseif ($event = 329) { return }
-
-  ; WHOIS
-  ; nick is ident@host * realname
-  elseif ($event = 311) { 
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $chr(45) | echo %nx.echo.color -at $2 is $4- | halt }
-    else { return }
-  }
-  ; is identified for this nick
-  elseif ($event = 307) { 
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 on $3- | halt }
-    else { return }
-  }
-  ; nick is using modes
-  elseif ($event = 379) { 
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt }
-    else { return }
-  }
-  ; nick is connecting from
-  elseif ($event = 378) { 
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt }
-    else { return }
-  }
-  ; whois nick is on channel
-  elseif ($event = 319) { 
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 on $3- | halt }
-    else { return }
-  }
-  ; whois nick using server
-  elseif ($event = 312) { 
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 using $3- | halt }
-    else { return }
-  }
-  ; nick is an IRC opetator
-  elseif ($event = 313) { 
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt }
-    else { return }
-  }
-  ; nick is using Secure Connection
-  elseif ($event = 671) {
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt }
-    else { return }
-  }
-  ; logged in as
-  elseif ($event = 330) {
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 is logged in as $3 | halt }
-    else { return }
-  }
-  ; nick is using ip with a reputation 
-  elseif ($event = 320) {
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt }
-    else { return }
-  }
-  ; nick has client certificate
-  elseif ($event = 276) {
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt }
-    else { return }
-  }
-  ; using host
-  elseif ($event = 338) {
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 is actually $3 $+($chr(91),$4,$chr(93)) | halt }
-    else { return }
-  }
-  ; idle time
-  elseif ($event = 317) {
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 has been idle for $+($duration($3),$chr(44)) signed on $4 | halt }
-    else { return }
-  }
-  ; End of whois
-  elseif ($event = 318) { 
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | echo %nx.echo.color -at $chr(45) | halt }
-    else { return }
-  }
-
-  ; end of /who
-  elseif ($event = 315) { return }
-
-  ; /list - end of /list
-  elseif ($event = 322) { return }
-  elseif ($event = 323) { 
-    ; TODO merge this into custom $ial
-    if ( %checkforircop ) { echo 3 -at %checkforircop Finished scanning for Ircops. | unset %checkforircop }
-    return
-  }
-
-  ; topic - topic created
-  elseif ($event = 332) { return }
-  elseif ($event = 333) { return }
-
-  ; server info (OS etc)
-  ; RAW 351 naka UnrealIRCd-6.1.4. Champingvogna.da9.no Fhn6OoErmM [Linux IrcStuff 6.1.0-17-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.69-1 (2023-12-30) x86_64=6100]
-  elseif ($event = 351) { return }
-  ; This is gonna be a part of my custom $ial 
-  ; RAW 352 naka #valhalla UWorld H*@diw UWorld@UWorld.deepnet.chat :3 UWorld
-  ; RAW 352 naka^ #oslo.no iron 172.16.164.2 *.undernet.org MrIron H*@ 3 MrIron
-  ; /who list
-  elseif ($event = 352) {
-    ; TODO merge this into custom $ial
-    if ( %checkforircop ) && ( $iif($chr(42) isin $7,true,false) = true ) { echo 3 -at %checkforircop Ircop found: nick ( $6 ) | return }
-    else { return }
-  }
-
-  ; RAW 353 MYNICK = #CHANNEL nick1!ident@host +nick2!ident@host @nick3!ident@host ~@nick3!ident@host @+nick3!ident@host 
-  ; /NAMES list
-  ; &nakauser!nakauser@10.13.37.31
-  ; +Biggs!Biggs@172.19.211.133
-  ; @%+Cade!Cade@172.19.215.245
-  ; ~@%Cohbert!Cohbert@172.19.100.185/
-  elseif ($event = 353) { 
-    if ( %nx.ial.update ) { 
-      var %nx.ial.n 4
-      while ($gettok($1-,%nx.ial.n,32)) {
-        ; $remove is used to remove the [ from the nick because of bug
-        var %nx.ial.tmpnick $remove($gettok($gettok($1-,%nx.ial.n,32),1,33),$chr(91)), %nx.ial.mi 1
-        if ( $readini($+(ial\,$network,_,$cid,.ini),$3,%nx.ial.tmpnick) ) { remini -n $+(ial\,$network,_,$cid,.ini) $3 %nx.ial.tmpnick }
-        while (%nx.ial.mi) {
-          if ($mid(%nx.ial.tmpnick,%nx.ial.mi,1) = ~) { var %nx.ial.tmpmode $addtok(%nx.ial.tmpmode,q,46) | goto nx.ial.nextmode }
-          elseif ($mid(%nx.ial.tmpnick,%nx.ial.mi,1) = &) { var %nx.ial.tmpmode $addtok(%nx.ial.tmpmode,a,46) | goto nx.ial.nextmode }
-          elseif ($mid(%nx.ial.tmpnick,%nx.ial.mi,1) = @) { var %nx.ial.tmpmode $addtok(%nx.ial.tmpmode,o,46) | goto nx.ial.nextmode }
-          elseif ($mid(%nx.ial.tmpnick,%nx.ial.mi,1) = %) { var %nx.ial.tmpmode $addtok(%nx.ial.tmpmode,h,46) | goto nx.ial.nextmode }
-          elseif ($mid(%nx.ial.tmpnick,%nx.ial.mi,1) = +) { var %nx.ial.tmpmode $addtok(%nx.ial.tmpmode,v,46) | goto nx.ial.nextmode }
-          elseif ( %nx.ial.tmpmode ) { writeini -n $+(ial\,$network,_,$cid,.ini) $3 $mid(%nx.ial.tmpnick,%nx.ial.mi,$len(%nx.ial.tmpnick)) %nx.ial.tmpmode | unset %nx.ial.tmpmode | goto nx.ial.nextnick }
-          else { writeini -n $+(ial\,$network,_,$cid,.ini) $3 %nx.ial.tmpnick r | goto nx.ial.nextnick }
-          :nx.ial.nextmode
-          inc %nx.ial.mi
-        }
-        :nx.ial.nextnick
-        inc %nx.ial.n
-      }
-      set %nx.ial.sumnicks $calc($numtok($4-,32) + %nx.ial.sumnicks)
-      halt
-    }
-  }
-
-  ; End of /NAMES list
-  elseif ($event = 366) { 
-    if ( %nx.ial.update ) { echo -st Saved userlist in $2 with %nx.ial.sumnicks nicks | unset %nx.ial.sumnicks %nx.ial.update | halt }
-    else { return }
-  }
-
-  ; /links list
-  elseif ($event = 364) { return }
-  ; end of /links list
-  elseif ($event = 365) { return }
-
-  ; MOTD start - motd - end of motd
-  elseif ($event = 375) { return }
-  elseif ($event = 372) { return }
-  elseif ($event = 376) { return }
-
-  ; You are now an IRC operator
-  elseif ($event = 381) { window -De $+(@,$network,_,$cid,_,status) | halt }
-
-  ; ircd.conf Rehashing
-  elseif ($event = 382) { nx.echo.snotice $1- | halt }
-
-  ; naka^ +bcdfkoqsBOS Server notice mask
-  elseif ($event = 8) { nx.echo.snotice $1- | halt }
-
-  ; is now your displayed host
-  elseif ($event = 396) { return }
-
-  ; no souch nick ( $2 )
-  elseif ($event = 401) { return }
-
-  ; No such channel
-  elseif ($event = 403) { return }
-
-  ; Cannot send to channel
-  elseif ($event = 404) { return }
-
-  ; Unknown command
-  elseif ($event = 421) { return }
-
-  ; MOTD file missing
-  elseif ($event = 422) { return }
-
-  ; Nickname is already in use
-  elseif ($event = 433) { return }
-
-  ; Nick\Channel is temporarily unavailable
-  elseif ($event = 437) { return }
-
-  ; You're not on that channel
-  elseif ($event = 442) { return }
-
-  ; unkonwn mode ( nick N is unknown mode char to me )
-  elseif ($event = 472) { return }
-
-  ; Invite only channel
-  elseif ( $event = 473 ) { if ( $nx.db(settings,operchans,$network)) { .msg uworld invite $2 $me } | return }
-
-  ; invalid password
-  elseif ($event = 464) { return }
-
-  ; Cannot join channel
-  elseif ($event = 520) { return }
-
-  else { decho RAW $event $1- }
+}
+menu Nicklist {
+  Info:/uwho $1
+  Whois:{ set %nx.echoactive.whois true | .timer_echoactive.whois 1 $numtok($1-,32) unset %nx.echoactive.whois | var %i $numtok($$1-,32) | while (%i) { nx.whois $gettok($$1-,%i,32) $gettok($$1-,%i,32) | dec %i } }
+  Query:{ var %i $numtok($$1-,32) | while (%i) { query $gettok($$1-,%i,32) | dec %i } }
+  -
+  Control
+  .Ignore:/ignore $$1 1
+  .Unignore:/ignore -r $$1 1
+  .-
+  .$iif(q isin $nickmode,Owner):{ nx.massmode owner $chan $$1- }
+  .$iif(q isin $nickmode,DeOwner):{ nx.massmode deowner $chan $$1- }
+  .$iif(a isin $nickmode,Admin):{ nx.massmode admin $chan $$1- }
+  .$iif(a isin $nickmode,DeAdmin):{ nx.massmode deadmin $chan $$1- }
+  .$iif(o isin $nickmode,Op):{ nx.massmode op $chan $$1- }
+  .$iif(o isin $nickmode,DeOp):{ nx.massmode deop $chan $$1- }
+  .$iif(h isin $nickmode,Halfop):{ nx.massmode halfop $chan $$1- }
+  .$iif(h isin $nickmode,Dehalfop):{ nx.massmode dehalfop $chan $$1- }
+  .$iif(v isin $nickmode,Voice):{ nx.massmode voice $chan $$1- }
+  .$iif(v isin $nickmode,Devoice):{ nx.massmode devoice $chan $$1- }
+  .-
+  ; TODO Kick + ban
+  .Kick:{ set %nx.masskick.reason $?"Reason or emtpy for default" | nx.masskick kick $chan $$1- }
+  .Ban:{ nx.massban ban $chan $$1- }
+  .Unban:{ nx.massban unban $chan $$1- }
+  .KickBan:{ set %nx.masskick.reason $?"Reason or emtpy for default" | nx.massban ban $chan $$1- | nx.masskick kick $chan $$1- }
+   $iif(o isin $usermode,IrcOP Control)
+  .$iif(q isin $nickmode,Owner):{ nx.massmode oper_owner $chan $$1- }
+  .$iif(q isin $nickmode,DeOwner):{ nx.massmode oper_deowner $chan $$1- }
+  .$iif(a isin $nickmode,Admin):{ nx.massmode oper_admin $chan $$1- }
+  .$iif(a isin $nickmode,DeAdmin):{ nx.massmode oper_deadmin $chan $$1- }
+  .$iif(o isin $nickmode,Op):{ nx.massmode oper_op $chan $$1- }
+  .$iif(o isin $nickmode,DeOp):{ nx.massmode oper_deop $chan $$1- }
+  .$iif(h isin $nickmode,Halfop):{ nx.massmode oper_halfop $chan $$1- }
+  .$iif(h isin $nickmode,Dehalfop):{ nx.massmode oper_dehalfop $chan $$1- }
+  .$iif(v isin $nickmode,Voice):{ nx.massmode oper_voice $chan $$1- }
+  .$iif(v isin $nickmode,Devoice):{ nx.massmode oper_devoice $chan $$1- }
+  ; TODO Kill + Gline
+   $iif(%nx.botnet_ [ $+ [ $network ] ] ,Botnet Control)
+  .$iif(q isin $nickmode,Owner):{ nx.massmode botnet_owner $chan $$1- }
+  .$iif(q isin $nickmode,DeOwner):{ nx.massmode botnet_deowner $chan $$1- }
+  .$iif(a isin $nickmode,Admin):{ nx.massmode botnet_admin $chan $$1- }
+  .$iif(a isin $nickmode,DeAdmin):{ nx.massmode botnet_deadmin $chan $$1- }
+  .$iif(o isin $nickmode,Op):{ nx.massmode botnet_op $chan $$1- }
+  .$iif(o isin $nickmode,DeOp):{ nx.massmode botnet_deop $chan $$1- }
+  .$iif(h isin $nickmode,Halfop):{ nx.massmode botnet_halfop $chan $$1- }
+  .$iif(h isin $nickmode,Dehalfop):{ nx.massmode botnet_dehalfop $chan $$1- }
+  .$iif(v isin $nickmode,Voice):{ nx.massmode botnet_voice $chan $$1- }
+  .$iif(v isin $nickmode,Devoice):{ nx.massmode botnet_devoice $chan $$1- }
+  .-
+  .Kick:{ set %nx.masskick.reason $?"Reason or emtpy for default" | nx.masskick botnet_kick $chan $$1- }
+  .-
+  .Chattr:{ nx.botnet.control chattr $chan $$1- }
+  .-
+  .Say:{ nx.botnet.control say $$?="Channel?" $$1- }
+  .Join:{ nx.botnet.control join $$?="Channel?" $$1- }
+  .Part:{ nx.botnet.control part $$?="Channel?" $$1- }
+  ; TODO Kick + ban
+  CTCP
+  .Ping:{ var %i $numtok($$1-,32) | while (%i) { nx.ctcp $gettok($$1-,%i,32) ping | dec %i } }
+  .Time:{ var %i $numtok($$1-,32) | while (%i) { nx.ctcp $gettok($$1-,%i,32) time | dec %i } }
+  .Version:{ var %i $numtok($$1-,32) | while (%i) { nx.ctcp $gettok($$1-,%i,32) version | dec %i } }
+  .Chat:{ var %i $numtok($$1-,32) | while (%i) { nx.ctcp $gettok($$1-,%i,32) chat | dec %i } }
+  DCC
+  .Send:/dcc send $$1
+  .Chat:/dcc chat $$1
+  -
+  .Slap:{ var %i $numtok($$1-,32) | while (%i) { nx.me slaps $gettok($$1-,%i,32) around a bit with a large trout | dec %i } }
 }
