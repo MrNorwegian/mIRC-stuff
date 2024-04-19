@@ -10,7 +10,7 @@ raw *:*:{
   elseif ($event = chghost) { return }
 
   ; Welcome
-  elseif ($event = 001) { return }
+  elseif ($event = 001) { set %nx.ial.update true | return }
 
   ; your host
   elseif ($event = 002) { 
@@ -236,7 +236,7 @@ raw *:*:{
   ; @%+Cade!Cade@172.19.215.245
   ; ~@%Cohbert!Cohbert@172.19.100.185/
   elseif ($event = 353) { 
-    if ( %nx.ial.update ) { 
+    if ( %nx.ial.update. [ $+ [ $cid ] ] ) { 
       var %nx.ial.n 4
       while ($gettok($1-,%nx.ial.n,32)) {
         ; $remove is used to remove the [ from the nick because of bug
@@ -259,11 +259,16 @@ raw *:*:{
       set %nx.ial.sumnicks $calc($numtok($4-,32) + %nx.ial.sumnicks)
       halt
     }
+    else { return }
   }
 
   ; End of /NAMES list
   elseif ($event = 366) { 
-    if ( %nx.ial.update ) { echo -st Saved userlist in $2 with %nx.ial.sumnicks nicks | unset %nx.ial.sumnicks %nx.ial.update | halt }
+    if ( %nx.ial.update. [ $+ [ $cid ] ] ) {
+      echo -st Saved userlist in $2 with %nx.ial.sumnicks nicks
+      .timer_ial_update 1 5 unset %nx.ial.sumnicks %nx.ial.update. [ $+ [ $cid ] ]
+      halt 
+    }
     else { return }
   }
 
@@ -313,11 +318,17 @@ raw *:*:{
   ; You're not on that channel
   elseif ($event = 442) { return }
 
+  ; nick is already on channel
+  elseif ($event = 443) { return }
+
+  ; Not enough parameters
+  elseif ($event = 461) { return }
+
   ; unkonwn mode ( nick N is unknown mode char to me )
   elseif ($event = 472) { return }
 
-  ; Invite only channel
-  elseif ( $event = 473 ) { if ( $nx.db(settings,operchans,$network)) { .msg uworld invite $2 $me } | return }
+  ; :Cannot join channel (+i) ( $2 = channel )
+  elseif ( $event = 473 ) { if ( $istok($nx.db(read,settings,operchans,$network),$2,32)) { .msg uworld invite $2 $me } | return }
 
   ; invalid password
   elseif ($event = 464) { return }
