@@ -59,6 +59,7 @@ on ^1:notice:*:?:{
   else { nx.echo.notice $nick $1- | halt }
 }
 on 1:usermode:{
+  ; When on znc i need this to make sure snotice windows is up 
   ; if ( o isin $1 ) && ( $chr(45) !isin $1 ) { echo 3 -st $nick is now an IRC Operator ;}
 }
 on 1:mode:#:{
@@ -85,7 +86,7 @@ on *:join:*:{
     if ( $address($nick,5) = idlerpg!multirpg@idlerpg.users.undernet.org ) { .timer_idlebot_ $+ $cid 1 2 .msg $nick login %nx.idlerpg.user %nx.idlerpg.pass }
     if ( $address($nick,5) = idlerpg!*IdleRPG@idle.rpgsystems.org ) { .timer_idlebot_ $+ $cid 1 2 .msg $nick login %nx.idlerpg.user %nx.idlerpg.pass }
   }
-  elseif ( $nick = $me ) { set %nx.ial.update $true }
+  elseif ( $nick = $me ) { set %nx.ial.update. [ $+ [ $cid ] ] true }
 }
 
 on *:part:*:{
@@ -95,16 +96,13 @@ on *:quit:{
   ; TODO loop thru all channels and remove userlist ? This is a bit redudant since it gets removed on join (return on raw /names)
   return
 }
-on ^1:SNOTICE:*:{
-  nx.echo.snotice $1-  
-}
+on ^1:SNOTICE:*:{ nx.echo.snotice $1- | return }
 
-on *:invite:*:{
-  var %nx.check.inv.oc $nx.db(read,settings,operchans,$network)
-  while ( %nx.check.inv.oc >= 0 ) {
-    if ( $me !ison $gettok($nx.db(read,settings,operchans,$network),%nx.check.inv.oc,32) ) { join $gettok($nx.db(read,settings,operchans,$network),%nx.check.inv.oc,32) }
-    dec %nx.check.inv.oc
-  }
+on *:invite:*:{ if ( $istok($nx.db(read,settings,operchans,$network),$chan,32) ) { join $chan } }
+
+on 1:text:*:?:{
+  ; znc is reconnected 
+  if ($left($nick,1) = $chr(42)) && ( $1 = Connected! ) { set %nx.ial.update. [ $+ [ $cid ] ] true }
 }
 on *:open:?:{
   ; check for own botnet or znc
