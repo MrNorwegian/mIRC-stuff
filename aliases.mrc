@@ -83,13 +83,15 @@ alias nx.massmode {
   else { echo -at Usage /massmode op\deop\voice\devoice #chan nick nick1 nick2 }
 }
 
+alias decho { echo 7 -a DEBUG: $1- }
+
 alias nx.echo.notice { 
   var %nx.tnnick $+($chr(60),$1,$chr(62))
   echo 40 -at %nx.tnnick $2-
 }
 alias nx.echo.snotice {
   if ( $active = Status Window ) { echo 5 -st $1- | halt }
-  if ($window($+(@,$network,_,$cid,_,status))) { echo 5 -t $+(@,$network,_,$cid,_,status) $1- }
+  if ($window($+(@,$network,_,$cid,_,status))) { echo 5 -t $+(@,$network,_,$cid,_,status) $1- | halt }
 }
 alias nx.opmode {
   ; Placeholder for custom anti excess flood stuff
@@ -103,27 +105,63 @@ alias nx.mode {
 }
 alias nx.kick {
   ; Placeholder for custom anti excess flood stuff
-  kick $1-
+  nx.anti.excess kick $1-
 }
 alias nx.whois {
   ; Placeholder for custom anti excess flood stuff
-  whois $1-
+  nx.anti.excess whois $1-
 }
 alias nx.msg {
   ; Placeholder for custom anti excess flood stuff
-  msg $1-
+  nx.anti.excess msg $1- 
 }
 alias nx.say {
   ; Placeholder for custom anti excess flood stuff
-  say $1-
+  nx.anti.excess say $1-
 }
 alias nx.me {
   ; Placeholder for custom anti excess flood stuff
-  me $1-
+  nx.anti.excess me $1- 
 }
 alias nx.ctcp {
   ; Placeholder for custom anti excess flood stuff
-  ctcp $1-
+  nx.anti.excess ctcp $1-
+}
+
+alias nx.anti.excess { 
+  ; $1 = command
+  ; $2 = arg1
+  ; $3- = args3+++++++
+  ; ircu2\snircd = 4
+  ; unreal = 5
+  set %nx.anex.freemessage 4
+  set %nx.anex.excess 10
+  set %nx.anex.delay 2
+  set %nx.anex_lastcmd_ $+ $cid $ctime
+  var %nx.anex.value $nx.anex.cmd
+  ;echo 7 -a FloodDebug %nx.anex.value > %nx.anex.freemessage cmd: $1 to: $2 message: $3-
+  if ( %nx.anex.value > %nx.anex.excess ) { 
+    .timer_nx_anex_cmd_ $+ $cid $+ _ $+ $1 $+ %nx.anex.value 1 %nx.anex.value $1 $2 $3-
+    echo 4 -at $1 <Flood protection> - Please slow down your commands. %nx.anex.value > %nx.anex.excess
+  }
+  elseif ( %nx.anex.value > %nx.anex.freemessage ) { 
+    .timer_nx_anex_cmd_ $+ $cid $+ _ $+ $1 $+ %nx.anex.value 1 %nx.anex.value $1 $2 $3-
+    echo 7 -at $1 <Flood protection> - Please slow down your commands. %nx.anex.value > %nx.anex.excess
+  }
+  ; Freemessage
+  else { $1 $2 $3- }
+}
+
+alias nx.anex.cmd {
+  var %nx.ctime $calc(%nx.anex_lastcmd_ [ $+ [ $cid ] ] - $ctime)
+  ; echo -a Last $duration(%nx.ctime) > $duration($calc(%nx.ctime - $calc(%nx.anex.freemessage * %nx.anex.delay)))
+  if ( %nx.anex_lastcmd_ [ $+ [ $cid ] ] > $calc($ctime - $calc(%nx.anex.freemessage * %nx.anex.delay))) { 
+    ; echo 3 -at Anex ctime = %nx.anex_ [ $+ [ $cid ] ]
+  }
+  if ( %nx.anex_ [ $+ [ $cid ] ] < 0 ) { echo 3 -at Anex below 0 = %nx.anex_ [ $+ [ $cid ] ] | set %nx.anex_ $+ $cid 0 }
+  inc %nx.anex_ [ $+ [ $cid ] ] 
+  .timer_nx_anex_dec_ $+ $cid $+ _ $+ %nx.anex_ [ $+ [ $cid ] ] $+ _ $+ $ctime 1 %nx.anex_ [ $+ [ $cid ] ] dec %nx.anex_ [ $+ [ $cid ] ]
+  return %nx.anex_ [ $+ [ $cid ] ] 
 }
 
 alias nx.perform {
@@ -131,15 +169,17 @@ alias nx.perform {
 }
 
 alias nx.db {
-  ; $nx.db(read,chans,$network) returns result from ini
+  ; $nx.db(read,settings,operchans,$network)
+  ; /nx.db write settings operchans #chan1 #chan2 #chan3
+  ; /nx.db rem settings operchans
   ; later i wil use hashtables as db and readini as "long storage" 
   if ( $1 = read ) {
-    if ( $3 ) {
-      if ( $1 = settings ) { return $readini(nx.settings.ini,$2,$3) }
-      if ( $1 = ial ) { return $readini($+(ial\,$network,_,$cid,.ini),$2,$3) }
+    if ( $4 ) {
+      if ( $2 = settings ) { return $readini(nx.settings.ini,$3,$4) }
+      if ( $2 = ial ) { return $readini($+(ial\,$network,_,$cid,.ini),$3,$4) }
     }
   }
-  ; nx.db write chans $network stuff
+  ; nx.db write operchans\opernet\ircd $network stuff
   elseif ( $1 = write ) {
     if ( $5 ) {
       if ( $2 = settings ) { writeini nx.settings.ini $3 $4 $5- }
@@ -147,9 +187,9 @@ alias nx.db {
     }
   }
   ; nx.db rem settings <opt> <opt2>
-  elseif ( $1 rem ) {
-      if ( $2 = settings ) { remini nx.settings.ini $iif($3,$3) $iif($4,$4) }
-      if ( $2 = ial ) { remini -n $+(ial\,$network,_,$cid,.ini) $iif($3,$3) $iif($4,$4) }
+  elseif ( $1 = rem ) {
+    if ( $2 = settings ) { remini nx.settings.ini $iif($3,$3) $iif($4,$4) }
+    if ( $2 = ial ) { remini -n $+(ial\,$network,_,$cid,.ini) $iif($3,$3) $iif($4,$4) }
   }
 }
 ; This alias is not finished, +a modes cannot be checked with $nick()
