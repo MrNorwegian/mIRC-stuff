@@ -162,13 +162,20 @@ alias cc.refmodes {
     while (%nx.cc.cmlen) {
       var %nx.cc.cmid $nx.cc.chk.id($mid(%nx.cc.cm,%nx.cc.cmlen,1))
       if ( $mid(%nx.cc.cm,%nx.cc.cmlen,1) isincs %nx.cc.chanmodes ) { 
-        did -e %nx.cc.dname %nx.cc.cmid
-        if ( $mid(%nx.cc.cm,%nx.cc.cmlen,1) = l ) { did -e %nx.cc.dname $calc(%nx.cc.cmid +1) }
-        if ( $mid(%nx.cc.cm,%nx.cc.cmlen,1) = k ) { did -e %nx.cc.dname $calc(%nx.cc.cmid +1) }
-
+        if ( $me isop %nx.cc.chan ) {
+          did -e %nx.cc.dname %nx.cc.cmid
+          if ( $mid(%nx.cc.cm,%nx.cc.cmlen,1) = l ) { did -e %nx.cc.dname $calc(%nx.cc.cmid +1) }
+          if ( $mid(%nx.cc.cm,%nx.cc.cmlen,1) = k ) { did -e %nx.cc.dname $calc(%nx.cc.cmid +1) }
+        }
         if ( $mid(%nx.cc.cm,%nx.cc.cmlen,1) isincs %nx.cc.currmode ) { 
-          if ( $mid(%nx.cc.cm,%nx.cc.cmlen,1) = l ) { set %nx.cc.ismode.l $chan(%nx.cc.chan).limit | did -ae %nx.cc.dname $calc(%nx.cc.cmid +1) $chan(%nx.cc.chan).limit }
-          elseif ( $mid(%nx.cc.cm,%nx.cc.cmlen,1) = k ) { set %nx.cc.ismode.k $chan(%nx.cc.chan).key | did -ae %nx.cc.dname $calc(%nx.cc.cmid +1) $chan(%nx.cc.chan).key }
+          if ( $mid(%nx.cc.cm,%nx.cc.cmlen,1) = l ) { 
+            set %nx.cc.ismode.l $chan(%nx.cc.chan).limit
+            did -ae %nx.cc.dname $calc(%nx.cc.cmid +1) $chan(%nx.cc.chan).limit
+          }
+          elseif ( $mid(%nx.cc.cm,%nx.cc.cmlen,1) = k ) {
+            set %nx.cc.ismode.k $chan(%nx.cc.chan).key
+            did -ae %nx.cc.dname $calc(%nx.cc.cmid +1) $chan(%nx.cc.chan).key
+          }
           else { set %nx.cc.ismode $addtok(%nx.cc.ismode,$mid(%nx.cc.cm,%nx.cc.cmlen,1),32) }
           did -c %nx.cc.dname %nx.cc.cmid 
         }
@@ -184,7 +191,7 @@ alias cc.refmodes {
     while (%nx.cc.cmlen) {
       if ( $mid(%nx.cc.ircd,%nx.cc.cmlen,1) isincs %nx.cc.chanmodes ) { 
         var %nx.cc.cmid $nx.cc.chk.id($mid(%nx.cc.ircd,%nx.cc.cmlen,1))
-        did -e %nx.cc.dname %nx.cc.cmid
+        if ( $me isop %nx.cc.chan ) { did -e %nx.cc.dname %nx.cc.cmid }
         if ( $mid(%nx.cc.ircd,%nx.cc.cmlen,1) isincs %nx.cc.currmode ) { set %nx.cc.ismode $addtok(%nx.cc.ismode,$mid(%nx.cc.ircd,%nx.cc.cmlen,1),32) | did -c %nx.cc.dname %nx.cc.cmid }
       }
       dec %nx.cc.cmlen
