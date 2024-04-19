@@ -139,25 +139,20 @@ alias nx.anti.excess {
   set %nx.anex.delay 2
   set %nx.anex_lastcmd_ $+ $cid $ctime
   var %nx.anex.value $nx.anex.cmd
-  ;echo 7 -a FloodDebug %nx.anex.value > %nx.anex.freemessage cmd: $1 to: $2 message: $3-
+  echo 14 -a FloodDebug %nx.anex.value > %nx.anex.freemessage = $calc(%nx.anex.value - %nx.anex.delay)  cmd: $1 to: $2 message: $3-
   if ( %nx.anex.value > %nx.anex.excess ) { 
-    .timer_nx_anex_cmd_ $+ $cid $+ _ $+ $1 $+ %nx.anex.value 1 %nx.anex.value $1 $2 $3-
-    echo 4 -at $1 <Flood protection> - Please slow down your commands. %nx.anex.value > %nx.anex.excess
+    .timer_nx_anex_cmd_ $+ $cid $+ _ $+ $1 $+ %nx.anex.value 1 $calc(%nx.anex.value - %nx.anex.delay) $1 $2 $3-
+    if (!%nx.anex_warning_excess) { echo 4 -at <Flood protection> - Please slow down your commands. %nx.anex.value > %nx.anex.excess | set -u10 %nx.anex_warning_excess 1 }
   }
   elseif ( %nx.anex.value > %nx.anex.freemessage ) { 
-    .timer_nx_anex_cmd_ $+ $cid $+ _ $+ $1 $+ %nx.anex.value 1 %nx.anex.value $1 $2 $3-
-    echo 7 -at $1 <Flood protection> - Please slow down your commands. %nx.anex.value > %nx.anex.excess
+    .timer_nx_anex_cmd_ $+ $cid $+ _ $+ $1 $+ %nx.anex.value 1 $calc(%nx.anex.value - %nx.anex.delay) $1 $2 $3-
+    if (!%nx.anex_warning_first) { echo 7 -at <Flood protection> - Please slow down your commands. %nx.anex.value > %nx.anex.excess | set -u10 %nx.anex_warning_first 1 }
   }
   ; Freemessage
   else { $1 $2 $3- }
 }
 
 alias nx.anex.cmd {
-  var %nx.ctime $calc(%nx.anex_lastcmd_ [ $+ [ $cid ] ] - $ctime)
-  ; echo -a Last $duration(%nx.ctime) > $duration($calc(%nx.ctime - $calc(%nx.anex.freemessage * %nx.anex.delay)))
-  if ( %nx.anex_lastcmd_ [ $+ [ $cid ] ] > $calc($ctime - $calc(%nx.anex.freemessage * %nx.anex.delay))) { 
-    ; echo 3 -at Anex ctime = %nx.anex_ [ $+ [ $cid ] ]
-  }
   if ( %nx.anex_ [ $+ [ $cid ] ] < 0 ) { echo 3 -at Anex below 0 = %nx.anex_ [ $+ [ $cid ] ] | set %nx.anex_ $+ $cid 0 }
   inc %nx.anex_ [ $+ [ $cid ] ] 
   .timer_nx_anex_dec_ $+ $cid $+ _ $+ %nx.anex_ [ $+ [ $cid ] ] $+ _ $+ $ctime 1 %nx.anex_ [ $+ [ $cid ] ] dec %nx.anex_ [ $+ [ $cid ] ]
