@@ -60,28 +60,28 @@ dialog nx.dialog.cc {
   check "&No multi msg +T (snircd)", 189, 480 380 140 18, disable tab 100
   edit "", 172, 345 379 100 20, disable tab 100 limit 200
   edit "", 174, 345 398 100 20, disable tab 100 limit 200
-  tab "Bans", 200
-  list 220, 11 33 455 292, tab 200 size
-  text "Current/maximum bans:", 230, 11 329 122 14, tab 200
-  text "unknown", 240, 173 329 290 14, tab 200 right
-  text "", 21, 16 155 444 44, hide tab 200 center
-  tab "Invites", 300
-  list 320, 11 33 455 292, tab 300 size
-  text "Current invites:", 315, 11 329 84 14, tab 300
-  text "unknown", 325, 173 329 290 14, tab 300 right
-  text "", 20, 16 155 444 44, hide tab 300 center
-  tab "Excepts", 400
-  list 410, 11 33 455 292, tab 400 size
-  text "Current excepts:", 415, 11 329 88 14, tab 400
-  text "unknown", 420, 173 329 290 14, tab 400 right
-  text "", 22, 16 155 444 44, hide tab 400 center
-  tab "X", 500
-  tab "Statistics", 600
-  list 610, 11 33 455 214, disable tab 600 size
-  list 620, 11 249 455 93, disable tab 600 size
+  tab "Bans", 300
+  list 310, 10 33 380 442, tab 300 size
+  text "Current/maximum bans:", 313, 11 480 122 14, tab 300
+  text "unknown", 314, 131 479 83 14, tab 300 right
+  list 311, 390 33 170 442, tab 300 size
+  list 312, 560 33 130 442, tab 300 size
+  tab "Invites", 350
+  list 355, 10 33 455 292, tab 350 size
+  text "Current invites:", 356, 11 329 122 14, tab 350
+  text "unknown", 357, 173 329 290 14, tab 350 right
+  tab "Excepts", 380
+  list 410, 10 33 455 292, tab 380 size
+  text "Current excepts:", 415, 11 329 122 14, tab 380
+  text "unknown", 420, 173 329 290 14, tab 380 right
+  tab "X", 400
+  tab "Statistics", 1000
+  list 610, 10 33 455 214, disable tab 1000 size
+  list 620, 11 249 455 93, disable tab 1000 size
   button "&Ok", 101, 510 570 80 24, ok
   button "&Cancel", 102, 600 570 80 24, cancel
 }
+
 
 on 1:dialog:nx.dialog.cc:*:*: {
   if ( $devent = init ) { 
@@ -92,7 +92,11 @@ on 1:dialog:nx.dialog.cc:*:*: {
     did -a $dname 118 $chan(%nx.cc.chan).mode
     did -a $dname 115 $chan(%nx.cc.chan).topic
     did -a $dname 122 $chanmodes
-    cc.refmodes 
+
+    if ( $chanmodes ) { nx.cc.refmodes }
+    if (b isincs $gettok($chanmodes,1,44)) { nx.cc.getbans }
+    if (I isincs $gettok($chanmodes,1,44)) { nx.cc.getinvites }
+    if (e isincs $gettok($chanmodes,1,44)) { nx.cc.getexcepts }
   }
   elseif ($devent == edit) {
     if ($did == 115) && ( $did($dname,115) ) { set %nx.cc.editbox.settopic $did($dname,115) }
@@ -129,7 +133,12 @@ on 1:dialog:nx.dialog.cc:*:*: {
       }
       dialogecho
     }
+    if ($did == 310) {
+      ; TODO Select bans to unban
+    }
   }
+
+
   elseif ( $devent = active ) { dialogecho }
   elseif ( $devent = close ) { dialogecho | unset %nx.cc.* }
   elseif ( $devent = mouse ) { return }
@@ -145,7 +154,7 @@ on 1:dialog:nx.dialog.cc:*:*: {
 ; unreal beI,fkL,lFH,cdimnprstzCDGKMNOPQRSTVZ
 ; bahamut beI,k,jl,ciPAmMnOprRsSt
 ; ratbox eIb,k,l,imnpstS
-alias cc.refmodes { 
+alias nx.cc.refmodes { 
   if ( $dialog(nx.dialog.cc) ) && ( %nx.cc.chan ischan ) {
     ; Using gettok to get only modes ( +stnlk 123 key )
     ; In this case +b isnot tested on ircu and everything else in unreal
@@ -205,7 +214,7 @@ alias cc.refmodes {
       if ( $mid(%nx.cc.ircd,%nx.cc.cmlen,1) isincs %nx.cc.chanmodes ) { 
         var %nx.cc.cmid $nx.cc.chk.id($mid(%nx.cc.ircd,%nx.cc.cmlen,1))
         ; Todo Check if $nx.cc.chk.id($mid(%nx.cc.ircd,%nx.cc.cmlen,1)) returns an ID, and echo unsupported\untested mode
-        echo -a len: %nx.cc.cmle mode: $mid(%nx.cc.ircd,%nx.cc.cmlen,1) id: %nx.cc.cmid
+        ; echo -a len: %nx.cc.cmle mode: $mid(%nx.cc.ircd,%nx.cc.cmlen,1) id: %nx.cc.cmid
         if ( $me isop %nx.cc.chan ) { did -e %nx.cc.dname %nx.cc.cmid }
         if ( $mid(%nx.cc.ircd,%nx.cc.cmlen,1) isincs %nx.cc.currmode ) { set %nx.cc.ismode $addtok(%nx.cc.ismode,$mid(%nx.cc.ircd,%nx.cc.cmlen,1),32) | did -c %nx.cc.dname %nx.cc.cmid }
       }
@@ -226,14 +235,31 @@ alias nx.cc {
   else { echo -at You are not connected to the server. }
 }
 
+alias nx.cc.getbans {
+  echo -a Get bans 
+  did -ra %nx.cc.dname $nx.cc.chk.id(Banlist) Refreshing bans ...
+  did -ra %nx.cc.dname $nx.cc.chk.id(numbans) unknown/ $+ $iif(%nx.maxbans. [ $+ [ $cid ] ],$v1,unknown)
+  set -u100 %nx.cc.getbans %nx.cc.chan
+  mode %nx.cc.chan +b
+}
+; placeholder
+alias nx.cc.getinvites {
+ return
+}
+; placeholder
+alias nx.cc.getexcepts {
+ return
+}
+
 alias dialogecho { 
   if ( 1 = 2 ) {
-    if ( $devent = edit ) { echo -at DIALOG $dname devent: $devent did: $did didtext: $did($dname,$did).text OR $did($dname,$did) }
+    if ( $devent = edit ) { echo -at DIALOG $dname devent: $devent did: $did didtext: $did($dname,$did) }
     elseif ( $devent = sclick ) { echo -at DIALOG $dname devent: $devent did: $did = $nx.cc.chk.id($did) }
+    elseif ( $devent = uclick ) { echo -at DIALOG $dname devent: $devent did: $did = $nx.cc.chk.id($did) }
     elseif ( $devent = mouse ) { return }
     elseif ( $devent = init ) { echo -at DIALOG $dname devent: $devent $did }
     elseif ( $devent = close ) { echo -at DIALOG $dname devent: $devent }
-    else { echo -at DIALOG $dname devent: $devent  }
+    else { echo -at DIALOG $dname devent: $devent did: $did }
   }
 }
 
@@ -242,6 +268,15 @@ alias nx.cc.chk.id {
   if ( $1 == 101 ) { return SAVE }
   if ( $1 == 102 ) { return Cancel }
   if ( $1 == 103 ) { return Apply }
+
+  if ( $1 === 310 ) { return Banlist }
+  if ( $1 === Banlist ) { return 310 }
+  if ( $1 === 311 ) { return BanSetBy }
+  if ( $1 === BanSetBy ) { return 311 }
+  if ( $1 === 312 ) { return BanSetDate }
+  if ( $1 === BanSetDate ) { return 312 }
+  if ( $1 == 314 ) { return numbans }
+  if ( $1 === numbans ) { return 314 }
 
   if ( $1 === l ) { return 142 }
   if ( $1 == 142 ) { return l }
@@ -303,17 +338,21 @@ alias nx.cc.chk.id {
   if ( $1 == 185 ) { return C }
   if ( $1 === c ) { return 186 }
   if ( $1 == 186 ) { return c }
+
   if ( $1 === N ) && ( %nx.cc.sv = snircd ) { return 187 }
   if ( $1 === N ) && ( %nx.cc.sv = nefarious ) { return 187 }
-
   if ( $1 == 187 ) { return N }
+
   if ( $1 === M ) { return 188 }
   if ( $1 == 188 ) { return M }
+
   if ( $1 === T ) && ( %nx.cc.sv = snircd ) { return 189 }
   if ( $1 === T ) && ( %nx.cc.sv = nefarious ) { return 189 }
   if ( $1 == 189 ) { return T }
+
   if ( $1 === Z ) { return 191 }
   if ( $1 == 191 ) { return Z }
   if ( $1 === Q ) && ( %nx.cc.sv = nefarious ) { return 192 }
   if ( $1 == 192 ) { return Q }
 }
+
