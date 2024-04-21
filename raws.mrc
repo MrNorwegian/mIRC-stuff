@@ -19,13 +19,21 @@ raw *:*:{
         if ( $istok($nx.db(read,settings,ircd,unreal),$network,32) ) && ( $istok($nx.db(read,settings,ircd,samode),$network,32) ) { return }
         else { nx.db write settings ircd unreal $addtok($nx.db(read,settings,ircd,unreal),$network,32) | nx.db write settings ircd samode $addtok($nx.db(read,settings,ircd,samode),$network,32) | return }
       }
-      elseif ( u2.10.12 isin $8 ) && ( snircd !isin $8 ) { 
-        if ( $istok($nx.db(read,settings,ircd,ircu2),$network,32) ) && ( $istok($nx.db(read,settings,ircd,opmode),$network,32) ) { return }
-        else { nx.db write settings ircd ircu2 $addtok($nx.db(read,settings,ircd,ircu2),$network,32) | nx.db write settings ircd opmode $addtok($nx.db(read,settings,ircd,opmode),$network,32) | return }
+      if ( bahamut-2 isin $8 ) { 
+        if ( $istok($nx.db(read,settings,ircd,bahamut),$network,32) ) && ( $istok($nx.db(read,settings,ircd,samode),$network,32) ) { return }
+        else { nx.db write settings ircd bahamut $addtok($nx.db(read,settings,ircd,bahamut),$network,32) | nx.db write settings ircd samode $addtok($nx.db(read,settings,ircd,samode),$network,32) | return }
       }
-      elseif ( snircd isin $8 ) { 
+      elseif ( u2.10.12 isin $8 ) && ( Nefarious isin $8 ) { 
+        if ( $istok($nx.db(read,settings,ircd,nefarious),$network,32) ) && ( $istok($nx.db(read,settings,ircd,opmode),$network,32) ) { return }
+        else { nx.db write settings ircd nefarious $addtok($nx.db(read,settings,ircd,nefarious),$network,32) | nx.db write settings ircd opmode $addtok($nx.db(read,settings,ircd,opmode),$network,32) | return }
+      }
+      elseif ( u2.10.12 isin $8 ) && ( snircd isin $8 )  { 
         if ( $istok($nx.db(read,settings,ircd,snircd),$network,32) ) && ( $istok($nx.db(read,settings,ircd,opmode),$network,32) ) { return }
         else { nx.db write settings ircd snircd $addtok($nx.db(read,settings,ircd,snircd),$network,32) | nx.db write settings ircd opmode $addtok($nx.db(read,settings,ircd,opmode),$network,32) | return }
+      }
+      elseif ( u2.10.12 isin $8 ) { 
+        if ( $istok($nx.db(read,settings,ircd,ircu2),$network,32) ) && ( $istok($nx.db(read,settings,ircd,opmode),$network,32) ) { return }
+        else { nx.db write settings ircd ircu2 $addtok($nx.db(read,settings,ircd,ircu2),$network,32) | nx.db write settings ircd opmode $addtok($nx.db(read,settings,ircd,opmode),$network,32) | return }
       }
       ; need to confirm samode is right for ratbox, also efnet runs ratbox and something else?
       elseif ( ircd-ratbox-3 isin $8 ) { 
@@ -76,6 +84,9 @@ raw *:*:{
   ; End of /stats
   elseif ($event = 219) { nx.echo.snotice $2- | halt }
 
+  ; $2 sets mode +i ( Not when connected to znc )
+  elseif ($event = 221) { return }
+
   ; stats v
   elseif ($event = 236) { nx.echo.snotice $2- | halt }
 
@@ -119,6 +130,9 @@ raw *:*:{
   ; Server load is temporarily too heavy
   elseif ($event = 263) { return }
 
+  ; auto away
+  elseif ($event = 301) { return }
+
   ; marked as away - no longer marked as away
   elseif ($event = 306) { return }
   elseif ($event = 305) { return }
@@ -130,9 +144,9 @@ raw *:*:{
   elseif ($event = 329) { return }
 
   ; WHOIS
-  ; nick is ident@host * realname
+  ; nick ident host * realname
   elseif ($event = 311) { 
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $chr(45) | echo %nx.echo.color -at $2 is $4- | halt }
+    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $chr(45) | echo %nx.echo.color -at $2 is $+($3,@,$4-) | halt }
     else { return }
   }
   ; is identified for this nick
@@ -333,8 +347,18 @@ raw *:*:{
   ; invalid password
   elseif ($event = 464) { return }
 
+  ; You're not an channel operator
+  elseif ($event = 482) { return }
+
   ; Cannot join channel
   elseif ($event = 520) { return }
+
+  ; You have 0 and are on 0 WATCH entries
+  elseif ($event = 603) { return }
+
+  ; nefarious ssl
+  ; $me $me has client certificate fingerprint E95DC2020C6463088AAB47B38961B6E868F9C7C6B8D42201F1913A45BC1CA458
+  elseif ($event = 616) { return }
 
   else { decho RAW $event $1- }
 }
