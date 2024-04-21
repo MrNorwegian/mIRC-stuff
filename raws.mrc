@@ -49,7 +49,15 @@ raw *:*:{
   ; Server created - Server info - modes supported
   elseif ($event = 003) { return }
   elseif ($event = 004) { return }
-  elseif ($event = 005) { return }
+  elseif ($event = 005) { 
+    ; ircu
+    if ($gettok($wildtok($1-,TOPICLEN=?*,1,32),2,61)) { set %nx.topiclen. $+ $cid $v1 }
+    if ($gettok($wildtok($1-,SILENCE=?*,1,32),2,61)) { set %nx.silencenum. $+ $cid $v1 }
+    if ($gettok($wildtok($1-,MAXBANS=?*,1,32),2,61)) { set %nx.maxbans. $+ $cid $v1 }
+    ; Unreal = MAXLIST=b:60,e:60,I:60
+    elseif ($gettok($gettok($gettok($wildtok($1-,MAXLIST=?*,1,32),2,61),1,44),2,58)) { set %nx.maxbans. $+ $cid $v1 }
+    return
+  }
 
   ; /map return (unrealircd)
   ; /map sumary (last line in /map) (unrealircd)
@@ -284,6 +292,25 @@ raw *:*:{
       halt 
     }
     else { return }
+  }
+
+  ; Ban list
+  elseif ($event = 367) {
+    if ($dialog(%nx.cc.dname)) && (%nx.cc.getbans == $2) {
+      if (Refreshing bans ... iswm $did(%nx.cc.dname,$nx.cc.chk.id(Banlist),1)) { did -d %nx.cc.dname $nx.cc.chk.id(Banlist) 1 }
+      did -a %nx.cc.dname $nx.cc.chk.id(Banlist) $3
+    }
+  }
+  ; End of banlist
+  elseif ($event = 368) {
+    if ($dialog(%nx.cc.dname)) && (%nx.cc.getbans == $2) {
+      if ($did(%nx.cc.dname,$nx.cc.chk.id(Banlist)).lines == 1) && (Refreshing bans ... iswm $did(%nx.cc.dname,$nx.cc.chk.id(Banlist),1)) {
+        did -ra %nx.cc.dname $nx.cc.chk.id(Banlist) No bans set.
+        did -ra %nx.cc.dname $nx.cc.chk.id(numbans) 0/ $+ $iif(%nx.maxbans. [ $+ [ $cid ] ],$v1,unknown)
+      }
+      else { did -ra %nx.cc.dname $nx.cc.chk.id(numbans) $calc($did(%nx.cc.dname,$nx.cc.chk.id(Banlist)).lines -1) $+ / $+ $iif(%nx.maxbans. [ $+ [ $cid ] ],$v1,unknown) }
+      unset %nx.cc.getbans
+    }
   }
 
   ; /links list
