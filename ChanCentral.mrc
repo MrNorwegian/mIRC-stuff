@@ -61,11 +61,9 @@ dialog nx.dialog.cc {
   edit "", 172, 345 379 100 20, disable tab 100 limit 200
   edit "", 174, 345 398 100 20, disable tab 100 limit 200
   tab "Bans", 300
-  list 310, 10 33 380 442, tab 300 size
+  list 310, 10 33 674 442, tab 300 size
   text "Current/maximum bans:", 313, 11 480 122 14, tab 300
   text "unknown", 314, 131 479 83 14, tab 300 right
-  list 311, 390 33 170 442, tab 300 size
-  list 312, 560 33 130 442, tab 300 size
   tab "Invites", 350
   list 355, 10 33 455 292, tab 350 size
   text "Current invites:", 356, 11 329 122 14, tab 350
@@ -81,11 +79,26 @@ dialog nx.dialog.cc {
   button "&Ok", 101, 510 570 80 24, ok
   button "&Cancel", 102, 600 570 80 24, cancel
 }
-
-
+on *:dialog:jalla*:*:*:{
+  if ($devent == init) {
+    mdx SetMircVersion $version
+    mdx MarkDialog $dname $dialog($dname).hwnd
+  }
+  elseif ($devent == close) {
+    close -@ $+(@sprev.,$dname,.*)
+    unset %sortheader. [ $+ [ $dname ] $+ ] .*
+  }
+}
 on 1:dialog:nx.dialog.cc:*:*: {
   if ( $devent = init ) { 
     set %nx.cc.dname $dname
+    mdx SetMircVersion $version
+    mdx MarkDialog $dname $dialog($dname).hwnd
+    mdx SetControlMDX $dname 6 ListView report showsel rowselect labeltip editlabels > $mdxfile(views)
+    did -i $dname $nx.cc.chk.id(Banlist) 1 headerdims 220:1 80:2 110:3
+    did -i $dname $nx.cc.chk.id(Banlist) 1 headertext + 0 Address	+ 0 Set by	+ 0 Date
+    did -i $dname $nx.cc.chk.id(Banlist) 1 settxt bgcolor none
+
     did -a $dname 111 %nx.cc.chan 
     ; ascii for paranthesis
     did -a $dname 113 $server $+($chr(40),$serverip,$chr(41)) - $network
@@ -109,7 +122,10 @@ on 1:dialog:nx.dialog.cc:*:*: {
   elseif ($devent == sclick) {
     if ($did = 101) || ($did = 103) { 
       if ( %nx.cc.editbox.settopic ) && ( %nx.cc.editbox.settopic != $chan(%nx.cc.chan).topic ) { topic %nx.cc.chan $iif(%nx.cc.editbox.settopic = TopicNotSet,A,%nx.cc.editbox.settopic) }
-      if ( %nx.cc.setmode ) { mode %nx.cc.chan %nx.cc.setmode }
+      if ( %nx.cc.setmode ) { 
+        echo -a MODE %nx.cc.setmode
+        mode %nx.cc.chan %nx.cc.setmode
+      }
       if ( %nx.cc.editbox.setmode ) { mode %nx.cc.chan %nx.cc.editbox.setmode }
     }
     ; TODO fix mode +k and +l and +L (unreal + nefarious) and +H (unreal) and +fF (unreal)
@@ -118,18 +134,23 @@ on 1:dialog:nx.dialog.cc:*:*: {
 
     ; BUG: check if $modespl is reached, and if use /%nx.cc.setmode2 ? dunno yet
     ; BUG: bahamut and unrealircd does not support +t +n +s but require +tns, so this elseif must be changed
+    ; BUG: When checking +M and +m the second is ignored (need to change $addtok and $remtok in the folowing if tests)
+    ; - In the sametime redo %nc.cc.setmode to $+(%nx.cc.setmode,MODETOSET) instead 
+    ; - BUT!!!!!!!!!!!!!! $remove is not case sensitive, so it will remove +M and +m, so need to change that too
     elseif ( $nx.cc.chk.id($did) ) { 
       set %nx.cc.chk.mode $v1
       var %nx.cc.chk.id $did
-      if ( $istok(l k t n i m p s r D C c M N P L u T Q V K G Z S O z,%nx.cc.chk.mode,32) = $true ) { 
+      var %nx.cc.supported.modes lk tnimpsr CcDGLMNOPQRSTuVKZz
+      if ( %nx.cc.chk.mode isincs %nx.cc.supported.modes ) { 
         ; mode is set and checked
-        if ( $istok(%nx.cc.ismode,%nx.cc.chk.mode,32) = $true ) && ( $did(%nx.cc.chk.id).state = 1 ) { set %nx.cc.setmode $remtok(%nx.cc.setmode,$+($chr(45),%nx.cc.chk.mode),32) }
+        if ( %nx.cc.chk.mode isincs %nx.cc.ismode ) && ( $did(%nx.cc.chk.id).state = 1 ) { set %nx.cc.setmode $remtok(%nx.cc.setmode,$+($chr(45),%nx.cc.chk.mode),32) }
         ; mode is set and unchecked
-        elseif ( $istok(%nx.cc.ismode,%nx.cc.chk.mode,32) = $true ) && ( $did(%nx.cc.chk.id).state = 0 ) { set %nx.cc.setmode $addtok(%nx.cc.setmode,$+($chr(45),%nx.cc.chk.mode),32) }
+        elseif ( %nx.cc.chk.mode isincs %nx.cc.ismode ) && ( $did(%nx.cc.chk.id).state = 0 ) { set %nx.cc.setmode $addtok(%nx.cc.setmode,$+($chr(45),%nx.cc.chk.mode),32) }
         ; mode is not set and checked
-        if ( $istok(%nx.cc.ismode,%nx.cc.chk.mode,32) = $false ) && ( $did(%nx.cc.chk.id).state = 1 ) { set %nx.cc.setmode $addtok(%nx.cc.setmode,$+($chr(43),%nx.cc.chk.mode),32) }
+        if ( %nx.cc.chk.mode !isincs %nx.cc.ismode ) && ( $did(%nx.cc.chk.id).state = 1 ) { set %nx.cc.setmode $addtok(%nx.cc.setmode,$+($chr(43),%nx.cc.chk.mode),32) }
         ; mode is not set and unchecked
-        elseif ( $istok(%nx.cc.ismode,%nx.cc.chk.mode,32) = $false ) && ( $did(%nx.cc.chk.id).state = 0 ) { set %nx.cc.setmode $remtok(%nx.cc.setmode,$+($chr(43),%nx.cc.chk.mode),32) }
+        elseif ( %nx.cc.chk.mode !isincs %nx.cc.ismode ) && ( $did(%nx.cc.chk.id).state = 0 ) { set %nx.cc.setmode $remtok(%nx.cc.setmode,$+($chr(43),%nx.cc.chk.mode),32) }
+        ;echo -a Mode to set: %nx.cc.setmode didstate: $did(%nx.cc.chk.id).state Sett from before %nx.cc.chk.mode isincs %nx.cc.ismode and %nx.cc.supported.modes
       }
       dialogecho
     }
@@ -196,7 +217,7 @@ alias nx.cc.refmodes {
             set %nx.cc.ismode.k $chan(%nx.cc.chan).key
             did -ae %nx.cc.dname $calc(%nx.cc.cmid +1) $chan(%nx.cc.chan).key
           }
-          else { set %nx.cc.ismode $addtok(%nx.cc.ismode,$mid(%nx.cc.cm,%nx.cc.cmlen,1),32) }
+          else { set %nx.cc.ismode $+(%nx.cc.ismode,$mid(%nx.cc.cm,%nx.cc.cmlen,1)) }
           did -c %nx.cc.dname %nx.cc.cmid 
         }
       }
@@ -216,7 +237,7 @@ alias nx.cc.refmodes {
         ; Todo Check if $nx.cc.chk.id($mid(%nx.cc.ircd,%nx.cc.cmlen,1)) returns an ID, and echo unsupported\untested mode
         ; echo -a len: %nx.cc.cmle mode: $mid(%nx.cc.ircd,%nx.cc.cmlen,1) id: %nx.cc.cmid
         if ( $me isop %nx.cc.chan ) { did -e %nx.cc.dname %nx.cc.cmid }
-        if ( $mid(%nx.cc.ircd,%nx.cc.cmlen,1) isincs %nx.cc.currmode ) { set %nx.cc.ismode $addtok(%nx.cc.ismode,$mid(%nx.cc.ircd,%nx.cc.cmlen,1),32) | did -c %nx.cc.dname %nx.cc.cmid }
+        if ( $mid(%nx.cc.ircd,%nx.cc.cmlen,1) isincs %nx.cc.currmode ) { set %nx.cc.ismode $+(%nx.cc.ismode,$mid(%nx.cc.ircd,%nx.cc.cmlen,1)) | did -c %nx.cc.dname %nx.cc.cmid }
       }
       dec %nx.cc.cmlen
     }
@@ -236,7 +257,7 @@ alias nx.cc {
 }
 
 alias nx.cc.getbans {
-  echo -a Get bans 
+  ; echo -a Get bans 
   did -ra %nx.cc.dname $nx.cc.chk.id(Banlist) Refreshing bans ...
   did -ra %nx.cc.dname $nx.cc.chk.id(numbans) unknown/ $+ $iif(%nx.maxbans. [ $+ [ $cid ] ],$v1,unknown)
   set -u100 %nx.cc.getbans %nx.cc.chan
@@ -356,3 +377,37 @@ alias nx.cc.chk.id {
   if ( $1 == 192 ) { return Q }
 }
 
+
+; Stolen from noname script (http://nnscript.com), thanks to the author
+alias wd { return $gettok($1,$2,32) }
+alias nbr { if ($1- != $null) { return ( $+ $1- $+ ) } }
+
+alias mdx {
+  var %m = $dll(scripts\dlls\mdx.dll,$1,$2-)
+  if (ERROR * iswmcs %m) { echo 3 -st Warning in alias mdx: $nbr($wd(%m,3-)) | return }
+  ;if (ERROR * iswmcs %m) { thmerror -a MDX warning $nbr($wd(%m,3-)) ;}
+}
+alias mdxfile { return $+($scriptdir,dlls\,$1,.mdx) }
+alias mdxunsel {
+  var %w1 = $+(@mdxunsel.,$1,.,$2,.1),%w2 = $+(@mdxunsel.,$1,.,$2,.2),%z
+  window -h %w1
+  window -h %w2
+  filter -iwr 2- $+ $did($1,$2).lines $1 $2 %w1
+  var %i = 1,%t = $line(%w1,0)
+  while (%i <= %t) {
+    noop $regsub($wd($line(%w1,%i),3-),/	\+[fs]+ (\d+) (\d+) (\d+)/g,	+ \1 \2 \3,%z)
+    echo %w2 0 + %z
+    inc %i
+  }
+  if ($3 != /s) {
+    filter -cwo %w2 $1-2
+    close -@ %w2
+  }
+  close -@ %w1
+}
+alias mkregex {
+  if ($1 != $null) {
+    if ($prop == re) { return $replacex($mid($1,5,-5),\^,^,\.,.,\|,|,|,$chr(44),\$,$,\\,\,\?,?,\+,+,\[,[,\],],.*,*,.,?,\ $+ $chr(123),$chr(123),\ $+ $chr(125),$chr(125),\ $+ $chr(40),$chr(40),\ $+ $chr(41),$chr(41)) }
+    else { return /\b( $+ $replacex($1,\,\\,$,\$,^,\^,|,\|,$chr(44),|,+,\+,.,\.,[,\[,],\],*,.*,?,.,$chr(123),\ $+ $chr(123),$chr(125),\ $+ $chr(125),$chr(40),\ $+ $chr(40),$chr(41),\ $+ $chr(41)) $+ )\b/i }
+  }
+}

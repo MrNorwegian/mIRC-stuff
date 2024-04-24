@@ -18,7 +18,7 @@ alias makemech3 {
   set %mech.subnet /15
 
   var %mech.db mech-spambots.ini 
-  set %mech.pause 2
+  set %mech.pause 2000
   if ( $1 >= 1 ) {
     ;var %mech.servers 172.18.0.41,172.18.0.42,172.18.0.43
     ;var %mech.ports 6660,6661,6662,6663,6664,6665,6666,6667,6668,6669,7000

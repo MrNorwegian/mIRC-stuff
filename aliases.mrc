@@ -139,7 +139,7 @@ alias nx.anti.excess {
   set %nx.anex.delay 2
   set %nx.anex_lastcmd_ $+ $cid $ctime
   var %nx.anex.value $nx.anex.cmd
-  echo 14 -a FloodDebug %nx.anex.value > %nx.anex.freemessage = $calc(%nx.anex.value - %nx.anex.delay)  cmd: $1 to: $2 message: $3-
+  ; echo 14 -a FloodDebug %nx.anex.value > %nx.anex.freemessage = $calc(%nx.anex.value - %nx.anex.delay)  cmd: $1 to: $2 message: $3-
   if ( %nx.anex.value > %nx.anex.excess ) { 
     .timer_nx_anex_cmd_ $+ $cid $+ _ $+ $1 $+ %nx.anex.value 1 $calc(%nx.anex.value - %nx.anex.delay) $1 $2 $3-
     if (!%nx.anex_warning_excess) { echo 4 -at <Flood protection> - Please slow down your commands. %nx.anex.value > %nx.anex.excess | set -u10 %nx.anex_warning_excess 1 }
@@ -373,4 +373,21 @@ alias showhash {
     else { echo -a Hash table $1 is empty }
   }
   else { echo -a Usage: /showhash <name> }
+}
+
+; Thanks nnscript (https://nnscript.com/)
+alias wait {
+  var %o = $calc($nnticks + $1)
+  while ($nnticks < %o) { }
+}
+alias nnticks {
+  if (%precisetiming) {
+    if ($nndll(PerformanceCounter)) { return $v1 }
+    else {
+      unset %precisetiming
+      thmerror -s Precise timing is not available on your PC. Option unset.
+      return $calc($ticks /1000)
+    }
+  }
+  else { return $calc($ticks /1000) }
 }

@@ -214,7 +214,7 @@ raw *:*:{
   }
   ; idle time
   elseif ($event = 317) {
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 has been idle for $+($duration($3),$chr(44)) signed on $4 | halt }
+    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 has been idle for $duration($3) and signed on $duration($calc($ctime - $4)) ago ( $date($4,HH:mm:ss dd-mmm yyyy) ) | halt }
     else { return }
   }
   ; End of whois
@@ -298,8 +298,14 @@ raw *:*:{
   elseif ($event = 367) {
     if ($dialog(%nx.cc.dname)) && (%nx.cc.getbans == $2) {
       if (Refreshing bans ... iswm $did(%nx.cc.dname,$nx.cc.chk.id(Banlist),1)) { did -d %nx.cc.dname $nx.cc.chk.id(Banlist) 1 }
-      did -a %nx.cc.dname $nx.cc.chk.id(Banlist) $3
+      did -a %nx.cc.dname $nx.cc.chk.id(Banlist) 0 + 0 0 0 $3 $+ 	+ 0 0 0 $4 $+ 	+ 0 0 0 $asctime($5,dd/mm/yyyy HH:nn)
+      ; did -a %nx.cc.dname $nx.cc.chk.id(Banlist) $3 
+      ; did -a %nx.cc.dname $nx.cc.chk.id(BanSetBy) $4
+      ; did -a %nx.cc.dname $nx.cc.chk.id(BanSetDate) $asctime($5,dd/mm/yyyy HH:nn)
+          return
+
     }
+    return
   }
   ; End of banlist
   elseif ($event = 368) {
@@ -311,6 +317,7 @@ raw *:*:{
       else { did -ra %nx.cc.dname $nx.cc.chk.id(numbans) $calc($did(%nx.cc.dname,$nx.cc.chk.id(Banlist)).lines -1) $+ / $+ $iif(%nx.maxbans. [ $+ [ $cid ] ],$v1,unknown) }
       unset %nx.cc.getbans
     }
+    return
   }
 
   ; /links list

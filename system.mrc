@@ -60,7 +60,7 @@ on ^1:notice:*:?:{
 }
 on 1:usermode:{
   ; When on znc i need this to make sure snotice windows is up 
-  ; if ( o isin $1 ) && ( $chr(45) !isin $1 ) { echo 3 -st $nick is now an IRC Operator ;}
+  if ( o isincs $1 ) && ( $left($1,1) == $chr(43) ) { window -De $+(@,$network,_,$cid,_,status) | echo 3 -st You are now an IRC Operator on $network }
 }
 on 1:mode:#:{
   ; TODO update userlist based on mode +qaohv 

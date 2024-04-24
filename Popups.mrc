@@ -28,7 +28,7 @@ Menu Channel {
   .devoice:{ massv2 $chan devoice $iif($?"Enter a number nothing for all" > 0,$v1,$nick($chan,0)) }
   -
   Update:{
-    set -u2 %nx.ial.update true
+    set -u2 %nx.ial.update. [ $+ [ $cid ] ]  true
     remini $+(ial\,$network,.ini) $chan
     names $chan
   }
@@ -56,7 +56,9 @@ menu Status {
   Quit:/quit $$?="Reason"
   -
   Debug:{ debug <@window> | window -e $+(@,$network,_,$cid,_,raw) | debug $+(@,$network,_,$cid,_,raw) }
-  DebugOff:{ debug off }
+  DebugOff:{ debug off | close -@ $+(@,$network,_,$cid,_raw)) }
+  -
+  Snotice:{ window -e $+(@,$network,_,$cid,_,raw) }
 
 }
 menu Nicklist {
