@@ -79,6 +79,7 @@ dialog nx.dialog.cc {
   button "&Ok", 101, 510 570 80 24, ok
   button "&Cancel", 102, 600 570 80 24, cancel
 }
+
 on *:dialog:jalla*:*:*:{
   if ($devent == init) {
     mdx SetMircVersion $version
@@ -89,6 +90,7 @@ on *:dialog:jalla*:*:*:{
     unset %sortheader. [ $+ [ $dname ] $+ ] .*
   }
 }
+
 on 1:dialog:nx.dialog.cc:*:*: {
   if ( $devent = init ) { 
     set %nx.cc.dname $dname
@@ -100,7 +102,6 @@ on 1:dialog:nx.dialog.cc:*:*: {
     did -i $dname $nx.cc.chk.id(Banlist) 1 settxt bgcolor none
 
     did -a $dname 111 %nx.cc.chan 
-    ; ascii for paranthesis
     did -a $dname 113 $server $+($chr(40),$serverip,$chr(41)) - $network
     did -a $dname 118 $chan(%nx.cc.chan).mode
     did -a $dname 115 $chan(%nx.cc.chan).topic
@@ -158,7 +159,6 @@ on 1:dialog:nx.dialog.cc:*:*: {
       ; TODO Select bans to unban
     }
   }
-
 
   elseif ( $devent = active ) { dialogecho }
   elseif ( $devent = close ) { dialogecho | unset %nx.cc.* }
@@ -263,10 +263,12 @@ alias nx.cc.getbans {
   set -u100 %nx.cc.getbans %nx.cc.chan
   mode %nx.cc.chan +b
 }
+
 ; placeholder
 alias nx.cc.getinvites {
  return
 }
+
 ; placeholder
 alias nx.cc.getexcepts {
  return
@@ -377,11 +379,12 @@ alias nx.cc.chk.id {
   if ( $1 == 192 ) { return Q }
 }
 
-
 ; Stolen from noname script (http://nnscript.com), thanks to the author
+
 alias wd { return $gettok($1,$2,32) }
 alias nbr { if ($1- != $null) { return ( $+ $1- $+ ) } }
 
+; This is just a test, not sure if it will work
 alias mdx {
   var %m = $dll(scripts\dlls\mdx.dll,$1,$2-)
   if (ERROR * iswmcs %m) { echo 3 -st Warning in alias mdx: $nbr($wd(%m,3-)) | return }

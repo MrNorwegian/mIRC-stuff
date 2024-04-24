@@ -153,75 +153,33 @@ raw *:*:{
 
   ; WHOIS
   ; nick ident host * realname
-  elseif ($event = 311) { 
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $chr(45) | echo %nx.echo.color -at $2 is $+($3,@,$4-) | halt }
-    else { return }
-  }
+  elseif ($event = 311) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $chr(45) | echo %nx.echo.color -at $2 is $+($3,@,$4-) | halt } | else { return } }
   ; is identified for this nick
-  elseif ($event = 307) { 
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 on $3- | halt }
-    else { return }
-  }
+  elseif ($event = 307) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 on $3- | halt } | else { return } }
   ; nick is using modes
-  elseif ($event = 379) { 
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt }
-    else { return }
-  }
+  elseif ($event = 379) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt } | else { return } }
   ; nick is connecting from
-  elseif ($event = 378) { 
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt }
-    else { return }
-  }
+  elseif ($event = 378) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt } | else { return } }
   ; whois nick is on channel
-  elseif ($event = 319) { 
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 on $3- | halt }
-    else { return }
-  }
+  elseif ($event = 319) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 on $3- | halt } | else { return } }
   ; whois nick using server
-  elseif ($event = 312) { 
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 using $3- | halt }
-    else { return }
-  }
+  elseif ($event = 312) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 using $3- | halt } | else { return } }
   ; nick is an IRC opetator
-  elseif ($event = 313) { 
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt }
-    else { return }
-  }
+  elseif ($event = 313) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt } | else { return } }
   ; nick is using Secure Connection
-  elseif ($event = 671) {
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt }
-    else { return }
-  }
+  elseif ($event = 671) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt } | else { return } }
   ; logged in as
-  elseif ($event = 330) {
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 is logged in as $3 | halt }
-    else { return }
-  }
+  elseif ($event = 330) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 is logged in as $3 | halt } | else { return } }
   ; nick is using ip with a reputation 
-  elseif ($event = 320) {
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt }
-    else { return }
-  }
+  elseif ($event = 320) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt } | else { return } }
   ; nick has client certificate
-  elseif ($event = 276) {
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt }
-    else { return }
-  }
+  elseif ($event = 276) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt } | else { return } }
   ; using host
-  elseif ($event = 338) {
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 is actually $3 $+($chr(91),$4,$chr(93)) | halt }
-    else { return }
-  }
+  elseif ($event = 338) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 is actually $3 $+($chr(91),$4,$chr(93)) | halt } | else { return } }
   ; idle time
-  elseif ($event = 317) {
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 has been idle for $duration($3) and signed on $duration($calc($ctime - $4)) ago ( $date($4,HH:mm:ss dd-mmm yyyy) ) | halt }
-    else { return }
-  }
+  elseif ($event = 317) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 has been idle for $duration($3) and signed on $duration($calc($ctime - $4)) ago ( $date($4,HH:mm:ss dd-mmm yyyy) ) | halt } }
   ; End of whois
-  elseif ($event = 318) { 
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | echo %nx.echo.color -at $chr(45) | halt }
-    else { return }
-  }
+  elseif ($event = 318) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | echo %nx.echo.color -at $chr(45) | halt } | else { return } }
 
   ; end of /who
   elseif ($event = 315) { return }

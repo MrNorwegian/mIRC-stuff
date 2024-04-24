@@ -2,11 +2,13 @@ on *:start:{
   ; connectall is just a bunch of /server -m
   if ( %nx.autoconnect = yes ) { connectall }
 }
+
 on 1:connect:{
   ; Part of custom IAL
   if ( $readini($+(ial\,$network,_,$cid,.ini),status,connected) ) { .remove $+(ial\,$network,_,$cid,.ini) | writeini $+(ial\,$network,_,$cid,.ini) status connected 1 }
   else { writeini $+(ial\,$network,_,$cid,.ini) status connected 1 }
 }
+
 on 1:disconnect:{ 
   ; Part of custom IAL
   if ( $readini($+(ial\,$network,_,$cid,.ini),status,connected) ) { writeini $+(ial\,$network,_,$cid,.ini) status connected 0 }
@@ -58,15 +60,18 @@ on ^1:notice:*:?:{
   }
   else { nx.echo.notice $nick $1- | halt }
 }
+
 on 1:usermode:{
   ; When on znc i need this to make sure snotice windows is up 
   if ( o isincs $1 ) && ( $left($1,1) == $chr(43) ) { window -De $+(@,$network,_,$cid,_,status) | echo 3 -st You are now an IRC Operator on $network }
 }
+
 on 1:mode:#:{
   ; TODO update userlist based on mode +qaohv 
   ; burst update but stop after x mods to prevent flood of .ini writes
   ; if flooded run /names instead after some secs, then allow update of modes ?
 }
+
 on 1:nick:{
   ; Update "custom ial", this needs to be hashtable in the future
   ; $remove is a ugly hack to remove [ from nick because of bug
@@ -79,6 +84,7 @@ on 1:nick:{
     dec %nx.onnick.chans
   }
 }
+
 on *:join:*:{
   if ( $me !isvoice $chan ) && ( $chan = #IdleRPG ) && ( $nick != $me ) {
     ; TODO make a check on timer to check if bot is gettig OP
@@ -92,10 +98,12 @@ on *:join:*:{
 on *:part:*:{
   if ( $nick = $me ) { echo -st Removed userlist for $chan | remini $+($cid,.ini) $chan }
 }
+
 on *:quit:{
   ; TODO loop thru all channels and remove userlist ? This is a bit redudant since it gets removed on join (return on raw /names)
   return
 }
+
 on ^1:SNOTICE:*:{ nx.echo.snotice $1- | return }
 
 on *:invite:*:{ if ( $istok($nx.db(read,settings,operchans,$network),$chan,32) ) { join $chan } }
@@ -104,6 +112,7 @@ on 1:text:*:?:{
   ; znc is reconnected 
   if ($left($nick,1) = $chr(42)) && ( $1 = Connected! ) { set %nx.ial.update. [ $+ [ $cid ] ] true }
 }
+
 on *:open:?:{
   ; check for own botnet or znc
   if ( $istok(%nx.botnet_ [ $+ [ $network ] ],$nick,32)) || ($left($nick,1) = $chr(42) ) { return }

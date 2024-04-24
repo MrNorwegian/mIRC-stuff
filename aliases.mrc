@@ -276,6 +276,7 @@ alias nx.masskick {
   }
   else { echo -at Usage /nx.masskick kick\botnet_kick #chan nick nick1 nick2 }
 }
+
 ; Idea: is it possible to merge this to massmode ?
 alias nx.massban {
   if ($3) && ( $istok(ban unban botnet_ban botnet_unban,$1,32) ) { 
@@ -323,6 +324,7 @@ alias nx.massban {
   }
   else { echo -at Usage /massban ban\unban #chan nick nick1 nick2 }
 }
+
 alias massv2 {
   ; Popups
   ; Mass
@@ -380,6 +382,7 @@ alias wait {
   var %o = $calc($nnticks + $1)
   while ($nnticks < %o) { }
 }
+
 alias nnticks {
   if (%precisetiming) {
     if ($nndll(PerformanceCounter)) { return $v1 }

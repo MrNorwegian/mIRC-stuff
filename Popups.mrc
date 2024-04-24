@@ -19,6 +19,7 @@ menu Query {
   -
   Close:/closemsg $$1
 }
+
 Menu Channel {
   Channel Modes:/channel
   NX Channel Central:/nx.cc $chan
@@ -36,6 +37,7 @@ Menu Channel {
   Rejoin:/hop $1
   Part:/part $chan
 }
+
 menu Status {
   Lusers:/lusers
   Uptime:/stats u
@@ -48,7 +50,7 @@ menu Status {
   Disconnect:/disconnect
   Reconnect:/server $serverip
   - 
-  ; Oper:/oper $$1 $$?="Password"
+  Oper:/oper $$?="Username" $$?="Password"
   - 
   ; Services:/services
   ; Botnet:/botnet
@@ -59,8 +61,8 @@ menu Status {
   DebugOff:{ debug off | close -@ $+(@,$network,_,$cid,_raw)) }
   -
   Snotice:{ window -e $+(@,$network,_,$cid,_,raw) }
-
 }
+
 menu Nicklist {
   Info:/uwho $1
   Whois:{ set %nx.echoactive.whois true | .timer_echoactive.whois 1 $numtok($1-,32) unset %nx.echoactive.whois | var %i $numtok($$1-,32) | while (%i) { nx.whois $gettok($$1-,%i,32) $gettok($$1-,%i,32) | dec %i } }
