@@ -353,6 +353,40 @@ alias massv2 {
   }
 }
 
+; nx.*tok is a replacement for $addtok, $remtok, $istok that is case sensitive
+; $nx.remtok(a b c,C,32) returns a b c C
+alias nx.addtok {
+  if ( $3 ) { 
+    var %value $1, %token $2, %delim $3, %i 1
+    return $+(%value,$chr(%delim),%token)
+  }
+}
+; $nx.remtok(a b B c,b,32) returns a B c 
+alias nx.remtok {
+    if ($3) {
+    var %value $1, %token $2, %delim $3, %i 1
+    var %len $numtok(%value,%delim)
+    while ( %i <= %len) {
+      if ( %token !isincs $gettok(%value,%i,%delim) ) { var %newvalue $iif(%newvalue,$+(%newvalue,$chr(%delim),$gettok(%value,%i,%delim)),$gettok(%value,%i,%delim)) }
+      inc %i
+    }
+    return %newvalue
+  }
+}
+; $nx.istok(a B c,b,32) returns $false
+; $nx.istok(a b c,b,32) returns $true  
+alias nx.istok {
+  if ($3) {
+    var %value $1, %token $2, %delim $3, %i 1
+    var %len $numtok(%value,%delim)
+    while ( %i <= %len) {
+      if ( %token isincs $gettok(%value,%i,%delim) ) { return $true }
+      inc %i
+    }
+    return $false
+  }
+}
+
 ; Thanks wikichip (https://en.wikichip.org/wiki/mirc/thread)
 alias pause {
   if ($1 !isnum 1-) return

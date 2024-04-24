@@ -260,7 +260,7 @@ raw *:*:{
       ; did -a %nx.cc.dname $nx.cc.chk.id(Banlist) $3 
       ; did -a %nx.cc.dname $nx.cc.chk.id(BanSetBy) $4
       ; did -a %nx.cc.dname $nx.cc.chk.id(BanSetDate) $asctime($5,dd/mm/yyyy HH:nn)
-          return
+      return
 
     }
     return
@@ -275,7 +275,7 @@ raw *:*:{
       else { did -ra %nx.cc.dname $nx.cc.chk.id(numbans) $calc($did(%nx.cc.dname,$nx.cc.chk.id(Banlist)).lines -1) $+ / $+ $iif(%nx.maxbans. [ $+ [ $cid ] ],$v1,unknown) }
       unset %nx.cc.getbans
     }
-    return
+    halt
   }
 
   ; /links list
@@ -351,6 +351,9 @@ raw *:*:{
   ; nefarious ssl
   ; $me $me has client certificate fingerprint E95DC2020C6463088AAB47B38961B6E868F9C7C6B8D42201F1913A45BC1CA458
   elseif ($event = 616) { return }
+
+  ; K +i must be set (When setting +K)
+  elseif ($event = 974) { return }
 
   else { decho RAW $event $1- }
 }
