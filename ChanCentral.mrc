@@ -126,11 +126,11 @@ on 1:dialog:nx.dialog.cc:*:*: {
           if ( $len(%tm) = $modespl ) { mode %nx.cc.chan $+($chr(43),%tm) | unset %tm }
           dec %i
         }
-        if ( %tm ) && ( $calc($len(%tm) + 2) >= $modespl ) { mode %nx.cc.chan $+($chr(43),%tm) | unset %tm }
-        elseif (%tm) { set %tm $+($chr(43),%tm) }
+        if ( %tm ) && ( $modespl > $len(%tm) ) { set %tm $+($chr(43),%tm) }
+        elseif (%tm) { mode %nx.cc.chan $+($chr(43),%tm) | unset %tm }
         while (%r) {
           var %m $mid(%nx.cc.rm,%r,1)
-          if ( %m isincs l ) { mode %nx.cc.chan $+($chr(45),%m) $chan(%nx.cc.chan).limit }
+          if ( %m isincs l ) { mode %nx.cc.chan $+($chr(45),%m) }
           elseif ( %m isincs k ) { mode %nx.cc.chan $+($chr(45),%m) $chan(%nx.cc.chan).key }
           ; TODO add +ffH for unrealircd
           elseif ( %m isincs L ) { echo 3 -a remove L cannot be set yet, my master has to make it }
@@ -186,14 +186,13 @@ alias nx.cc.refmodes {
     set %nx.cc.currmode.opt $gettok($chan(%nx.cc.chan).mode,2-,32)
 
     var %nx.cc.cm klimnpst
-    var %nx.cc.cmircu $+(%nx.cc.cm,rDRcCMP)
+    var %nx.cc.cmircu $+(%nx.cc.cm,rDcCMP)
     var %nx.cc.cmsnircd $+(%nx.cc.cm,rDucCNMT)
     var %nx.cc.cmunreal $+(%nx.cc.cm,zcCDGKMNOPQRSTVL)
     ; bahamut todo add +A +P +S(ssl only) in dialog and $nx.cc.chk.id
     var %nx.cc.cmbahamut $+(%nx.cc.cm,cMOrR)
     ; Nefarious todo add +a in dialog and $nx.cc.chk.id
     var %nx.cc.cmnefarious $+(%nx.cc.cm,CcDMNOQRSTZz)
-
     ; Ratbox todo add +S
     var %nx.cc.cmratbox $+(%nx.cc.cm,S)
 

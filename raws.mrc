@@ -19,7 +19,7 @@ raw *:*:{
         if ( $istok($nx.db(read,settings,ircd,unreal),$network,32) ) && ( $istok($nx.db(read,settings,ircd,samode),$network,32) ) { return }
         else { nx.db write settings ircd unreal $addtok($nx.db(read,settings,ircd,unreal),$network,32) | nx.db write settings ircd samode $addtok($nx.db(read,settings,ircd,samode),$network,32) | return }
       }
-      if ( bahamut-2 isin $8 ) { 
+      elseif ( bahamut-2 isin $8 ) { 
         if ( $istok($nx.db(read,settings,ircd,bahamut),$network,32) ) && ( $istok($nx.db(read,settings,ircd,samode),$network,32) ) { return }
         else { nx.db write settings ircd bahamut $addtok($nx.db(read,settings,ircd,bahamut),$network,32) | nx.db write settings ircd samode $addtok($nx.db(read,settings,ircd,samode),$network,32) | return }
       }
@@ -35,11 +35,9 @@ raw *:*:{
         if ( $istok($nx.db(read,settings,ircd,ircu2),$network,32) ) && ( $istok($nx.db(read,settings,ircd,opmode),$network,32) ) { return }
         else { nx.db write settings ircd ircu2 $addtok($nx.db(read,settings,ircd,ircu2),$network,32) | nx.db write settings ircd opmode $addtok($nx.db(read,settings,ircd,opmode),$network,32) | return }
       }
-      ; need to confirm samode is right for ratbox, also efnet runs ratbox and something else?
       elseif ( ircd-ratbox-3 isin $8 ) { 
-        ; && ( $istok($nx.db(read,settings,ircd,SOMEMODE),$network,32) )
         if ( $istok($nx.db(read,settings,ircd,ratbox),$network,32) ) { return }
-        else { nx.db write settings ircd ratbox $addtok($nx.db(read,settings,ircd,ratbox),$network,32) | ;nx.db write settings ircd SOMEMODE $addtok($nx.db(read,settings,ircd,SOMEMODE),$network,32) | return }
+        else { nx.db write settings ircd ratbox $addtok($nx.db(read,settings,ircd,ratbox),$network,32) | return }
       }
       ; add bircd,inspircd,and others
       else { return }
@@ -192,7 +190,10 @@ raw *:*:{
     return
   }
 
-  ; topic - topic created
+  ; no topic set 
+  elseif ($event = 331) { return }
+
+  ; topic and topic created
   elseif ($event = 332) { return }
   elseif ($event = 333) { return }
 
@@ -338,6 +339,9 @@ raw *:*:{
 
   ; invalid password
   elseif ($event = 464) { return }
+
+  ; Only servers can change that mode
+  elseif ($event = 468) { return }
 
   ; You're not an channel operator
   elseif ($event = 482) { return }

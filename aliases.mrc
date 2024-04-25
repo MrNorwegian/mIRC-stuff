@@ -85,13 +85,10 @@ alias nx.massmode {
 
 alias decho { echo 7 -a DEBUG: $1- }
 
-alias nx.echo.notice { 
-  var %nx.tnnick $+($chr(60),$1,$chr(62))
-  echo 40 -at %nx.tnnick $2-
-}
+alias nx.echo.notice { echo 40 -at $+(-,$1 @ $network,-) $2- }
 alias nx.echo.snotice {
   if ( $active = Status Window ) { echo 5 -st $1- | halt }
-  if ($window($+(@,$network,_,$cid,_,status))) { echo 5 -t $+(@,$network,_,$cid,_,status) $1- | halt }
+  if ( $window($+(@,$network,_,$cid,_,status)) ) { echo 5 -t $+(@,$network,_,$cid,_,status) $1- | halt }
 }
 alias nx.opmode {
   ; Placeholder for custom anti excess flood stuff
