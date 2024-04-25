@@ -85,7 +85,7 @@ on 1:dialog:nx.dialog.cc:*:*: {
     set %nx.cc.dname $dname
     mdx SetMircVersion $version
     mdx MarkDialog $dname $dialog($dname).hwnd
-    mdx SetControlMDX $dname 6 ListView report showsel rowselect labeltip editlabels > $mdxfile(views)
+    ; mdx SetControlMDX $dname 6 ListView report showsel rowselect labeltip editlabels > $mdxfile(views)
     did -i $dname $nx.cc.chk.id(Banlist) 1 headerdims 220:1 80:2 110:3
     did -i $dname $nx.cc.chk.id(Banlist) 1 headertext + 0 Address	+ 0 Set by	+ 0 Date
     did -i $dname $nx.cc.chk.id(Banlist) 1 settxt bgcolor none
@@ -119,6 +119,8 @@ on 1:dialog:nx.dialog.cc:*:*: {
           var %m $mid(%nx.cc.sm,%i,1)
           if ( %m isincs l ) { mode %nx.cc.chan $+($chr(43),%m) $did(%nx.cc.dname,$calc($nx.cc.chk.id(l) +1)) }
           elseif ( %m isincs k ) { mode %nx.cc.chan $+($chr(43),%m) $did(%nx.cc.dname,$calc($nx.cc.chk.id(k) +1)) }
+          elseif ( %m isincs L ) { mode %nx.cc.chan $+($chr(43),%m) $did(%nx.cc.dname,$calc($nx.cc.chk.id(L) +1)) }
+
           ; TODO add +ffH for unrealircd
           else { var %tm $+(%m,%tm) }
           if ( $len(%tm) = $modespl ) { mode %nx.cc.chan $+($chr(43),%tm) | unset %tm }
@@ -131,6 +133,10 @@ on 1:dialog:nx.dialog.cc:*:*: {
           if ( %m isincs l ) { mode %nx.cc.chan $+($chr(45),%m) $chan(%nx.cc.chan).limit }
           elseif ( %m isincs k ) { mode %nx.cc.chan $+($chr(45),%m) $chan(%nx.cc.chan).key }
           ; TODO add +ffH for unrealircd
+          elseif ( %m isincs L ) { echo 3 -a remove L cannot be set yet, my master has to make it }
+          elseif ( %m isincs F ) { echo 3 -a remove F cannot be set yet, my master has to make it }
+          elseif ( %m isincs f ) { echo 3 -a remove f cannot be set yet, my master has to make it }
+          elseif ( %m isincs H ) { echo 3 -a remove H cannot be set yet, my master has to make it }
           else { var %tm $+(%m,%tm) }
           if ( $iif($chr(43 isin %len),$calc($len(%tm) -1),$len(%tm)) = $modespl ) { mode %nx.cc.chan $+($chr(45),%tm) | unset %tm }
           dec %r
@@ -143,7 +149,7 @@ on 1:dialog:nx.dialog.cc:*:*: {
     elseif ( $nx.cc.chk.id($did) ) { 
       set %nx.cc.chk.mode $v1
       var %nx.cc.chk.id $did
-      var %nx.cc.supported.modes lktnimpsrCcDGLMNOPQRSTuVKZz
+      var %nx.cc.supported.modes lktnimpsrCcDGLMNOPQRSTuVKZzL
       if ( %nx.cc.chk.mode isincs %nx.cc.supported.modes ) {
         ; mode is set and checked
         if ( $istok(%nx.cc.ismode,%nx.cc.chk.id,32) ) && ( $did(%nx.cc.chk.id).state = 1 ) { set %nx.cc.remmode $nx.remtok(%nx.cc.remmode,%nx.cc.chk.mode,32) }
@@ -175,61 +181,51 @@ on 1:dialog:nx.dialog.cc:*:*: {
 ; ratbox eIb,k,l,imnpstS
 alias nx.cc.refmodes { 
   if ( $dialog(nx.dialog.cc) ) && ( %nx.cc.chan ischan ) {
-    ; Using gettok to get only modes ( +stnlk 123 key )
-    ; In this case +b isnot tested on ircu and everything else in unreal
     set %nx.cc.chanmodes $+($gettok($chanmodes,-1,44),$iif($gettok($chanmodes,3,44),$v1),$iif($gettok($chanmodes,2,44),$v1))
     set %nx.cc.currmode $gettok($mid($chan(%nx.cc.chan).mode,2,$len(%nx.cc.chanmodes)),1,32)
-    ; TODO if gettok except be,k,l (I also ? invites)
-    ; var %nx.cc.c1 beI (except be, bans and excepts are tested another alias)
-    ; var %nx.cc.c2 fkL (except k, key are tested another alias)
-    ; var %nx.cc.c3 lFH (except l, limit are tested another alias)
+    set %nx.cc.currmode.opt $gettok($chan(%nx.cc.chan).mode,2-,32)
 
-    var %nx.cc.cm tniklmps
-    var %nx.cc.cmircu rDcCPM
-    var %nx.cc.cmsnircd rDucCNMT
-    var %nx.cc.cmunreal zCDGKMNOPQRSTV
-
+    var %nx.cc.cm klimnpst
+    var %nx.cc.cmircu $+(%nx.cc.cm,rDRcCMP)
+    var %nx.cc.cmsnircd $+(%nx.cc.cm,rDucCNMT)
+    var %nx.cc.cmunreal $+(%nx.cc.cm,zcCDGKMNOPQRSTVL)
     ; bahamut todo add +A +P +S(ssl only) in dialog and $nx.cc.chk.id
-    var %nx.cc.cmbahamut cimMnOprRst
-
+    var %nx.cc.cmbahamut $+(%nx.cc.cm,cMOrR)
     ; Nefarious todo add +a in dialog and $nx.cc.chk.id
-    var %nx.cc.cmnefarious CcDiMmNnOpQRrSsTtZz
-    var %nx.cc.cmratbox S
+    var %nx.cc.cmnefarious $+(%nx.cc.cm,CcDMNOQRSTZz)
 
-    ; Loop thru common chanmodes
-    var %nx.cc.cmlen $len(%nx.cc.cm)
-    while (%nx.cc.cmlen) {
-      var %nx.cc.cmid $nx.cc.chk.id($mid(%nx.cc.cm,%nx.cc.cmlen,1))
-      if ( $mid(%nx.cc.cm,%nx.cc.cmlen,1) isincs %nx.cc.chanmodes ) { 
-        if ( $me isop %nx.cc.chan ) {
-          did -e %nx.cc.dname %nx.cc.cmid
-          if ( $mid(%nx.cc.cm,%nx.cc.cmlen,1) = l ) { did -e %nx.cc.dname $calc(%nx.cc.cmid +1) }
-          if ( $mid(%nx.cc.cm,%nx.cc.cmlen,1) = k ) { did -e %nx.cc.dname $calc(%nx.cc.cmid +1) }
-          ; TODO add +ffH for unrealircd
-        }
-        if ( $mid(%nx.cc.cm,%nx.cc.cmlen,1) isincs %nx.cc.currmode ) { 
-          if ( $mid(%nx.cc.cm,%nx.cc.cmlen,1) = l ) { did -ae %nx.cc.dname $calc(%nx.cc.cmid +1) $chan(%nx.cc.chan).limit }
-          if ( $mid(%nx.cc.cm,%nx.cc.cmlen,1) = k ) { did -ae %nx.cc.dname $calc(%nx.cc.cmid +1) $chan(%nx.cc.chan).key }
-          ; TODO add +ffH for unrealircd
-          set %nx.cc.ismode $addtok(%nx.cc.ismode,%nx.cc.cmid,32)
-          did -c %nx.cc.dname %nx.cc.cmid 
-        }
-      }
-      dec %nx.cc.cmlen
-    }
-    ; Loop thru everything else that's tested
+    ; Ratbox todo add +S
+    var %nx.cc.cmratbox $+(%nx.cc.cm,S)
+
     if ( $istok($nx.db(read,settings,ircd,ircu2),$network,32) ) { set %nx.cc.sv ircu2 | set %nx.cc.ircd %nx.cc.cmircu }
-    if ( $istok($nx.db(read,settings,ircd,nefarious),$network,32) ) { set %nx.cc.sv nefarious | set %nx.cc.ircd %nx.cc.cmnefarious }
-    if ( $istok($nx.db(read,settings,ircd,snircd),$network,32) ) { set %nx.cc.sv snircd | set %nx.cc.ircd %nx.cc.cmsnircd }
-    if ( $istok($nx.db(read,settings,ircd,unreal),$network,32) ) { set %nx.cc.sv unreal | set %nx.cc.ircd %nx.cc.cmunreal }
-    if ( $istok($nx.db(read,settings,ircd,bahamut),$network,32) ) { set %nx.cc.sv bahamut | set %nx.cc.ircd %nx.cc.cmbahamut }
+    elseif ( $istok($nx.db(read,settings,ircd,nefarious),$network,32) ) { set %nx.cc.sv nefarious | set %nx.cc.ircd %nx.cc.cmnefarious }
+    elseif ( $istok($nx.db(read,settings,ircd,snircd),$network,32) ) { set %nx.cc.sv snircd | set %nx.cc.ircd %nx.cc.cmsnircd }
+    elseif ( $istok($nx.db(read,settings,ircd,unreal),$network,32) ) { set %nx.cc.sv unreal | set %nx.cc.ircd %nx.cc.cmunreal }
+    elseif ( $istok($nx.db(read,settings,ircd,bahamut),$network,32) ) { set %nx.cc.sv bahamut | set %nx.cc.ircd %nx.cc.cmbahamut }
+    elseif ( $istok($nx.db(read,settings,ircd,ratbox),$network,32) ) { set %nx.cc.sv ratbox | set %nx.cc.ircd %nx.cc.cmratbox }
+    else { set %nx.cc.sv unknown | set %nx.cc.ircd %nx.cc.cm }
 
+    ;echo 14 -a Starting to check modes for %nx.cc.sv modes: %nx.cc.ircd currmode: %nx.cc.currmode chanmodes: %nx.cc.chanmodes opt: %nx.cc.currmode.opt 
     var %nx.cc.cmlen $len(%nx.cc.ircd)
     while (%nx.cc.cmlen) {
       if ( $mid(%nx.cc.ircd,%nx.cc.cmlen,1) isincs %nx.cc.chanmodes ) { 
+        ;echo 15 -a Len %nx.cc.cmlen Is currmode: $mid(%nx.cc.ircd,%nx.cc.cmlen,1) isincs %nx.cc.currmode
+
         var %nx.cc.cmid $nx.cc.chk.id($mid(%nx.cc.ircd,%nx.cc.cmlen,1))
-        ; Todo Check if $nx.cc.chk.id($mid(%nx.cc.ircd,%nx.cc.cmlen,1)) returns an ID, and echo unsupported\untested mode
-        ; echo -a DEBUG len: %nx.cc.cmle mode: $mid(%nx.cc.ircd,%nx.cc.cmlen,1) id: %nx.cc.cmid
+        if ( $me isop %nx.cc.chan ) {
+          if ( $mid(%nx.cc.ircd,%nx.cc.cmlen,1) === l ) { did -e %nx.cc.dname $calc(%nx.cc.cmid +1) }
+          if ( $mid(%nx.cc.ircd,%nx.cc.cmlen,1) === k ) { did -e %nx.cc.dname $calc(%nx.cc.cmid +1) }
+          if ( $mid(%nx.cc.ircd,%nx.cc.cmlen,1) === L ) { did -e %nx.cc.dname $calc(%nx.cc.cmid +1) }
+          ; TODO add +ffH for unrealircd
+        }
+        if ( $mid(%nx.cc.ircd,%nx.cc.cmlen,1) isincs %nx.cc.currmode ) { 
+          if ( $mid(%nx.cc.ircd,%nx.cc.cmlen,1) === l ) { did -ae %nx.cc.dname $calc(%nx.cc.cmid +1) $chan(%nx.cc.chan).limit | dec %nx.cc.optlen }
+          if ( $mid(%nx.cc.ircd,%nx.cc.cmlen,1) === k ) { did -ae %nx.cc.dname $calc(%nx.cc.cmid +1) $chan(%nx.cc.chan).key | dec %nx.cc.optlen }
+          if ( $mid(%nx.cc.ircd,%nx.cc.cmlen,1) === L ) { did -ae %nx.cc.dname $calc(%nx.cc.cmid +1) }
+          set %nx.cc.ismode $addtok(%nx.cc.ismode,%nx.cc.cmid,32)
+          ;echo 11 -a Ismode: %nx.cc.ismode - Enable mode enable mode: $mid(%nx.cc.ircd,%nx.cc.cmlen,1) ID: %nx.cc.cmid 
+          did -c %nx.cc.dname %nx.cc.cmid 
+        }
         if ( $me isop %nx.cc.chan ) { did -e %nx.cc.dname %nx.cc.cmid }
         if ( $mid(%nx.cc.ircd,%nx.cc.cmlen,1) isincs %nx.cc.currmode ) { set %nx.cc.ismode $addtok(%nx.cc.ismode,%nx.cc.cmid,32) | did -c %nx.cc.dname %nx.cc.cmid }
       }
@@ -321,6 +317,7 @@ alias nx.cc.chk.id {
   if ( $1 === R ) { return 165 }
   if ( $1 == 165 ) { return R }
   if ( $1 === S ) && ( %nx.cc.sv = unreal ) { return 166 }
+  if ( $1 === S ) && ( %nx.cc.sv = ratbox ) { return 166 }
   if ( $1 == 166 ) { return S }
   if ( $1 === T ) && ( %nx.cc.sv = unreal ) { return 167 }
   if ( $1 == 167 ) { return T }
