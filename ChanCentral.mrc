@@ -187,6 +187,7 @@ alias nx.cc.refmodes {
 
     var %nx.cc.cm klimnpst
     var %nx.cc.cmircu $+(%nx.cc.cm,rDcCMP)
+    var %nx.cc.cmbird $+(%nx.cc.cm,rD)
     var %nx.cc.cmsnircd $+(%nx.cc.cm,rDucCNMT)
     var %nx.cc.cmunreal $+(%nx.cc.cm,zcCDGKMNOPQRSTVL)
     ; bahamut todo add +A +P +S(ssl only) in dialog and $nx.cc.chk.id

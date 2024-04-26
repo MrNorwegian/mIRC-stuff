@@ -254,8 +254,17 @@ alias nx.botnet.control {
       }
     }
   }
+  elseif ( $istok(registerns,$1,32) ) && ( $3 ) {
+    var %i $numtok($3-,32)
+    while (%i) { 
+      if ( $chat($gettok($3-,%i,32)).status = active ) && ( $istok(%nx.botnet_ [ $+ [ $network ] ],$gettok($3-,%i,32),32) ) {
+        msg $+(=,$gettok($3-,%i,32)) .tcl putquick "privmsg nickserv register $2 $gettok($3-,%i,32) $+ @lan.da9.no"
+      }
+      elseif ( $gettok($3-,%i,32) != $null ) { echo 4 -at During Botnet Controll ( $1 ) No dcc chat active with $gettok($3-,%i,32) }
+      dec %i
+    }
+  }
 }
-
 alias nx.masskick {
   if ($3) { 
     var %nx.kick.num $numtok($3-,32)

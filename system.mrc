@@ -18,14 +18,16 @@ on 1:disconnect:{
 on ^1:notice:*:?:{
   if ($istok(%nx.services.bots,$nick,32)) {
     ; TODO Check if it's really nickserv (hostname)
-    if ($nick = nickserv) {
-      if ($4 = registered.) && ($16 == $me) {
-        if ( %nx.nickserv.network = $network ) {
-          .msg nickserv identify $me %password1
+    if ($nick = NickServ) {
+      if (This nickname is registered. isin $1-4) && ( $istok($nx.db(read,settings,services,Atheme),$network,32) ) {
+        if ( $gettok($nx.db(read,settings,nickserv,$network),1,32) = $me ) {
+          .msg nickserv identify $me $gettok($nx.db(read,settings,nickserv,$network),2,32)
         }
       }
+      if ( has been ghosted. isin $2-4 ) && ( $istok($nx.db(read,settings,services,Atheme),$network,32) ) { 
+        nick $strip($1)
+      }
       else { nx.echo.notice $nick $1- | halt }
-
     }
     elseif ( $nick = UWorld ) && ( $nx.db(read,opernet,$network) ) {
       nx.echo.notice $nick $1-
@@ -92,7 +94,7 @@ on *:join:*:{
     if ( $address($nick,5) = idlerpg!multirpg@idlerpg.users.undernet.org ) { .timer_idlebot_ $+ $cid 1 2 .msg $nick login %nx.idlerpg.user %nx.idlerpg.pass }
     if ( $address($nick,5) = idlerpg!*IdleRPG@idle.rpgsystems.org ) { .timer_idlebot_ $+ $cid 1 2 .msg $nick login %nx.idlerpg.user %nx.idlerpg.pass }
   }
-  elseif ( $nick = $me ) { set %nx.ial.update. [ $+ [ $cid ] ] true }
+  elseif ( $nick = $me ) { set %nx.ial.update. [ $+ [ $cid ] ] true | set %nx.ial.update. [ $+ [ $chan ] ] true }
 }
 
 on *:part:*:{
@@ -140,3 +142,7 @@ on *:open:?:{
     }
   }
 }
+ctcp 1:time:?:/ctcpreply $nick TIME $date(ddd ddoo mmm yyyy hh:mmt) | halt
+
+;ctcp 1:ping:?:/ctcpreply $nick PING Ouch!
+

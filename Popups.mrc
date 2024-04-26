@@ -28,6 +28,7 @@ Menu Channel {
   .voice:{ massv2 $chan voice $iif($?"Enter a number nothing for all" > 0,$v1,$nick($chan,0)) }
   .devoice:{ massv2 $chan devoice $iif($?"Enter a number nothing for all" > 0,$v1,$nick($chan,0)) }
   -
+  ; TODO clearmode (with botnet or ircop + uworld\operserv?)
   Update:{
     set -u2 %nx.ial.update. [ $+ [ $cid ] ]  true
     remini $+(ial\,$network,.ini) $chan
@@ -36,15 +37,40 @@ Menu Channel {
   -
   Rejoin:/hop $1
   Part:/part $chan
+  DuckHunt
+  .1 Extra bullet(7xp):{ say !shop 1 }
+  .2 Extra clip (20 xp):{ say !shop 2 }
+  .3 AP ammo (15 xp):{ say !shop 3 }
+  .4 Explosive ammo (25 xp):{ say !shop 4 }
+  .5 Repurchase confiscated gun (40 xp) :{ say !shop 5 }
+  .6 Grease (8 xp) :{ say !shop 6 }
+  .7 Sight (6 xp) :{ say !shop 7 }
+  .8 Infrared detector (15 xp):{ say !shop 8 }
+  .9 Silencer (5 xp):{ say !shop 9 }
+  .10 Four-leaf clover (13 xp) :{ say !shop 10 }
+  .11 Sunglasses (5 xp):{ say !shop 11 }
+  .12 Spare clothes (7 xp):{ say !shop 12 }
+  .13 Brush for gun (7 xp) :{ say !shop 13 }
+  .14 Mirror (7 xp):{ say !shop 14 }
+  .15 Handful of sand (7 xp):{ say !shop 15 }
+  .16 Water bucket (10 xp):{ say !shop 16 }
+  .17 Sabotage (14 xp):{ say !shop 17 }
+  .18 Life insurance (10 xp):{ say !shop 18 }
+  .19 Liability insurance (5 xp):{ say !shop 19 }
+  .20 Decoy (8 xp):{ say !shop 20 }
+  .21 Piece of bread (2 xp) :{ say !shop 21 }
+  .22 Ducks detector (5 xp):{ say !shop 22 }
+  .23 Mechanical duck (50 xp):{ say !shop 23 }
+  .ShowDucks:{ echo -a Ducks: %nx_duck_ducks }
 }
-
 menu Status {
   Lusers:/lusers
-  Uptime:/stats u
   Stats
   .Operline:{ stats o }
   .Connectline:{ stats c }
   .Features:{ stats f }
+  .Uptime:{ /stats u }
+  .Vservers:{ /stats v }
   -
   Connect:/server $serverip
   Disconnect:/disconnect
@@ -83,6 +109,7 @@ menu Nicklist {
   .$iif(v isin $nickmode,Voice):{ nx.massmode voice $chan $$1- }
   .$iif(v isin $nickmode,Devoice):{ nx.massmode devoice $chan $$1- }
   .-
+  ; TODO Remove all modes
   ; TODO Kick + ban
   .Kick:{ set %nx.masskick.reason $?"Reason or emtpy for default" | nx.masskick kick $chan $$1- }
   .Ban:{ nx.massban ban $chan $$1- }
@@ -115,6 +142,7 @@ menu Nicklist {
   .Kick:{ set %nx.masskick.reason $?"Reason or emtpy for default" | nx.masskick botnet_kick $chan $$1- }
   .-
   .Chattr:{ nx.botnet.control chattr $chan $$1- }
+  .RegisterNickServ:{ nx.botnet.control registerns $$?="password?" $$1- }
   .-
   .Say:{ nx.botnet.control say $$?="Channel?" $$1- }
   .Join:{ nx.botnet.control join $$?="Channel?" $$1- }

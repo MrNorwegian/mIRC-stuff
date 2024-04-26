@@ -9,6 +9,8 @@ raw *:*:{
   ; chghost naka hostname.info
   elseif ($event = chghost) { return }
 
+  elseif ($event = account) { return }
+
   ; Welcome
   elseif ($event = 001) { set %nx.ial.update true | return }
 
@@ -168,6 +170,8 @@ raw *:*:{
   elseif ($event = 671) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt } | else { return } }
   ; logged in as
   elseif ($event = 330) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 is logged in as $3 | halt } | else { return } }
+  ; nick "landcode" is connecting from "land"
+  elseif ($event = 344) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 $4- | halt } | else { return } }
   ; nick is using ip with a reputation 
   elseif ($event = 320) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt } | else { return } }
   ; nick has client certificate
@@ -247,7 +251,8 @@ raw *:*:{
   elseif ($event = 366) { 
     if ( %nx.ial.update. [ $+ [ $cid ] ] ) {
       echo -st Saved userlist in $2 with %nx.ial.sumnicks nicks
-      .timer_ial_update 1 5 unset %nx.ial.sumnicks %nx.ial.update. [ $+ [ $cid ] ]
+      .timer_ial_update 1 5 unset %nx.ial.update. [ $+ [ $cid ] ]
+      unset %nx.ial.sumnicks %nx.ial.update. [ $+ [ $3 ] ]
       halt 
     }
     else { return }
@@ -316,9 +321,18 @@ raw *:*:{
   ; MOTD file missing
   elseif ($event = 422) { return }
 
-  ; Nickname is already in use
-  elseif ($event = 433) { return }
+  ; nickname is unavailable: illegal characters
+  elseif ($event = 432) { return }
 
+  ; Nickname is already in use
+  elseif ($event = 433) { 
+    if ( $istok($nx.db(read,settings,services,Atheme),$network,32) ) {
+      echo a $gettok($nx.db(read,settings,nickserv,$network),1,32) and $1
+      if ( $gettok($nx.db(read,settings,nickserv,$network),1,32) = $2 ) {
+        .msg nickserv ghost $2 $gettok($nx.db(read,settings,nickserv,$network),2,32)
+      }
+    }
+  }
   ; Nick\Channel is temporarily unavailable
   elseif ($event = 437) { return }
 
@@ -343,8 +357,14 @@ raw *:*:{
   ; Only servers can change that mode
   elseif ($event = 468) { return }
 
+  ; You need a registered nick to join that channel.
+  elseif ($event = 477) { return }
+
   ; You're not an channel operator
-  elseif ($event = 482) { return }
+  elseif ($event = 482) { echo -at * $+($1,:) You're not channel operator | halt }
+
+  ; You're not a channel owner
+  elseif ($event = 499) { echo -at * $+($1,:) You're not channel owner | halt }
 
   ; Cannot join channel
   elseif ($event = 520) { return }
@@ -355,6 +375,9 @@ raw *:*:{
   ; nefarious ssl
   ; $me $me has client certificate fingerprint E95DC2020C6463088AAB47B38961B6E868F9C7C6B8D42201F1913A45BC1CA458
   elseif ($event = 616) { return }
+
+  ; You are now logged in as $2
+  elseif ($event = 900) { return }
 
   ; K +i must be set (When setting +K)
   elseif ($event = 974) { return }
