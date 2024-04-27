@@ -252,7 +252,7 @@ raw *:*:{
     if ( %nx.ial.update. [ $+ [ $cid ] ] ) {
       echo -st Saved userlist in $2 with %nx.ial.sumnicks nicks
       .timer_ial_update 1 5 unset %nx.ial.update. [ $+ [ $cid ] ]
-      unset %nx.ial.sumnicks %nx.ial.update. [ $+ [ $3 ] ]
+      unset %nx.ial.sumnicks %nx.ial.update. [ $+ [ $2 ] ]
       halt 
     }
     else { return }
