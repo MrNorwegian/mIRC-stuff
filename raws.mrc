@@ -1,7 +1,7 @@
 raw *:*:{
   ; ack
   if ($event = ack) { return }
-  elseif ($event = cap) { return }
+  elseif ($event = cap) { halt }
 
   ; batch +eJ2YePPoPApi8e95KGaJfU chathistory #opers ; batch -eJ2YePPoPApi8e95KGaJfU
   elseif ($event = batch) { return }
@@ -9,7 +9,8 @@ raw *:*:{
   ; chghost naka hostname.info
   elseif ($event = chghost) { return }
 
-  elseif ($event = account) { return }
+  elseif ($event = account) { halt }
+  elseif ($event = tagmsg) { halt }
 
   ; Welcome
   elseif ($event = 001) { set %nx.ial.update true | return }
@@ -164,12 +165,18 @@ raw *:*:{
   elseif ($event = 319) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 on $3- | halt } | else { return } }
   ; whois nick using server
   elseif ($event = 312) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 using $3- | halt } | else { return } }
+  ; Is connected via the webircgateway
+  elseif ($event = 350) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $1 $5- | halt } | else { return } }
   ; nick is an IRC opetator
   elseif ($event = 313) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt } | else { return } }
   ; nick is using Secure Connection
   elseif ($event = 671) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt } | else { return } }
   ; logged in as
   elseif ($event = 330) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 is logged in as $3 | halt } | else { return } }
+  ; is a bot on "network"
+  elseif ($event = 335) { return }
+  ; is aviaible for help
+  elseif ($event = 310) { return }
   ; nick "landcode" is connecting from "land"
   elseif ($event = 344) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 $4- | halt } | else { return } }
   ; nick is using ip with a reputation 

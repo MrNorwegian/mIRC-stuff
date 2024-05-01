@@ -106,7 +106,7 @@ on *:quit:{
   return
 }
 
-on ^1:SNOTICE:*:{ nx.echo.snotice $1- | return }
+on ^1:SNOTICE:*:{ nx.echo.snotice $1- | halt }
 
 on *:invite:*:{ if ( $istok($nx.db(read,settings,operchans,$network),$chan,32) ) { join $chan } }
 
@@ -142,7 +142,7 @@ on *:open:?:{
     }
   }
 }
-ctcp 1:time:?:/ctcpreply $nick TIME $date(ddd ddoo mmm yyyy hh:mmt) | halt
 
+;ctcp 1:time:?:/ctcpreply $nick TIME $date(ddd ddoo mmm yyyy hh:mmt) ;| halt
 ;ctcp 1:ping:?:/ctcpreply $nick PING Ouch!
 

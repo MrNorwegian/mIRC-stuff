@@ -4,15 +4,32 @@ alias makemech3 {
   ; random NAMES1.txt NAMES2.txt NAMES3.txt
   set %mech.usenamesfile names123
   set %mech.interface enp0s31f6
-  var %mech.chan #bots4
+  var %mech.chan $iif($2,$2,#spambots)
   set %mech.randomip no
   if ( %mech.randomip = no ) {
     ; lets us use 172.19.110.0 to 172.19.119.255
-    if ( %mech.chan = #bots1 ) { set %mech.startip 172.19.12 }
-    if ( %mech.chan = #bots2 ) { set %mech.startip 172.19.14 }
-    if ( %mech.chan = #bots3 ) { set %mech.startip 172.19.16 }
-    if ( %mech.chan = #bots4 ) { set %mech.startip 172.19.18 }
-    set %mech.nextsubnet 1
+
+    ; 172.19.10 to 172.19.14 = 1024 ips
+    if ( %mech.chan = #b11 ) { set %mech.startip 172.19.10 | set %mech.nextsubnet 0 }
+    if ( %mech.chan = #b12 ) { set %mech.startip 172.19.10 | set %mech.nextsubnet 4 }
+    if ( %mech.chan = #b13 ) { set %mech.startip 172.19.10 | set %mech.nextsubnet 8 }
+    if ( %mech.chan = #b14 ) { set %mech.startip 172.19.11 | set %mech.nextsubnet 2 }
+
+    if ( %mech.chan = #b21 ) { set %mech.startip 172.19.11 | set %mech.nextsubnet 6 }
+    if ( %mech.chan = #b22 ) { set %mech.startip 172.19.12 | set %mech.nextsubnet 0 }
+    if ( %mech.chan = #b23 ) { set %mech.startip 172.19.12 | set %mech.nextsubnet 4 }
+    if ( %mech.chan = #b24 ) { set %mech.startip 172.19.12 | set %mech.nextsubnet 8 }
+
+    if ( %mech.chan = #b31 ) { set %mech.startip 172.19.13 | set %mech.nextsubnet 2 }
+    if ( %mech.chan = #b32 ) { set %mech.startip 172.19.13 | set %mech.nextsubnet 6 }
+    if ( %mech.chan = #b33 ) { set %mech.startip 172.19.14 | set %mech.nextsubnet 0 }
+    if ( %mech.chan = #b34 ) { set %mech.startip 172.19.14 | set %mech.nextsubnet 4 }
+    
+    if ( %mech.chan = #b41 ) { set %mech.startip 172.19.14 | set %mech.nextsubnet 8 }
+    if ( %mech.chan = #b42 ) { set %mech.startip 172.19.15 | set %mech.nextsubnet 2 }
+    if ( %mech.chan = #b43 ) { set %mech.startip 172.19.15 | set %mech.nextsubnet 6 }
+    if ( %mech.chan = #b44 ) { set %mech.startip 172.19.16 | set %mech.nextsubnet 0 }
+    ;set %mech.nextsubnet 1
     set %mech.endip 1
   }
   set %mech.subnet /15
@@ -45,14 +62,15 @@ alias makemech3 {
     write %mechconfig $crlf
     while ( %i <= %mech.numbots ) {
       if ( $mechpick = false ) { echo 4 @mech FAILED, was not able to pick a nick or ip | halt }
-         ; echo 3 @mechdebug ID: %i NICK: %mech.nick IP: %mech.ip
+      var %mech.nick $+($remove($2,$chr(35)),-,%mech.nick,-,$r(1,999)) 
+      ; echo 3 @mechdebug ID: %i NICK: %mech.nick IP: %mech.ip
       ; pause for 1 second every xx bots (to avoid ping time out)
-      if ( %mech.pause = 100 ) { echo @mech Time: 7 $duration($calc($ctime - %mech.ctime)) ( %i \ %mech.numbots bots ) - 14 %mech.sum.nicks | pause %mech.pause | set %mech.pause 1 | set %mech.ctime $ctime | unset %mech.sum.nicks }
-      else { inc %mech.pause | set %mech.sum.nicks $addtok(%mech.sum.nicks,%mech.nick,32) }
+      if ( %p > 100 ) { echo @mech Time: 7 $duration($calc($ctime - %mech.ctime)) ( %i \ %mech.numbots bots ) - 14 %mech.sum.nicks | pause %mech.pause | set %p 1 | set %mech.ctime $ctime | unset %mech.sum.nicks }
+      else { inc %p | set %mech.sum.nicks $addtok(%mech.sum.nicks,%mech.nick,32) }
       ;write mech.set ##### Bot %i Configuration #####
       write %mechconfig set servergroup %mech.network
       write %mechconfig nick %i %mech.nick
-      write %mechconfig set altnick $+(%mech.nick,$r(1,100)) $+(%mech.nick,$r(1,100)) $+(%mech.nick,$r(1,100))
+      write %mechconfig set altnick $+(%mech.nick,$r(1,99)) $+(%mech.nick,$r(1,99)) $+(%mech.nick,$r(1,99))
       write %mechconfig set userfile mech.passwd
       write %mechconfig set ident %mech.nick
       write %mechconfig set ircname %mech.nick
@@ -70,8 +88,9 @@ alias makemech3 {
 
       inc %i
       write server.sh ip addr add dev %mech.interface $+(%mech.ip,%mech.subnet)
-      writeini %mech.db usedips %mech.ip true
-      writeini %mech.db usednicks %mech.nick true
+      if ( %mech.randomip = yes ) { writeini %mech.db usedips %mech.ip true | writeini %mech.db usednicks %mech.nick true }
+      
+      unset %mech.nick
     }
     else { echo Syntax /makemech 128 }
   }
@@ -95,8 +114,9 @@ alias mechpick {
     }
     if ( %mech.randomip = no ) { 
       set %mech.ip $+(%mech.startip,%mech.nextsubnet,.,%mech.endip)
-      if ( %mech.endip = 255 ) { set %mech.endip 1 | inc %mech.nextsubnet }
+      if ( %mech.endip = 255 ) { set %mech.endip 0 | inc %mech.nextsubnet }
       else { inc %mech.endip }
+      unset %mi | set %mech.sip true | haltdef
     }
 
     if ($readini(%mech.db,usedips,%mech.ip) = true) { echo 4 @mechdebug IP used %mech.ip | dec %mi }
