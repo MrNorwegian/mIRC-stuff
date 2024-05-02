@@ -72,6 +72,9 @@ raw *:*:{
   elseif ($event = 015) { nx.echo.snotice $2- | halt } 
   elseif ($event = 017) { nx.echo.snotice $2- | halt } 
 
+  ; /stats return
+  elseif ($event = 210) { nx.echo.snotice $2- | halt }
+
   ; stats l
   elseif ($event = 211) { nx.echo.snotice $2- | halt }
 
@@ -192,6 +195,9 @@ raw *:*:{
 
   ; end of /who
   elseif ($event = 315) { return }
+
+  ; topline of /list "Channel Users Name"
+  elseif ($event = 321) { return }
 
   ; /list - end of /list
   elseif ($event = 322) { return }
@@ -349,6 +355,9 @@ raw *:*:{
   ; nick is already on channel
   elseif ($event = 443) { return }
 
+  ; Cannot join channel (+b)
+  elseif ($event = 474) { return }
+  
   ; Not enough parameters
   elseif ($event = 461) { return }
 
@@ -364,6 +373,9 @@ raw *:*:{
   ; Only servers can change that mode
   elseif ($event = 468) { return }
 
+  ; Cannot join channel transfering 
+  elseif ($event = 470) { return }
+  
   ; You need a registered nick to join that channel.
   elseif ($event = 477) { return }
 

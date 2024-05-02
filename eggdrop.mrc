@@ -24,7 +24,7 @@ on 1:TEXT:*:*:{
 
         elseif ( $3 = Missed. ) || ( survived isin $2- ) || ( accident isin $2- ) { .timer_quack_ $+ %a 1 %t .msg $+(=,%nx.botnet.duck_bot) .tcl putserv "privmsg $chan :!bang" | halt }
 
-        elseif ( Your gun is jammed isin $4-7 ) || ( JAMMED GUN isin $2-) {
+        elseif ( Your gun is jammed isin $4-7 ) || ( JAMMED GUN isin $2-) || ( Trigger locked. isin $3- ) {
           .timer_quack_ $+ %r 1 %rt .msg $+(=,$1) .tcl putserv "privmsg $chan :!reload" 
           .timer_quack_ $+ %a 1 %t .msg $+(=,%nx.botnet.duck_bot) .tcl putserv "privmsg $chan :!bang" 
           halt
@@ -57,8 +57,8 @@ on 1:TEXT:*:*:{
         elseif ( escapes isin $2- ) || ( Frightened by so much noise isin $1-6 ) || ( You shot down a golden duck isin $4-9 ) || ( You shot down one of the ducks isin $4-10 ) { dec %nx_duck_ducks | halt }
         elseif ( You shot down the duck isin $2- ) || ( You shot down the golden duck isin $2- ) { set %nx_duck_ducks 0 | halt }
 
-        elseif ( searching isin $2- ) || ( returns isin $2- ) || ( rich isin $2- ) || ( extra magazine isin $2- ) { halt }
-        elseif ( There is no duck in the area isin $2- ) || ( Trigger locked isin $2- ) || ( Your gun doesn't need isin $2- ) || ( is demoted to level isin $2- ) { halt }
+        elseif ( searching isin $2- ) || ( returns isin $2- ) || ( rich isin $2- ) || ( extra magazine isin $2- ) || ( ammunitions isin $2- ) { halt }
+        elseif ( There is no duck in the area isin $2- ) || ( Your gun doesn't need isin $2- ) || ( is demoted to level isin $2- ) { halt }
 
         else { echo 5 $chan 1 = $1 2 = $2 3 = $3 4 = $4 5 = $5 6 = $6 7 = $7 8 = $8 9 = $9 10 = $10 11 = $11 12 = $12 13 = $13 14 = $14 }
       }
