@@ -22,6 +22,28 @@ alias join {
   else { echo -at Usage /join #chan1,chan2,#chan3 key,chan4 key }
 }
 
+alias random {
+  ; random $random(12,R) for random 1-9,a-z,A-Z
+  ; random $random(12,U) for random 1-9,A-Z
+  ; random $random(12,L) for random 1-9,a-z
+  ; 12 is length of random string
+  if ( $1 isnum ) { 
+    if (!$istok(U L R,$2,32)) && ($2) { echo -at Usage $chr(36) $+ random(99,ULR) | halt }
+    var %r $1
+    while (%r) { 
+      var %v $iif($2,$rand(1,2),1)
+      if ( %v = 1 ) { var %t $+(%t,$rand(1,9)) }
+      if ( %v = 2 ) { 
+        if ( $2 == U ) { var %t $+(%t,$rand(A,Z)) }
+        elseif ( $2 == L ) { var %t $+(%t,$rand(a,z)) }
+        elseif ( $2 == R ) { var %t $+(%t,$iif($r(1,2) = 1,$rand(a,z),$rand(A,Z))) }
+      }
+      dec %r
+    }
+    return %t
+  }
+  else { echo -at Usage $chr(36) $+ random(99,ULR) }
+}
 alias nx.massmode {
   ; /massmode op\deop\voice\devoice #chan nick nick1 nick2
   ; /massmode botnet_op\botnet_deop\oper_op\oper_deop #chan nick nick1 nick2
