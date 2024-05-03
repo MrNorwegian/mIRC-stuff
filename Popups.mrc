@@ -143,6 +143,7 @@ menu Nicklist {
   .-
   .Chattr:{ nx.botnet.control chattr $chan $$1- }
   .RegisterNickServ:{ nx.botnet.control registerns $$?="password?" $$1- }
+  .Chanset { nx.botnet.control chanset $$?="#Chan\*" $$?="OPT" $$1- }
   .-
   .Say:{ nx.botnet.control say $$?="Channel?" $$1- }
   .Join:{ nx.botnet.control join $$?="Channel?" $$1- }

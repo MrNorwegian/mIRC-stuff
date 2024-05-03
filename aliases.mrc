@@ -136,6 +136,7 @@ alias nx.msg {
   ; Placeholder for custom anti excess flood stuff
   nx.anti.excess msg $1- 
 }
+alias .nx.msg { nx.anti.excess .msg $1- }
 alias nx.say {
   ; Placeholder for custom anti excess flood stuff
   nx.anti.excess say $1-
@@ -159,15 +160,18 @@ alias nx.anti.excess {
   set %nx.anex.excess 10
   set %nx.anex.delay 2
   set %nx.anex_lastcmd_ $+ $cid $ctime
-  var %nx.anex.value $nx.anex.cmd
-  ; echo 14 -a FloodDebug %nx.anex.value > %nx.anex.freemessage = $calc(%nx.anex.value - %nx.anex.delay)  cmd: $1 to: $2 message: $3-
-  if ( %nx.anex.value > %nx.anex.excess ) { 
-    .timer_nx_anex_cmd_ $+ $cid $+ _ $+ $1 $+ %nx.anex.value 1 $calc(%nx.anex.value - %nx.anex.delay) $1 $2 $3-
-    if (!%nx.anex_warning_excess) { echo 4 -at <Flood protection> - Please slow down your commands. %nx.anex.value > %nx.anex.excess | set -u10 %nx.anex_warning_excess 1 }
-  }
-  elseif ( %nx.anex.value > %nx.anex.freemessage ) { 
-    .timer_nx_anex_cmd_ $+ $cid $+ _ $+ $1 $+ %nx.anex.value 1 $calc(%nx.anex.value - %nx.anex.delay) $1 $2 $3-
-    if (!%nx.anex_warning_first) { echo 7 -at <Flood protection> - Please slow down your commands. %nx.anex.value > %nx.anex.excess | set -u10 %nx.anex_warning_first 1 }
+  if ( %nx.anex.tmpdisabled != true ) {
+    var %nx.anex.value $nx.anex.cmd
+    ; echo 14 -a FloodDebug %nx.anex.value > %nx.anex.freemessage = $calc(%nx.anex.value - %nx.anex.delay)  cmd: $1 to: $2 message: $3-
+    if ( %nx.anex.value > %nx.anex.excess ) { 
+      .timer_nx_anex_cmd_ $+ $cid $+ _ $+ $1 $+ %nx.anex.value 1 $calc(%nx.anex.value - %nx.anex.delay) $1 $2 $3-
+      if (!%nx.anex_warning_excess) { echo 4 -at <Flood protection> - Please slow down your commands. %nx.anex.value > %nx.anex.excess | set -u10 %nx.anex_warning_excess 1 }
+    }
+    elseif ( %nx.anex.value > %nx.anex.freemessage ) { 
+      .timer_nx_anex_cmd_ $+ $cid $+ _ $+ $1 $+ %nx.anex.value 1 $calc(%nx.anex.value - %nx.anex.delay) $1 $2 $3-
+      if (!%nx.anex_warning_first) { echo 7 -at <Flood protection> - Please slow down your commands. %nx.anex.value > %nx.anex.excess | set -u10 %nx.anex_warning_first 1 }
+    }
+    else { $1 $2 $3- }
   }
   ; Freemessage
   else { $1 $2 $3- }
@@ -263,6 +267,17 @@ alias nx.botnet.control {
         elseif ( $gettok($3-,%i,32) != $null ) { echo 4 -at During Botnet Controll ( $1 ) No dcc chat active with $gettok($3-,%i,32) }
         dec %i
       }
+    }
+  }
+  elseif ( $istok(chanset,$1,32) ) && ( $3 ) {
+    echo -a $1-
+    var %i $numtok($5-,32)
+    while (%i) { 
+      if ( $chat($gettok($5-,%i,32)).status = active ) && ( $istok(%nx.botnet_ [ $+ [ $network ] ],$gettok($5-,%i,32),32) ) {
+        msg $+(=,$gettok($5-,%i,32)) .chanset $2-3 
+      }
+      elseif ( $gettok($5-,%i,32) != $null ) { echo 4 -at During Botnet Controll ( $1 ) No dcc chat active with $gettok($5-,%i,32) }
+      dec %i
     }
   }
   elseif ( $istok(say,$1,32) ) && ( $3 ) {

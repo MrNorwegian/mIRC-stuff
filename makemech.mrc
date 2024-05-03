@@ -132,16 +132,18 @@ on *:INPUT:*:{
   if ( $1 = -join ) || ( $1 = -part ) || ( $1 = -cycle ) { set -u10 %mechfloodprotect 1 }
 }
 alias mech {
+  if ( $1 = amsg ) { set -u5 %mechfloodprotect 1 | .amsg $2- | halt }
+  if ( $1 = msg ) { set -u5 %mechfloodprotect 1 | .msg $2 $3- | halt }
+  if ( $1 = say ) { set -u5 %mechfloodprotect 1 | .say $2 $3- | halt }
   var %idlerpass SpamPass
-  var %n $nick($chan,0)
+  var %n $nick($chan,0,r)
   var %botnick $2
-  .timer_mechlogin_unsetprot 1 $calc(%n +10) unset %mechfloodprotect 
   while (%n) {
-    if ( 172.16.101 isin $address($nick($chan,%n),2) ) { 
-      if ( $1 = login ) && ( $nick($chan,%n) isreg $chan ) { .timer_mechlogin_ $+ %n 1 %n .msg $nick($chan,%n) auth p455w0rd }
+    if ( 172.18. isin $address($nick($chan,%n),2) ) || ( 172.19. isin $address($nick($chan,%n),2) ) { 
+      if ( $1 = login ) && ( $nick($chan,%n) isreg $chan ) { set -u5 %nx.anex.tmpdisabled true | set -u5 %mechfloodprotect true | .nx.msg $nick($chan,%n) auth p455w0rd }
       if ( $nick($chan,%n) isreg $chan ) {
-        if ( $1 = idlerpgregister ) { .timer_register_ [ $+ [ $nick($chan,%n) ] ] 1 %cinc .msg $nick($chan,%n) -msg %botnick register $nick($chan,%n) %idlerpass $nick($chan,%n) }
-        if ( $1 = idlerpglogin ) { .timer_register_ [ $+ [ $nick($chan,%n) ] ] 1 %cinc .msg $nick($chan,%n) -msg %botnick login $nick($chan,%n) %idlerpass }
+        if ( $1 = idlerpgregister ) { .nx.msg $nick($chan,%n) -msg %botnick register $nick($chan,%n) %idlerpass $nick($chan,%n) }
+        if ( $1 = idlerpglogin ) { .nx.msg $nick($chan,%n) -msg %botnick login $nick($chan,%n) %idlerpass }
       }
     }
     else { echo FALSE Nr $nick($chan,%n) - $address($nick($chan,%n),2) }
@@ -149,15 +151,5 @@ alias mech {
   }
 }
 
-; //var %testn #b11,#b12,#b13,#b14,#b21,#b22,#b23,#b24,#b31,#b32,#b33,#b34,#b41,#b42,#b43,#b44 | var %tmpi $numtok(%testn,44) | while (%tmpi) { makemech3 10 $gettok(%testn,%tmpi,44) | dec %tmpi }
+; //var %testn #b11,#b12,#b13,#b14,#b21,#b22,#b23,#b24,#b31,#b32,#b33,#b34,#b41,#b42,#b43,#b44 | var %tmpi $numtok(%testn,44) | while (%tmpi) { makemech3 2047 $gettok(%testn,%tmpi,44) | dec %tmpi }
 
-
-alias changechan {
-  var %chans #b11,#b12,#b13,#b14,#b21,#b22,#b23,#b24,#b31,#b32,#b33,#b34,#b41,#b42,#b43,#b44 
-  var %tmpi $numtok(%chans,44) 
-  while (%tmpi) { 
-    ; samode $gettok(%chans,%tmpi,44) +lL 2200 $+(#overflow,$right($gettok(%chans,%tmpi,44),2))
-    join $+(#overflow,$right($gettok(%chans,%tmpi,44),2))
-    dec %tmpi
-  }
-}
