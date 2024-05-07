@@ -8,9 +8,9 @@ raw *:*:{
 
   ; chghost naka hostname.info
   elseif ($event = chghost) { return }
-
   elseif ($event = account) { halt }
   elseif ($event = tagmsg) { halt }
+  elseif ($event = away) { return }
 
   ; Welcome
   elseif ($event = 001) { set %nx.ial.update true | return }
@@ -365,7 +365,8 @@ raw *:*:{
   elseif ($event = 472) { return }
 
   ; :Cannot join channel (+i) ( $2 = channel )
-  elseif ( $event = 473 ) { if ( $istok($nx.db(read,settings,operchans,$network),$2,32)) { .msg uworld invite $2 $me } | return }
+  ; TODO use %nx.loggedon or something before .msg 
+  elseif ( $event = 473 ) { if ( $istok($nx.db(read,settings,operchans,$network),$2,32)) { .msg bworld invite $2 $me } | return }
 
   ; invalid password
   elseif ($event = 464) { return }

@@ -29,10 +29,12 @@ on ^1:notice:*:?:{
       }
       else { nx.echo.notice $nick $1- | halt }
     }
-    elseif ( $nick = UWorld ) && ( $nx.db(read,opernet,$network) ) {
+    elseif (( $nick = UWorld ) || ($nick == Bworld)) && ( $nx.db(read,opernet,$network) ) {
       nx.echo.notice $nick $1-
       if ( $5 = authenticated ) { halt }
-      elseif ( $1- = Authentication successful as $+($me,!) ) {
+      ; Bworld says nick. and uworld says nick! 
+      elseif ( $1- = Authentication successful as ) {
+        ; TODO add %nx.loggedon to confirm in raw (invite) before doing msg bworld invite
         var %nx.check.onoperchan $nx.db(read,settings,operchans,$network)
         while ( %nx.check.onoperchan >= 0 ) {
           if ( $me !ison $gettok($nx.db(read,settings,operchans,$network),%nx.check.onoperchan,32) ) { .msg $nick invite $gettok($nx.db(read,settings,operchans,$network),%nx.check.onoperchan,32) }
