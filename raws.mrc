@@ -402,5 +402,5 @@ raw *:*:{
   ; K +i must be set (When setting +K)
   elseif ($event = 974) { return }
 
-  else { decho RAW $event $1- }
+  else { nx.echo.raw $event $1- }
 }

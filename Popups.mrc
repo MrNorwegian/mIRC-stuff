@@ -4,15 +4,15 @@
 ; Dialog: oper(+uworld\operserv),services,botnet(nicks)
 menu Query {
   Info:/uwho $$1
-  Whois:/whois $1 $1
+  Whois:/nx.whois $1 $1
   Query:/query $$1
   -
   Ignore:/ignore $$1 1 | /closemsg $$1
   -
   CTCP
-  .Ping:/ctcp $$1 ping
-  .Time:/ctcp $$1 time
-  .Version:/ctcp $$1 version
+  .Ping:/nx.ctcp $$1 ping
+  .Time:/nx.ctcp $$1 time
+  .Version:/nx.ctcp $$1 version
   DCC
   .Send:/dcc send $$1
   .Chat:/dcc chat $$1
@@ -30,7 +30,7 @@ Menu Channel {
   -
   ; TODO clearmode (with botnet or ircop + uworld\operserv?)
   Update:{
-    set -u2 %nx.ial.update. [ $+ [ $cid ] ]  true
+    set -u2 %nx.ial.update. [ $+ [ $cid ] ] true
     remini $+(ial\,$network,.ini) $chan
     names $chan
   }
@@ -69,14 +69,18 @@ menu Status {
   .Operline:{ stats o }
   .Connectline:{ stats c }
   .Features:{ stats f }
-  .Uptime:{ /stats u }
+  .Uptime:{ stats u }
   .Vservers:{ /stats v }
   -
   Connect:/server $serverip
   Disconnect:/disconnect
   Reconnect:/server $serverip
   - 
-  Oper:/oper $$?="Username" $$?="Password"
+  Oper
+  .Oper:{ oper $$?="Username" $$?="Password" }
+  .Add Opernet:{ nx.db write settings opernet $network Yes | nx.echo.settings Added $network as opernet }
+  .Del Opernet:{ nx.db rem settings opernet $network | nx.echo.settings Removed $network as opernet }
+
   - 
   ; Services:/services
   ; Botnet:/botnet
@@ -84,9 +88,9 @@ menu Status {
   Quit:/quit $$?="Reason"
   -
   Debug:{ debug <@window> | window -e $+(@,$network,_,$cid,_,raw) | debug $+(@,$network,_,$cid,_,raw) }
-  DebugOff:{ debug off | close -@ $+(@,$network,_,$cid,_raw)) }
+  DebugOff:{ debug off | close -@ $+(@,$network,_,$cid,_raw) }
   -
-  Snotice:{ window -e $+(@,$network,_,$cid,_,raw) }
+  Snotice:{ window -e $+(@,$network,_,$cid,_,status) }
 }
 
 menu Nicklist {
@@ -148,7 +152,6 @@ menu Nicklist {
   .Say:{ nx.botnet.control say $$?="Channel?" $$1- }
   .Join:{ nx.botnet.control join $$?="Channel?" $$1- }
   .Part:{ nx.botnet.control part $$?="Channel?" $$1- }
-
   ; TODO Kick + ban
   CTCP
   .Ping:{ var %i $numtok($$1-,32) | while (%i) { nx.ctcp $gettok($$1-,%i,32) ping | dec %i } }

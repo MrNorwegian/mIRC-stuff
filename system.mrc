@@ -13,6 +13,15 @@ on 1:disconnect:{
   ; Part of custom IAL
   if ( $readini($+(ial\,$network,_,$cid,.ini),status,connected) ) { writeini $+(ial\,$network,_,$cid,.ini) status connected 0 }
   else { writeini $+(ial\,$network,_,$cid,.ini) status connected 0 }
+  unset %nx.ial.update. [ $+ [ $cid ] ]
+  unset %nx.maxbans. [ $+ [ $cid ] ]
+  unset %nx.silencenum. [ $+ [ $cid ] ]
+  unset %nx.topiclen. [ $+ [ $cid ] ]
+  unset %nx.anex_ [ $+ [ $cid ] ] %nx.anex_lastcmd_ [ $+ [ $cid ] ]
+}
+
+on 1:exit:{
+  unset %mi %mech.* %nx.ial.update.* %nx.maxbans.* %nx.silencenum.* %nx.topiclen.* %nx.anex_* %nx.anex_lastcmd_.* %nx.flood.query
 }
 
 on ^1:notice:*:?:{
