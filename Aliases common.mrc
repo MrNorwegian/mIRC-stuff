@@ -1,4 +1,5 @@
-alias nx.echo.raw { echo 7 -a DEBUG: $1- }
+alias nx.echo.error { echo 4 -at $1- }
+alias nx.echo.raw { echo 7 -at DEBUG: $1- }
 alias nx.echo.setting { echo 15 -at $+(-,Setting,-) $1- }
 alias nx.echo.notice { echo 40 -at $+(-,$1 @ $network,-) $2- }
 alias nx.echo.snotice {

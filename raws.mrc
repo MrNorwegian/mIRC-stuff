@@ -396,6 +396,9 @@ raw *:*:{
   ; $me $me has client certificate fingerprint E95DC2020C6463088AAB47B38961B6E868F9C7C6B8D42201F1913A45BC1CA458
   elseif ($event = 616) { return }
 
+  ; MODE cannot be set due to channel having a active MLOCK restriction (thru chanserv)
+  elseif ($event = 742) { return }
+
   ; You are now logged in as $2
   elseif ($event = 900) { return }
 

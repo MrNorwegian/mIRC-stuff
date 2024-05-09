@@ -89,7 +89,6 @@ on 1:dialog:nx.dialog.cc:*:*: {
     did -i $dname $nx.cc.chk.id(Banlist) 1 headerdims 220:1 80:2 110:3
     did -i $dname $nx.cc.chk.id(Banlist) 1 headertext + 0 Address	+ 0 Set by	+ 0 Date
     did -i $dname $nx.cc.chk.id(Banlist) 1 settxt bgcolor none
-
     did -a $dname 111 %nx.cc.chan 
     did -a $dname 113 $server $+($chr(40),$serverip,$chr(41)) - $network
     did -a $dname 118 $chan(%nx.cc.chan).mode
@@ -107,7 +106,7 @@ on 1:dialog:nx.dialog.cc:*:*: {
       if ( $did($dname,120) ) { set %nx.cc.editbox.setmode $did($dname,120) }
       else { set %nx.cc.editbox.setmode TopicNotSet } 
     }
-    dialogecho
+    nx.echo.dialog
   }
   elseif ($devent == sclick) {
     if ($did = 101) || ($did = 103) { 
@@ -117,33 +116,38 @@ on 1:dialog:nx.dialog.cc:*:*: {
         var %i $len(%nx.cc.sm), %r $len(%nx.cc.rm)
         while (%i) {
           var %m $mid(%nx.cc.sm,%i,1)
-          if ( %m isincs l ) { mode %nx.cc.chan $+($chr(43),%m) $did(%nx.cc.dname,$calc($nx.cc.chk.id(l) +1)) }
-          elseif ( %m isincs k ) { mode %nx.cc.chan $+($chr(43),%m) $did(%nx.cc.dname,$calc($nx.cc.chk.id(k) +1)) }
-          elseif ( %m isincs L ) { mode %nx.cc.chan $+($chr(43),%m) $did(%nx.cc.dname,$calc($nx.cc.chk.id(L) +1)) }
+          if ( %m isincs l ) { nx.mode %nx.cc.chan $+($chr(43),%m) $did(%nx.cc.dname,$calc($nx.cc.chk.id(l) +1)) }
+          elseif ( %m isincs k ) { nx.mode %nx.cc.chan $+($chr(43),%m) $did(%nx.cc.dname,$calc($nx.cc.chk.id(k) +1)) }
+          elseif ( %m isincs L ) { nx.mode %nx.cc.chan $+($chr(43),%m) $did(%nx.cc.dname,$calc($nx.cc.chk.id(L) +1)) }
 
           ; TODO add +ffH for unrealircd
+          elseif ( %m isincs F ) { nx.echo.error cannot add F yet }
+          elseif ( %m isincs f ) { nx.echo.error cannot add f yet }
+          elseif ( %m isincs H ) { nx.echo.error cannot add H yet }
+
           else { var %tm $+(%m,%tm) }
-          if ( $len(%tm) = $modespl ) { mode %nx.cc.chan $+($chr(43),%tm) | unset %tm }
+          if ( $len(%tm) = $modespl ) { nx.mode %nx.cc.chan $+($chr(43),%tm) | unset %tm }
           dec %i
         }
         if ( %tm ) && ( $modespl > $len(%tm) ) { set %tm $+($chr(43),%tm) }
-        elseif (%tm) { mode %nx.cc.chan $+($chr(43),%tm) | unset %tm }
+        elseif (%tm) { nx.mode %nx.cc.chan $+($chr(43),%tm) | unset %tm }
         while (%r) {
           var %m $mid(%nx.cc.rm,%r,1)
-          if ( %m isincs l ) { mode %nx.cc.chan $+($chr(45),%m) }
-          elseif ( %m isincs k ) { mode %nx.cc.chan $+($chr(45),%m) $chan(%nx.cc.chan).key }
-          ; TODO add +ffH for unrealircd
-          elseif ( %m isincs L ) { echo 3 -a remove L cannot be set yet, my master has to make it }
-          elseif ( %m isincs F ) { echo 3 -a remove F cannot be set yet, my master has to make it }
-          elseif ( %m isincs f ) { echo 3 -a remove f cannot be set yet, my master has to make it }
-          elseif ( %m isincs H ) { echo 3 -a remove H cannot be set yet, my master has to make it }
+          if ( %m isincs l ) { nx.mode %nx.cc.chan $+($chr(45),%m) }
+          elseif ( %m isincs k ) { nx.mode %nx.cc.chan $+($chr(45),%m) $chan(%nx.cc.chan).key }
+
+          ; TODO add -LffH for unrealircd
+          elseif ( %m isincs L ) { nx.echo.error cannot remove L yet }
+          elseif ( %m isincs F ) { nx.echo.error cannot remove F yet  }
+          elseif ( %m isincs f ) { nx.echo.error cannot remove f yet }
+          elseif ( %m isincs H ) { nx.echo.error cannot remove H yet  }
           else { var %tm $+(%m,%tm) }
-          if ( $iif($chr(43 isin %len),$calc($len(%tm) -1),$len(%tm)) = $modespl ) { mode %nx.cc.chan $+($chr(45),%tm) | unset %tm }
+          if ( $iif($chr(43 isin %len),$calc($len(%tm) -1),$len(%tm)) = $modespl ) { nx.mode %nx.cc.chan $+($chr(45),%tm) | unset %tm }
           dec %r
         }
-        if ( %tm ) { mode %nx.cc.chan $+($chr(45),%tm) | unset %tm }
+        if ( %tm ) { nx.mode %nx.cc.chan $+($chr(45),%tm) | unset %tm }
       }
-      if ( %nx.cc.editbox.setmode ) { mode %nx.cc.chan %nx.cc.editbox.setmode }
+      if ( %nx.cc.editbox.setmode ) { nx.mode %nx.cc.chan %nx.cc.editbox.setmode }
     }
     ; TODO fix mode +L (unreal + nefarious) and +HfF (unreal)
     elseif ( $nx.cc.chk.id($did) ) { 
@@ -159,18 +163,18 @@ on 1:dialog:nx.dialog.cc:*:*: {
         if (!$istok(%nx.cc.ismode,%nx.cc.chk.id,32)) && ( $did(%nx.cc.chk.id).state = 1 ) { set %nx.cc.setmode $nx.addtok(%nx.cc.setmode,%nx.cc.chk.mode,32) }
         ; mode is not set and unchecked
         elseif (!$istok(%nx.cc.ismode,%nx.cc.chk.id,32)) && ( $did(%nx.cc.chk.id).state = 0 ) { set %nx.cc.setmode $nx.remtok(%nx.cc.setmode,%nx.cc.chk.mode,32) }
-        ; echo -a mode+: %nx.cc.setmode mode-: %nx.cc.remmode didstate: $did(%nx.cc.chk.id).state Sett from before %nx.cc.chk.mode istok %nx.cc.ismode and %nx.cc.supported.modes
+        nx.echo.dialog debug mode+: %nx.cc.setmode mode-: %nx.cc.remmode didstate: $did(%nx.cc.chk.id).state Sett from before %nx.cc.chk.mode istok %nx.cc.ismode and %nx.cc.supported.modes
       }
-      dialogecho
+      nx.echo.dialog
     }
     if ($did == 310) {
       ; TODO Select bans to unban
     }
   }
-  elseif ( $devent = active ) { dialogecho }
-  elseif ( $devent = close ) { dialogecho | unset %nx.cc.* }
+  elseif ( $devent = active ) { nx.echo.dialog }
+  elseif ( $devent = close ) { nx.echo.dialog | unset %nx.cc.* }
   elseif ( $devent = mouse ) { return }
-  else { dialogecho }
+  else { nx.echo.dialog }
 }
 
 ; ircu   b,k,l,imnpstrDdRcCMP
@@ -205,11 +209,11 @@ alias nx.cc.refmodes {
     elseif ( $istok($nx.db(read,settings,ircd,ratbox),$network,32) ) { set %nx.cc.sv ratbox | set %nx.cc.ircd %nx.cc.cmratbox }
     else { set %nx.cc.sv unknown | set %nx.cc.ircd %nx.cc.cm }
 
-    ;echo 14 -a Starting to check modes for %nx.cc.sv modes: %nx.cc.ircd currmode: %nx.cc.currmode chanmodes: %nx.cc.chanmodes opt: %nx.cc.currmode.opt 
+    nx.echo.dialog debug 14 Starting to check modes for 3 %nx.cc.sv 14 modes: 3 %nx.cc.ircd 14 currmode: 3 %nx.cc.currmode 14 chanmodes: 3 %nx.cc.chanmodes 14 opt: 3 %nx.cc.currmode.opt 
     var %nx.cc.cmlen $len(%nx.cc.ircd)
     while (%nx.cc.cmlen) {
       if ( $mid(%nx.cc.ircd,%nx.cc.cmlen,1) isincs %nx.cc.chanmodes ) { 
-        ;echo 15 -a Len %nx.cc.cmlen Is currmode: $mid(%nx.cc.ircd,%nx.cc.cmlen,1) isincs %nx.cc.currmode
+        nx.echo.dialog debug Len %nx.cc.cmlen Is currmode: $mid(%nx.cc.ircd,%nx.cc.cmlen,1) isincs %nx.cc.currmode
 
         var %nx.cc.cmid $nx.cc.chk.id($mid(%nx.cc.ircd,%nx.cc.cmlen,1))
         if ( $me isop %nx.cc.chan ) {
@@ -223,7 +227,7 @@ alias nx.cc.refmodes {
           if ( $mid(%nx.cc.ircd,%nx.cc.cmlen,1) === k ) { did -ae %nx.cc.dname $calc(%nx.cc.cmid +1) $chan(%nx.cc.chan).key | dec %nx.cc.optlen }
           if ( $mid(%nx.cc.ircd,%nx.cc.cmlen,1) === L ) { did -ae %nx.cc.dname $calc(%nx.cc.cmid +1) }
           set %nx.cc.ismode $addtok(%nx.cc.ismode,%nx.cc.cmid,32)
-          ;echo 11 -a Ismode: %nx.cc.ismode - Enable mode enable mode: $mid(%nx.cc.ircd,%nx.cc.cmlen,1) ID: %nx.cc.cmid 
+          nx.echo.dialog debug 3 Ismode: %nx.cc.ismode - Enable mode enable mode: $mid(%nx.cc.ircd,%nx.cc.cmlen,1) ID: %nx.cc.cmid 
           did -c %nx.cc.dname %nx.cc.cmid 
         }
         if ( $me isop %nx.cc.chan ) { did -e %nx.cc.dname %nx.cc.cmid }
@@ -251,28 +255,23 @@ alias nx.cc.getbans {
   did -ra %nx.cc.dname $nx.cc.chk.id(Banlist) Refreshing bans ...
   did -ra %nx.cc.dname $nx.cc.chk.id(numbans) unknown/ $+ $iif(%nx.maxbans. [ $+ [ $cid ] ],$v1,unknown)
   set -u100 %nx.cc.getbans %nx.cc.chan
-  mode %nx.cc.chan +b
+  nx.mode %nx.cc.chan +b
 }
 
 ; placeholder
-alias nx.cc.getinvites {
- return
-}
+alias nx.cc.getinvites { return }
+alias nx.cc.getexcepts { return }
 
-; placeholder
-alias nx.cc.getexcepts {
- return
-}
-
-alias dialogecho { 
+alias nx.echo.dialog { 
   if ( 1 = 2 ) {
-    if ( $devent = edit ) { echo -at DIALOG $dname devent: $devent did: $did didtext: $did($dname,$did) }
-    elseif ( $devent = sclick ) { echo -at DIALOG $dname devent: $devent did: $did = $nx.cc.chk.id($did) }
-    elseif ( $devent = uclick ) { echo -at DIALOG $dname devent: $devent did: $did = $nx.cc.chk.id($did) }
+    if ( $1 = debug ) { echo 15 -at DialogDebug: $2- }
+    elseif ( $devent = edit ) { echo 14 -at DIALOG $dname devent: $devent did: $did didtext: $did($dname,$did) }
+    elseif ( $devent = sclick ) { echo 14 at DIALOG $dname devent: $devent did: $did = $nx.cc.chk.id($did) }
+    elseif ( $devent = uclick ) { echo 14 -at DIALOG $dname devent: $devent did: $did = $nx.cc.chk.id($did) }
     elseif ( $devent = mouse ) { return }
-    elseif ( $devent = init ) { echo -at DIALOG $dname devent: $devent $did }
-    elseif ( $devent = close ) { echo -at DIALOG $dname devent: $devent }
-    else { echo -at DIALOG $dname devent: $devent did: $did }
+    elseif ( $devent = init ) { echo 14 -at DIALOG $dname devent: $devent $did }
+    elseif ( $devent = close ) { echo 14 -at DIALOG $dname devent: $devent }
+    else { echo -at 15 DIALOG $dname devent: $devent did: $did }
   }
 }
 
