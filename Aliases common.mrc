@@ -14,6 +14,8 @@ alias nx.echo.snotice {
   elseif ( $window($+(@,$network,_,$cid,_,status)) ) { echo 5 -t $+(@,$network,_,$cid,_,status) $1- | halt }
   else { echo 5 -st $1- | halt }    
 }
+; Placeholder for custom perform stuff
+alias nx.perform { return }
 
 alias nx.db {
   ; $nx.db(read,settings,operchans,$network)

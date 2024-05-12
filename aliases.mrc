@@ -5,14 +5,13 @@ alias nx.massmode {
   ; - botnet_ checks for %nx.botnet_NetWork botnick1 botnick2 and required active dcc chat with bot.
   ; TODO: Check if user is +k then skip it ( Use cached info from /who channel ? )
   ; TODO: Idea, use X, Q, ChanServ ?
-  ; TODO: Idea, when ircop use uworld\opmode\samode ? - Check if $me has +go usermode, p10 use opmode, unrealircd samode, etc
+  ; TODO: Idea, when ircop use uworld or opmode\samode ? - Check if $me has +go usermode
   if ( $3 ) {
     if ( $2 ) {
       var %nx.mass.tmpmode $remove($1,botnet_,oper_)
       if ( $istok(owner deowner admin deadmin op deop halfop dehalfop voice devoice,%nx.mass.tmpmode,32) ) {
         if ( $left($1,7) = botnet_ ) { var %nx.mass.usebotnet 1 }
         if ( $left($1,5) = oper_ ) { var %nx.mass.useopermode 1 }
-
         var %nx.mass.action $iif($left(%nx.mass.tmpmode,2) = de,take,give)
         if (%nx.mass.tmpmode = deowner) || (%nx.mass.tmpmode = owner) { var %nx.mass.mode q }
         elseif (%nx.mass.tmpmode = deadmin) || (%nx.mass.tmpmode = admin) { var %nx.mass.mode a }
@@ -24,12 +23,8 @@ alias nx.massmode {
       }
       var %nx.mass.num $numtok($3-,32)
       while (%nx.mass.num) { 
-        if ( %nx.mass.action = take ) {
-          if ( $nx.ismode(%nx.mass.mode,$2,$gettok($3-,%nx.mass.num,32)) = $true ) { var %nx.mass.nicks $addtok(%nx.mass.nicks,$gettok($3-,%nx.mass.num,32),32) }
-        }
-        if ( %nx.mass.action = give ) {
-          if ( $nx.ismode(%nx.mass.mode,$2,$gettok($3-,%nx.mass.num,32)) = $false ) { var %nx.mass.nicks $addtok(%nx.mass.nicks,$gettok($3-,%nx.mass.num,32),32) }
-        }
+        if ( %nx.mass.action = take ) && ($nick($2,$gettok($3-,%nx.mass.num,32),$replace(%nx.mass.mode,a,&))) { var %nx.mass.nicks $addtok(%nx.mass.nicks,$gettok($3-,%nx.mass.num,32),32) }
+        if ( %nx.mass.action = give ) && (!$nick($2,$gettok($3-,%nx.mass.num,32),$replace(%nx.mass.mode,a,&))) { var %nx.mass.nicks $addtok(%nx.mass.nicks,$gettok($3-,%nx.mass.num,32),32) }
         ; Finished gather nicks for this round
         if ( $numtok(%nx.mass.nicks,32) = $modespl ) { 
           if ( %nx.mass.usebotnet = 1 ) { 
@@ -60,24 +55,6 @@ alias nx.massmode {
   else { echo -at Usage /massmode op\deop\voice\devoice #chan nick nick1 nick2 }
 }
 
-
-alias nx.perform {
-  ; Placeholder for custom perform stuff
-}
-
-; This alias is not finished, +a modes cannot be checked with $nick()
-; I need to use a own hash table for this, or use $ialchan() and $ialchan().mode
-alias nx.ismode {
-  ; $nx.ismode(q,channel,nick) - Check if nick is +q in channel
-  if ($istok(q a o h v r,$1,32)) && ($3) {
-    var %nx.ismode.mode $nick($2,0,$1)
-    while (%nx.ismode.mode) { 
-      if ($nick($2,%nx.ismode.mode,$1) = $3) { return $true }
-      dec %nx.ismode.mode
-    }
-    return $false
-  }
-}
 alias nx.mass.pickbot {
   ; Need to redo this alias, it's a mess
   ; Idea, not use botnick but botnick!ident@host ?
