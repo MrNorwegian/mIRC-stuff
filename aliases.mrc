@@ -23,6 +23,8 @@ alias nx.massmode {
       }
       var %nx.mass.num $numtok($3-,32)
       while (%nx.mass.num) { 
+        ; Fallback test IF this is not working on all networks (modenum returns ~&@%+)
+        ; alias modenum return 0 $+ $replace($left($nick($1,$2).pnick,1),+,1,%,2,@,3,&,4,!,4,~,5,.,5)
         if ( %nx.mass.action = take ) && ($nick($2,$gettok($3-,%nx.mass.num,32),$replace(%nx.mass.mode,a,&))) { var %nx.mass.nicks $addtok(%nx.mass.nicks,$gettok($3-,%nx.mass.num,32),32) }
         if ( %nx.mass.action = give ) && (!$nick($2,$gettok($3-,%nx.mass.num,32),$replace(%nx.mass.mode,a,&))) { var %nx.mass.nicks $addtok(%nx.mass.nicks,$gettok($3-,%nx.mass.num,32),32) }
         ; Finished gather nicks for this round

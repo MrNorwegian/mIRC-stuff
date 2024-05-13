@@ -1,28 +1,16 @@
-on *:start:{
-  ; connectall is just a bunch of /server -m
-  if ( %nx.autoconnect = yes ) { connectall }
-}
+; connectall is just a bunch of /server -m
+on *:start:{ if ( %nx.autoconnect = yes ) { connectall } }
 
-on 1:connect:{
-  ; Part of custom IAL
-  if ( $readini($+(ial\,$network,_,$cid,.ini),status,connected) ) { .remove $+(ial\,$network,_,$cid,.ini) | writeini $+(ial\,$network,_,$cid,.ini) status connected 1 }
-  else { writeini $+(ial\,$network,_,$cid,.ini) status connected 1 }
-}
+on 1:connect:{ return }
 
 on 1:disconnect:{ 
-  ; Part of custom IAL
-  if ( $readini($+(ial\,$network,_,$cid,.ini),status,connected) ) { writeini $+(ial\,$network,_,$cid,.ini) status connected 0 }
-  else { writeini $+(ial\,$network,_,$cid,.ini) status connected 0 }
-  unset %nx.ial.update. [ $+ [ $cid ] ]
   unset %nx.maxbans. [ $+ [ $cid ] ]
   unset %nx.silencenum. [ $+ [ $cid ] ]
   unset %nx.topiclen. [ $+ [ $cid ] ]
   unset %nx.anex_ [ $+ [ $cid ] ] %nx.anex_lastcmd_ [ $+ [ $cid ] ]
 }
 
-on 1:exit:{
-  unset %mi %mech.* %nx.ial.update.* %nx.maxbans.* %nx.silencenum.* %nx.topiclen.* %nx.anex_* %nx.anex_lastcmd_.* %nx.flood.query
-}
+on 1:exit:{ unset %mi %mech.* %nx.maxbans.* %nx.silencenum.* %nx.topiclen.* %nx.anex_* %nx.anex_lastcmd_.* %nx.flood.query }
 
 on ^1:notice:*:?:{
   if ($istok(%nx.services.bots,$nick,32)) {
@@ -74,29 +62,12 @@ on ^1:notice:*:?:{
   else { nx.echo.notice $nick $1- | halt }
 }
 
-on 1:usermode:{
-  ; When on znc i need this to make sure snotice windows is up 
-  if ( o isincs $1 ) && ( $left($1,1) == $chr(43) ) { window -De $+(@,$network,_,$cid,_,status) | echo 3 -st You are now an IRC Operator on $network }
-}
+; When on znc i need this to make sure snotice windows is up 
+on 1:usermode:{ if ( o isincs $1 ) && ( $left($1,1) == $chr(43) ) { window -De $+(@,$network,_,$cid,_,status) | echo 3 -st You are now an IRC Operator on $network } }
 
-on 1:mode:#:{
-  ; TODO update userlist based on mode +qaohv 
-  ; burst update but stop after x mods to prevent flood of .ini writes
-  ; if flooded run /names instead after some secs, then allow update of modes ?
-}
+on 1:mode:#:{ return }
 
-on 1:nick:{
-  ; Update "custom ial", this needs to be hashtable in the future
-  ; $remove is a ugly hack to remove [ from nick because of bug
-  var %nx.onnick.chans $chan(0), %nx.onnick.nick $remove($nick,$chr(91)), %nx.onnick.newnick $remove($newnick,$chr(91))
-  while (%nx.onnick.chans >= 0) {
-    if ( $readini($+(ial\,$network,_,$cid,.ini),$chan(%nx.onnick.chans),%nx.onnick.nick) ) {
-      remini $+(ial\,$network,_,$cid,.ini) $chan(%nx.onnick.chans) %nx.onnick.nick
-      writeini $+(ial\,$network,_,$cid,.ini) $chan(%nx.onnick.chans) %nx.onnick.newnick $v1
-    }
-    dec %nx.onnick.chans
-  }
-}
+on 1:nick:{ return }
 
 on *:join:*:{
   if ( $me !isvoice $chan ) && ( $chan = #IdleRPG ) && ( $nick != $me ) {
@@ -105,26 +76,18 @@ on *:join:*:{
     if ( $address($nick,5) = idlerpg!multirpg@idlerpg.users.undernet.org ) { .timer_idlebot_ $+ $cid 1 2 .msg $nick login %nx.idlerpg.user %nx.idlerpg.pass }
     if ( $address($nick,5) = idlerpg!*IdleRPG@idle.rpgsystems.org ) { .timer_idlebot_ $+ $cid 1 2 .msg $nick login %nx.idlerpg.user %nx.idlerpg.pass }
   }
-  elseif ( $nick = $me ) { set %nx.ial.update. [ $+ [ $cid ] ] true | set %nx.ial.update. [ $+ [ $chan ] ] true }
+  if ( $nick = $me ) { set -u5 %nx.joined. $+ $cid $+ $chan 1 }
 }
 
-on *:part:*:{
-  if ( $nick = $me ) { echo -st Removed userlist for $chan | remini $+($cid,.ini) $chan }
-}
+on *:part:*:{ return }
 
-on *:quit:{
-  ; TODO loop thru all channels and remove userlist ? This is a bit redudant since it gets removed on join (return on raw /names)
-  return
-}
+on *:quit:{ return }
 
 on ^1:SNOTICE:*:{ nx.echo.snotice $1- | halt }
 
 on *:invite:*:{ if ( $istok($nx.db(read,settings,operchans,$network),$chan,32) ) { join $chan } }
 
-on 1:text:*:?:{
-  ; znc is reconnected 
-  if ($left($nick,1) = $chr(42)) && ( $1 = Connected! ) { set %nx.ial.update. [ $+ [ $cid ] ] true }
-}
+on 1:text:*:?:{ return }
 
 on *:open:?:{
   ; check for own botnet or znc

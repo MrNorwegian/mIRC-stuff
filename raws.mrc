@@ -1,19 +1,20 @@
 raw *:*:{
   ; ack
+  if (%debug_raw_ [ $+ [ $cid ] ]) { echo -t $+(@,$network,_,$cid,_,raw) Event: $event Text: $1- }
   if ($event = ack) { return }
-  elseif ($event = cap) { halt }
+  elseif ($event = cap) { return }
 
   ; batch +eJ2YePPoPApi8e95KGaJfU chathistory #opers ; batch -eJ2YePPoPApi8e95KGaJfU
   elseif ($event = batch) { return }
 
   ; chghost naka hostname.info
   elseif ($event = chghost) { return }
-  elseif ($event = account) { halt }
-  elseif ($event = tagmsg) { halt }
+  elseif ($event = account) { return }
+  elseif ($event = tagmsg) { return }
   elseif ($event = away) { return }
 
   ; Welcome
-  elseif ($event = 001) { set %nx.ial.update true | return }
+  elseif ($event = 001) { return }
 
   ; your host
   elseif ($event = 002) { 
@@ -202,7 +203,6 @@ raw *:*:{
   ; /list - end of /list
   elseif ($event = 322) { return }
   elseif ($event = 323) { 
-    ; TODO merge this into custom $ial
     if ( %checkforircop ) { echo 3 -at %checkforircop Finished scanning for Ircops. | unset %checkforircop }
     return
   }
@@ -217,59 +217,22 @@ raw *:*:{
   ; server info (OS etc)
   ; RAW 351 naka UnrealIRCd-6.1.4. Champingvogna.da9.no Fhn6OoErmM [Linux IrcStuff 6.1.0-17-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.69-1 (2023-12-30) x86_64=6100]
   elseif ($event = 351) { return }
-  ; This is gonna be a part of my custom $ial 
-  ; RAW 352 naka #valhalla UWorld H*@diw UWorld@UWorld.deepnet.chat :3 UWorld
-  ; RAW 352 naka^ #oslo.no iron 172.16.164.2 *.undernet.org MrIron H*@ 3 MrIron
+
   ; /who list
   elseif ($event = 352) {
-    ; TODO merge this into custom $ial
     if ( %checkforircop ) && ( $iif($chr(42) isin $7,true,false) = true ) { echo 3 -at %checkforircop Ircop found: nick ( $6 ) | return }
     else { return }
   }
 
-  ; RAW 353 MYNICK = #CHANNEL nick1!ident@host +nick2!ident@host @nick3!ident@host ~@nick3!ident@host @+nick3!ident@host 
-  ; /NAMES list
-  ; &nakauser!nakauser@10.13.37.31
-  ; +Biggs!Biggs@172.19.211.133
-  ; @%+Cade!Cade@172.19.215.245
-  ; ~@%Cohbert!Cohbert@172.19.100.185/
   elseif ($event = 353) { 
-    if ( %nx.ial.update. [ $+ [ $cid ] ] ) { 
-      var %nx.ial.n 4
-      while ($gettok($1-,%nx.ial.n,32)) {
-        ; $remove is used to remove the [ from the nick because of bug
-        var %nx.ial.tmpnick $remove($gettok($gettok($1-,%nx.ial.n,32),1,33),$chr(91)), %nx.ial.mi 1
-        if ( $readini($+(ial\,$network,_,$cid,.ini),$3,%nx.ial.tmpnick) ) { remini -n $+(ial\,$network,_,$cid,.ini) $3 %nx.ial.tmpnick }
-        while (%nx.ial.mi) {
-          if ($mid(%nx.ial.tmpnick,%nx.ial.mi,1) = ~) { var %nx.ial.tmpmode $addtok(%nx.ial.tmpmode,q,46) | goto nx.ial.nextmode }
-          elseif ($mid(%nx.ial.tmpnick,%nx.ial.mi,1) = &) { var %nx.ial.tmpmode $addtok(%nx.ial.tmpmode,a,46) | goto nx.ial.nextmode }
-          elseif ($mid(%nx.ial.tmpnick,%nx.ial.mi,1) = @) { var %nx.ial.tmpmode $addtok(%nx.ial.tmpmode,o,46) | goto nx.ial.nextmode }
-          elseif ($mid(%nx.ial.tmpnick,%nx.ial.mi,1) = %) { var %nx.ial.tmpmode $addtok(%nx.ial.tmpmode,h,46) | goto nx.ial.nextmode }
-          elseif ($mid(%nx.ial.tmpnick,%nx.ial.mi,1) = +) { var %nx.ial.tmpmode $addtok(%nx.ial.tmpmode,v,46) | goto nx.ial.nextmode }
-          elseif ( %nx.ial.tmpmode ) { writeini -n $+(ial\,$network,_,$cid,.ini) $3 $mid(%nx.ial.tmpnick,%nx.ial.mi,$len(%nx.ial.tmpnick)) %nx.ial.tmpmode | unset %nx.ial.tmpmode | goto nx.ial.nextnick }
-          else { writeini -n $+(ial\,$network,_,$cid,.ini) $3 %nx.ial.tmpnick r | goto nx.ial.nextnick }
-          :nx.ial.nextmode
-          inc %nx.ial.mi
-        }
-        :nx.ial.nextnick
-        inc %nx.ial.n
-      }
-      set %nx.ial.sumnicks $calc($numtok($4-,32) + %nx.ial.sumnicks)
-      halt
-    }
-    else { return }
+    if (%nx.joined. [ $+ [ $cid ] ] [ $+ [ $3 ] ] == 1) { halt }
   }
 
-  ; End of /NAMES list
-  elseif ($event = 366) { 
-    if ( %nx.ial.update. [ $+ [ $cid ] ] ) {
-      echo -st Saved userlist in $2 with %nx.ial.sumnicks nicks
-      .timer_ial_update 1 5 unset %nx.ial.update. [ $+ [ $cid ] ]
-      unset %nx.ial.sumnicks %nx.ial.update. [ $+ [ $2 ] ]
-      halt 
-    }
-    else { return }
-  }
+  ; Names list (After /ialfill)
+  elseif ($event = 354) { return }
+
+  ; #chan End of /NAMES list
+  elseif ($event = 366) { if (%nx.joined. [ $+ [ $cid ] ] [ $+ [ $2 ] ] == 1) { halt } }
 
   ; Ban list
   elseif ($event = 367) {

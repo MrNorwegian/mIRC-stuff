@@ -29,11 +29,6 @@ Menu Channel {
   .devoice:{ massv2 $chan devoice $iif($?"Enter a number nothing for all" > 0,$v1,$nick($chan,0)) }
   -
   ; TODO clearmode (with botnet or ircop + uworld\operserv?)
-  Update:{
-    set -u2 %nx.ial.update. [ $+ [ $cid ] ] true
-    remini $+(ial\,$network,.ini) $chan
-    names $chan
-  }
   -
   Rejoin:/hop $1
   Part:/part $chan
@@ -62,6 +57,8 @@ Menu Channel {
   .22 Ducks detector (5 xp):{ say !shop 22 }
   .23 Mechanical duck (50 xp):{ say !shop 23 }
   .ShowDucks:{ echo -a Ducks: %nx_duck_ducks }
+  - 
+  IalUpdate:{ ialclear $chan | ialfill $chan }
 }
 menu Status {
   Lusers:/lusers
@@ -87,8 +84,11 @@ menu Status {
   - 
   Quit:/quit $$?="Reason"
   -
-  Debug:{ debug <@window> | window -e $+(@,$network,_,$cid,_,raw) | debug $+(@,$network,_,$cid,_,raw) }
-  DebugOff:{ debug off | close -@ $+(@,$network,_,$cid,_raw) }
+  Debug:{ debug -nptN $+(@,$network,_,$cid,_,debug) }
+  DebugOff:{ debug -c off }
+  -
+  Raw:{ set %debug_raw_ $+ $cid 1 | window -e $+(@,$network,_,$cid,_,raw) }
+  RawOff:{ unset %debug_raw_ $+ $cid 1 | close -@ $+(@,$network,_,$cid,_,raw) }
   -
   Snotice:{ window -e $+(@,$network,_,$cid,_,status) }
 }
