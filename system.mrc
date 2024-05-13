@@ -79,7 +79,27 @@ on *:join:*:{
   if ( $nick = $me ) { set -u5 %nx.joined. $+ $cid $+ $chan 1 }
 }
 
-on *:part:*:{ return }
+on ^*:join:#:{ 
+  var %nx.jck 1 3 4, %c 1
+  while ( $gettok(%nx.jck,%c,32) ) { 
+    if ($ialchan($address($nick,$gettok(%nx.jck,%c,32)),$chan,N) > 1) && (!%nx.jc) { 
+      var %nx.jc $ialchan($address($nick,$gettok(%nx.jck,%c,32)),$chan,N), %i 1
+      var %nx.jcn %nx.jc
+      if ($gettok(%nx.jck,%c,32) == 1) { var %nx.jcn $addtok(%nx.jcn,Clones:,32) }
+      elseif ($gettok(%nx.jck,%c,32) == 3) { var %nx.jcn $addtok(%nx.jcn,Possible clones:,32) }
+      elseif ($gettok(%nx.jck,%c,32) == 4) { var %nx.jcn $addtok(%nx.jcn,Same subnet:,32) }
+      while (%i <= %nx.jc) {
+        if ( $ialchan($address($nick,$gettok(%nx.jck,%c,32)),$chan,%i).nick != $nick ) && ($numtok(%nx.jcn,32) < 6) { var %nx.jcn $addtok(%nx.jcn,$ialchan($address($nick,$gettok(%nx.jck,%c,32)),$chan,%i).nick,32) }
+        inc %i
+      }
+    }
+    inc %c
+  }
+  nx.echo.joinpart $chan * $nick $+($chr(40),$ial($nick,1).addr,$chr(41)) has joined $chan $iif(%nx.jcn, $+(54,$chr(40),%nx.jcn,$chr(41)),$null)
+  halt
+}
+
+on ^*:part:#:{ nx.echo.joinpart $chan * $nick $+($chr(40),$ial($nick,1).addr,$chr(41)) has left $chan | halt }
 
 on *:quit:{ return }
 
