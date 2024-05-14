@@ -118,7 +118,7 @@ on *:invite:*:{ if ( $istok($nx.db(read,settings,operchans,$network),$chan,32) )
 
 on 1:text:*:?:{ 
   if ( $right($nick,$len(status)) == status ) { 
-    if ( $1-4 == Disconnected from IRC. Reconnecting... ) {
+    if ( $1-3 == Disconnected from IRC. ) {
       var %c $chan(0) 
       while (%c) { 
         ; if channel key is set, save it!
@@ -126,12 +126,11 @@ on 1:text:*:?:{
         .msg *status detach $chan(%c)
         dec %c
       } 
-      echo -s DISCONNECTED
+      echo 12 -st * ZNC Disconnected from IRC.
     }
     if ( $1 = Connected! ) {
       set -u5 %nx.connected. $+ $cid 1
-      join %nx.znc.chans. [ $+ [ $cid ] ]
-      unset %nx.znc.chans. [ $+ [ $cid ] ]
+      if (%nx.znc.chans. [ $+ [ $cid ] ]) { join %nx.znc.chans. [ $+ [ $cid ] ] | unset %nx.znc.chans. [ $+ [ $cid ] ] }
     }
   }
 }

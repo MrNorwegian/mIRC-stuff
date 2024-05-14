@@ -4,7 +4,7 @@ alias nx.echo.setting { echo 15 -at $+(-,Setting,-) $1- }
 alias nx.echo.joinpart {
   if ( $1 = part ) { 
     if ( $3 == $me ) { 
-      if ( $istok(%nx.znc.chans. [ $+ [ $cid ] ],$2,44) ) { echo 0 -t $2 * Disconnected }
+      if ( $istok(%nx.znc.chans. [ $+ [ $cid ] ],$2,44) ) { echo 12 -t $2 * Disconnected }
       else { echo 3 -t $2 * You have left $2 }
     }
     else { echo 3 -t $2 * $3 $+($chr(40),$ial($3,1).addr,$chr(41)) has left $2 } 
