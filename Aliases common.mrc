@@ -1,8 +1,19 @@
 alias nx.echo.error { echo 4 -at $1- }
 alias nx.echo.raw { echo 7 -at DEBUG: $1- }
 alias nx.echo.setting { echo 15 -at $+(-,Setting,-) $1- }
-alias nx.echo.joinpart { echo 3 -t $1 $2- }
-
+alias nx.echo.joinpart {
+  if ( $1 = part ) { 
+    if ( $3 == $me ) { 
+      if ( $istok(%nx.znc.chans. [ $+ [ $cid ] ],$2,44) ) { echo 0 -t $2 * Disconnected }
+      else { echo 3 -t $2 * You have left $2 }
+    }
+    else { echo 3 -t $2 * $3 $+($chr(40),$ial($3,1).addr,$chr(41)) has left $2 } 
+  }
+  if ( $1 = join ) {
+    if ( $3 == $me ) { echo 3 -t $2 * Now talking in $2 }
+    else { echo 3 -t $2 * $3 $+($chr(40),$ial($3,1).addr,$chr(41)) has joined $2 $iif($4, $+(54,$chr(40),$4-,$chr(41)),$null) } 
+  }
+}
 alias nx.echo.notice { echo 40 -at $+(-,$1 @ $network,-) $2- }
 alias nx.echo.snotice {
   if ( $active = Status Window ) { 
@@ -43,6 +54,7 @@ alias nx.db {
     if ( $2 = ial ) { remini -n $+(ial\,$network,_,$cid,.ini) $iif($3,$3) $iif($4,$4) }
   }
 }
+alias hop { set -u4 %nx.hop $chan | hop $chan }
 alias join {
   ; /join #chan1,chan2,#chan3 key,chan4 key
   ; Todo, check for &localchan, for now it's vanilla /join &localchan

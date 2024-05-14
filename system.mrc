@@ -76,30 +76,39 @@ on *:join:*:{
     if ( $address($nick,5) = idlerpg!multirpg@idlerpg.users.undernet.org ) { .timer_idlebot_ $+ $cid 1 2 .msg $nick login %nx.idlerpg.user %nx.idlerpg.pass }
     if ( $address($nick,5) = idlerpg!*IdleRPG@idle.rpgsystems.org ) { .timer_idlebot_ $+ $cid 1 2 .msg $nick login %nx.idlerpg.user %nx.idlerpg.pass }
   }
-  if ( $nick = $me ) { set -u5 %nx.joined. $+ $cid $+ $chan 1 }
 }
 
-on ^*:join:#:{ 
-  var %nx.jck 1 3 4, %c 1
-  while ( $gettok(%nx.jck,%c,32) ) { 
-    if ($ialchan($address($nick,$gettok(%nx.jck,%c,32)),$chan,N) > 1) && (!%nx.jc) { 
-      var %nx.jc $ialchan($address($nick,$gettok(%nx.jck,%c,32)),$chan,N), %i 1
-      var %nx.jcn %nx.jc
-      if ($gettok(%nx.jck,%c,32) == 1) { var %nx.jcn $addtok(%nx.jcn,Clones:,32) }
-      elseif ($gettok(%nx.jck,%c,32) == 3) { var %nx.jcn $addtok(%nx.jcn,Possible clones:,32) }
-      elseif ($gettok(%nx.jck,%c,32) == 4) { var %nx.jcn $addtok(%nx.jcn,Same subnet:,32) }
-      while (%i <= %nx.jc) {
-        if ( $ialchan($address($nick,$gettok(%nx.jck,%c,32)),$chan,%i).nick != $nick ) && ($numtok(%nx.jcn,32) < 6) { var %nx.jcn $addtok(%nx.jcn,$ialchan($address($nick,$gettok(%nx.jck,%c,32)),$chan,%i).nick,32) }
-        inc %i
+on ^*:join:#:{
+  if ( $nick == $me ) { nx.echo.joinpart join $chan $me | set -u5 %nx.joined. $+ $cid $+ $chan 1 }
+  else { 
+    var %nx.jck 1 3 4, %c 1
+    while ( $gettok(%nx.jck,%c,32) ) { 
+      if ($ialchan($address($nick,$gettok(%nx.jck,%c,32)),$chan,N) > 1) && (!%nx.jc) { 
+        var %nx.jc $ialchan($address($nick,$gettok(%nx.jck,%c,32)),$chan,N), %i 1
+        var %nx.jcn %nx.jc
+        if ($gettok(%nx.jck,%c,32) == 1) { var %nx.jcn $addtok(%nx.jcn,Clones:,32) }
+        elseif ($gettok(%nx.jck,%c,32) == 3) { var %nx.jcn $addtok(%nx.jcn,Possible clones:,32) }
+        elseif ($gettok(%nx.jck,%c,32) == 4) { var %nx.jcn $addtok(%nx.jcn,Same subnet:,32) }
+        while (%i <= %nx.jc) {
+          if ( $ialchan($address($nick,$gettok(%nx.jck,%c,32)),$chan,%i).nick != $nick ) && ($numtok(%nx.jcn,32) < 6) { var %nx.jcn $addtok(%nx.jcn,$ialchan($address($nick,$gettok(%nx.jck,%c,32)),$chan,%i).nick,32) }
+          inc %i
+        }
       }
+      inc %c
     }
-    inc %c
+    nx.echo.joinpart join $chan $nick %nx.jcn
   }
-  nx.echo.joinpart $chan * $nick $+($chr(40),$ial($nick,1).addr,$chr(41)) has joined $chan $iif(%nx.jcn, $+(54,$chr(40),%nx.jcn,$chr(41)),$null)
   halt
 }
 
-on ^*:part:#:{ nx.echo.joinpart $chan * $nick $+($chr(40),$ial($nick,1).addr,$chr(41)) has left $chan | halt }
+on ^*:part:#:{ 
+  if ( $nick == $me ) { 
+    if ( %nx.hop = $chan ) { unset %nx.hop  }
+    else { nx.echo.joinpart part $chan $me }
+  }
+  else { nx.echo.joinpart part $chan $nick }
+  halt
+}
 
 on *:quit:{ return }
 
@@ -107,7 +116,25 @@ on ^1:SNOTICE:*:{ nx.echo.snotice $1- | halt }
 
 on *:invite:*:{ if ( $istok($nx.db(read,settings,operchans,$network),$chan,32) ) { join $chan } }
 
-on 1:text:*:?:{ return }
+on 1:text:*:?:{ 
+  if ( $right($nick,$len(status)) == status ) { 
+    if ( $1-4 == Disconnected from IRC. Reconnecting... ) {
+      var %c $chan(0) 
+      while (%c) { 
+        ; if channel key is set, save it!
+        set %nx.znc.chans. $+ $cid $addtok(%nx.znc.chans. [ $+ [ $cid ] ],$chan(%c),44)
+        .msg *status detach $chan(%c)
+        dec %c
+      } 
+      echo -s DISCONNECTED
+    }
+    if ( $1 = Connected! ) {
+      set -u5 %nx.connected. $+ $cid 1
+      join %nx.znc.chans. [ $+ [ $cid ] ]
+      unset %nx.znc.chans. [ $+ [ $cid ] ]
+    }
+  }
+}
 
 on *:open:?:{
   ; check for own botnet or znc

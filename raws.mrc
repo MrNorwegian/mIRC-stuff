@@ -225,14 +225,14 @@ raw *:*:{
   }
 
   elseif ($event = 353) { 
-    if (%nx.joined. [ $+ [ $cid ] ] [ $+ [ $3 ] ] == 1) { halt }
+    if (%nx.joined. [ $+ [ $cid ] ] [ $+ [ $3 ] ] == 1) || (%nx.connected. [ $+ [ $cid ] ] == 1) { halt }
   }
 
   ; Names list (After /ialfill)
   elseif ($event = 354) { return }
 
   ; #chan End of /NAMES list
-  elseif ($event = 366) { if (%nx.joined. [ $+ [ $cid ] ] [ $+ [ $2 ] ] == 1) { halt } }
+  elseif ($event = 366) { if (%nx.joined. [ $+ [ $cid ] ] [ $+ [ $2 ] ] == 1) || (%nx.connected. [ $+ [ $cid ] ] == 1) { halt } }
 
   ; Ban list
   elseif ($event = 367) {
