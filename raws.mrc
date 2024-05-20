@@ -143,6 +143,11 @@ raw *:*:{
   ; Server load is temporarily too heavy
   elseif ($event = 263) { return }
 
+  ; Gline list
+  elseif ($event = 280) { return }
+  ; End of /gline list
+  elseif ($event = 281) { return }
+
   ; auto away
   elseif ($event = 301) { return }
 

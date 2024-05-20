@@ -113,7 +113,7 @@ alias nx.addtok {
 }
 ; $nx.remtok(a b B c,b,32) returns a B c 
 alias nx.remtok {
-    if ($3) {
+  if ($3) {
     var %value $1, %token $2, %delim $3, %i 1
     var %len $numtok(%value,%delim)
     while ( %i <= %len) {

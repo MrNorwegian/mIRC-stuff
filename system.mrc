@@ -7,7 +7,8 @@ on 1:disconnect:{
   unset %nx.maxbans. [ $+ [ $cid ] ]
   unset %nx.silencenum. [ $+ [ $cid ] ]
   unset %nx.topiclen. [ $+ [ $cid ] ]
-  unset %nx.anex_ [ $+ [ $cid ] ] %nx.anex_lastcmd_ [ $+ [ $cid ] ]
+  unset %nx.anex_ [ $+ [ $cid ] ]
+  unset %nx.anex_lastcmd_ [ $+ [ $cid ] ]
 }
 
 on 1:exit:{ unset %mi %mech.* %nx.maxbans.* %nx.silencenum.* %nx.topiclen.* %nx.anex_* %nx.anex_lastcmd_.* %nx.flood.query }
@@ -117,7 +118,7 @@ on ^1:SNOTICE:*:{ nx.echo.snotice $1- | halt }
 on *:invite:*:{ if ( $istok($nx.db(read,settings,operchans,$network),$chan,32) ) { join $chan } }
 
 on 1:text:*:?:{ 
-  if ( $right($nick,$len(status)) == status ) { 
+  if ( $nick === *status ) { 
     if ( $1-3 == Disconnected from IRC. ) {
       var %c $chan(0) 
       while (%c) { 

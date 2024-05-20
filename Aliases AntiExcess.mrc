@@ -1,6 +1,4 @@
-
 ; Lots of placeholders for custom anti excess flood stuff and custom /commands
-
 
 alias nx.opmode {
   if ($istok($nx.db(read,settings,ircd,opmode),$network,32)) { opmode $1- }
