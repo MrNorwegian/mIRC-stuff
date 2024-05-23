@@ -183,6 +183,8 @@ on 1:dialog:nx.dialog.cc:*:*: {
 ; unreal beI,fkL,lFH,cdimnprstzCDGKMNOPQRSTVZ
 ; bahamut beI,k,jl,ciPAmMnOprRsSt
 ; ratbox eIb,k,l,imnpstS
+; inspircd (TODO, InspIRCd-3) Xbegw,k,FHJdfjl,BCDGMNOPQRSTcimnprst
+
 alias nx.cc.refmodes { 
   if ( $dialog(nx.dialog.cc) ) && ( %nx.cc.chan ischan ) {
     set %nx.cc.chanmodes $+($gettok($chanmodes,-1,44),$iif($gettok($chanmodes,3,44),$v1),$iif($gettok($chanmodes,2,44),$v1))

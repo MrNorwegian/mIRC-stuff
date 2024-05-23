@@ -43,7 +43,7 @@ raw *:*:{
         if ( $istok($nx.db(read,settings,ircd,ratbox),$network,32) ) { return }
         else { nx.db write settings ircd ratbox $addtok($nx.db(read,settings,ircd,ratbox),$network,32) | return }
       }
-      ; add bircd,inspircd,and others
+      ; TODO add bircd,InspIRCd-3,and others
       else { return }
     }
   }
