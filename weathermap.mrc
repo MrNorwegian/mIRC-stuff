@@ -4,10 +4,10 @@ alias wm.make {
   if (!$1) { echo Usage /wm.make your-config.conf | halt }
 
   ; sw01 posx posy width height,
-  set -u10 %nx.wm.nodes sw01 500 200 100 300,sw02 1400 200 100 300,ngsw01 500 800 100 500,ngsw02 1400 800 100 500
+  set -u10 %nx.wm.nodes sw01 900 200 100 300,sw02 1600 200 100 300,sw03 250 650 100 180,sw04 600 650 100 180,sw05 250 900 100 180,ngsw01 1200 800 100 500,ngsw02 1600 800 100 500
   ; sw01 v\r\b num
-  ; v for left, r for right, b for both (where childnodes are placed), b is skipping 10 and -10 for uplink 
-  set -u10 %nx.wm.child.nodes ngsw01 v 24,ngsw02 r 24,sw01 b 24,sw02 b 24
+  ; v for left, r for right, b for both (where childnodes are placed), b is skipping 10 and -10 for uplink exept if childnodes is 16
+  set -u10 %nx.wm.child.nodes sw01 b 24,sw02 b 24,sw03 b 16,sw04 v 8,sw05 v 8,ngsw01 v 24,ngsw02 r 24
   ; sw01-sw02 num,
   ; NOTE links for child.nodes is made in the alias wm.make.child.nodes
   set -u10 %nx.wm.links sw01-sw02 1 r-v,sw01-ngsw01 1 u-d,sw02-ngsw02 1 u-d,ngsw01-ngsw02 4 r-v
@@ -147,7 +147,7 @@ alias wm.make.child.nodes {
         if ( $numtok($calc(%i / 2),46) == 2 ) {
           var %pdv $+(-,%nx.wm.childnode.space)
           var %child-node-posx $+(-,%child-node-posx)
-          if ( $calc(%pd + %nx.wm.childnode.offsetx + %nx.wm.childnode.offsetx) = 10 ) { inc %pd %nx.wm.childnode.offsetx | inc %pd %nx.wm.childnode.offsetx | inc %pd %nx.wm.childnode.offsetx }
+          if ( $calc(%pd + %nx.wm.childnode.offsetx + %nx.wm.childnode.offsetx) = 10 ) && ($gettok($gettok(%nx.wm.child.nodes,%n,44),3,32) != 16) { inc %pd %nx.wm.childnode.offsetx | inc %pd %nx.wm.childnode.offsetx | inc %pd %nx.wm.childnode.offsetx }
           else { inc %pd %nx.wm.childnode.offsetx }
         }
         elseif ( $numtok($calc(%i / 2),46) == 1 ) { var %pdv %nx.wm.childnode.space }
