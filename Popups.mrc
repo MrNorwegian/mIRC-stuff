@@ -68,21 +68,15 @@ menu Status {
   .Features:{ stats f }
   .Uptime:{ stats u }
   .Vservers:{ /stats v }
-  -
-  Connect:/server $serverip
-  Disconnect:/disconnect
-  Reconnect:/server $serverip
   - 
   Oper
   .Oper:{ oper $$?="Username" $$?="Password" }
   .Add Opernet:{ nx.db write settings opernet $network Yes | nx.echo.settings Added $network as opernet }
   .Del Opernet:{ nx.db rem settings opernet $network | nx.echo.settings Removed $network as opernet }
 
-  - 
   ; Services:/services
   ; Botnet:/botnet
-  - 
-  Quit:/quit $$?="Reason"
+
   -
   Debug:{ debug -nptN $+(@,$network,_,$cid,_,debug) }
   DebugOff:{ debug -c off }
@@ -91,6 +85,12 @@ menu Status {
   RawOff:{ unset %debug_raw_ $+ $cid 1 | close -@ $+(@,$network,_,$cid,_,raw) }
   -
   Snotice:{ window -e $+(@,$network,_,$cid,_,status) }
+  -
+  Connect:/server $serverip
+  Disconnect:/disconnect
+  Reconnect:/server $serverip
+  Quit:/quit $$?="Reason"
+  -
 }
 
 menu Nicklist {

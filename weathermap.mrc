@@ -4,7 +4,7 @@ alias wm.make {
   if (!$1) { echo Usage /wm.make your-config.conf | halt }
 
   ; sw01 posx posy width height,
-  set -u10 %nx.wm.nodes sw01 900 200 100 300,sw02 1600 200 100 300,sw03 250 650 100 180,sw04 600 650 100 180,sw05 250 900 100 180,ngsw01 1200 800 100 500,ngsw02 1600 800 100 500
+  set -u10 %nx.wm.nodes sw01 900 200 100 300,sw02 1600 200 100 300,sw03 600 900 100 180,sw04 800 650 100 180,sw05 400 650 100 180,ngsw01 1200 800 100 500,ngsw02 1600 800 100 500
   ; sw01 v\r\b num
   ; v for left, r for right, b for both (where childnodes are placed), b is skipping 10 and -10 for uplink exept if childnodes is 16
   set -u10 %nx.wm.child.nodes sw01 b 24,sw02 b 24,sw03 b 16,sw04 v 8,sw05 v 8,ngsw01 v 24,ngsw02 r 24
@@ -105,18 +105,17 @@ alias wm.make.nodelinks {
     var %n $gettok($gettok(%nx.wm.links,%n,44),1,32)
     if ( %i = 1 ) { 
       write %nx.wm.conf LINK %n
-      ; TODO get node width and if node2 is on left or right side ( use gettok r-v or u-d etc )
       write %nx.wm.conf NODES $+($gettok(%n,1,45),:0:0) $+($gettok(%n,1,45):0:0)
     }
     else { 
-      ; TODO calculate where links should be placed
       while ( %i ) { 
+        ; TODO use u-d,r-v etc to calculate where links should be placed (Now it's 0:0)
         write %nx.wm.conf LINK $gettok($gettok(%nx.wm.links,%i,44),1,32)
         write %nx.wm.conf NODES $+($gettok(%n,1,45),:,%child-node-posx,:0) $+($gettok(%n,1,45):0:0)
-        ; TODO find out how to automate getting right links for links
-        ; INFOURL http://librenms.lan.da9.no/graphs/type=port_bits/id=22/
-        ; OVERLIBGRAPH http://librenms.lan.da9.no/graph.php?height=100&width=512&id=22&type=port_bits&legend=no
-        ; TARGET ./shuttle-pve.lan.da9.no/port-id22.rrd:INOCTETS:OUTOCTETS
+        ; TODO find out how to automate getting right links and RRD
+        ; write %nx.wm.conf INFOURL http://librenms.example.com/graphs/type=port_bits/id=29/
+        ; write %nx.wm.conf OVERLIBGRAPH http://librenms.example.com/graph.php?height=100&width=512&id=29&type=port_bits&legend=no
+        ; write %nx.wm.conf TARGET ./10.10.10.10/port-id22.rrd:INOCTETS:OUTOCTETS
         dec %i
       }
     }

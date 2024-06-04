@@ -314,8 +314,12 @@ raw *:*:{
       }
     }
   }
-  ; Nick\Channel is temporarily unavailable
-  elseif ($event = 437) { return }
+  ; 437 naka_ #idlerpg :Cannot change nickname while banned on channel or channel is moderated
+  elseif ($event = 437) { 
+    if ( $1 = $me ) && ( $1 != $nx.db(read,settings,mainnick,$network)  ) {
+      if ( $2 = #idlerpg ) { .part #idlerpg | .timer_chnick 1 1 .nick $nx.db(read,settings,mainnick,$network) | .timer_rejoin_idlerpg 1 10 .join #idlerpg }
+     }
+  }
 
   ; You're not on that channel
   elseif ($event = 442) { return }
