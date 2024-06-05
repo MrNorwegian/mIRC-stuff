@@ -120,7 +120,7 @@ on *:invite:*:{ if ( $istok($nx.db(read,settings,operchans,$network),$chan,32) )
 on 1:text:*:?:{ 
   if ( $nick === *status ) { 
     ; second IF $3 has no . but first has, restof second $4- (No route to host). Reconnecting... 
-    if ( $1-3 == Disconnected from IRC. ) || ( $1-3 == Disconnected from IRC ) { return }
+    if ( $1-3 == Disconnected from IRC. ) || ( $1-3 == Disconnected from IRC ) { 
       var %c $chan(0) 
       while (%c) { 
         ; if channel key is set, save it!

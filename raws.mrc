@@ -219,6 +219,9 @@ raw *:*:{
   elseif ($event = 332) { return }
   elseif ($event = 333) { return }
 
+  ; invited to channel ( 341 $me invited-nick #channel )
+  elseif ($event = 341) { return }
+
   ; server info (OS etc)
   ; RAW 351 naka UnrealIRCd-6.1.4. Champingvogna.da9.no Fhn6OoErmM [Linux IrcStuff 6.1.0-17-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.69-1 (2023-12-30) x86_64=6100]
   elseif ($event = 351) { return }
@@ -318,7 +321,7 @@ raw *:*:{
   elseif ($event = 437) { 
     if ( $1 = $me ) && ( $1 != $nx.db(read,settings,mainnick,$network)  ) {
       if ( $2 = #idlerpg ) { .part #idlerpg | .timer_chnick 1 1 .nick $nx.db(read,settings,mainnick,$network) | .timer_rejoin_idlerpg 1 10 .join #idlerpg }
-     }
+    }
   }
 
   ; You're not on that channel
@@ -329,7 +332,7 @@ raw *:*:{
 
   ; Cannot join channel (+b)
   elseif ($event = 474) { return }
-  
+
   ; Not enough parameters
   elseif ($event = 461) { return }
 
@@ -348,7 +351,7 @@ raw *:*:{
 
   ; Cannot join channel transfering 
   elseif ($event = 470) { return }
-  
+
   ; You need a registered nick to join that channel.
   elseif ($event = 477) { return }
 
