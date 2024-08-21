@@ -57,8 +57,6 @@ Menu Channel {
   .22 Ducks detector (5 xp):{ say !shop 22 }
   .23 Mechanical duck (50 xp):{ say !shop 23 }
   .ShowDucks:{ echo -a Ducks: %nx_duck_ducks }
-  - 
-  IalUpdate:{ ialclear $chan | ialfill $chan }
 }
 menu Status {
   Lusers:/lusers
@@ -119,7 +117,7 @@ menu Nicklist {
   .Ban:{ nx.massban ban $chan $$1- }
   .Unban:{ nx.massban unban $chan $$1- }
   .KickBan:{ set %nx.masskick.reason $?"Reason or emtpy for default" | nx.massban ban $chan $$1- | nx.masskick kick $chan $$1- }
-   $iif(o isin $usermode,IrcOP Control)
+  $iif(o isin $usermode,IrcOP Control)
   .$iif(q isin $nickmode,Owner):{ nx.massmode oper_owner $chan $$1- }
   .$iif(q isin $nickmode,DeOwner):{ nx.massmode oper_deowner $chan $$1- }
   .$iif(a isin $nickmode,Admin):{ nx.massmode oper_admin $chan $$1- }
@@ -131,7 +129,7 @@ menu Nicklist {
   .$iif(v isin $nickmode,Voice):{ nx.massmode oper_voice $chan $$1- }
   .$iif(v isin $nickmode,Devoice):{ nx.massmode oper_devoice $chan $$1- }
   ; TODO Kill + Gline
-   $iif(%nx.botnet_ [ $+ [ $network ] ] ,Botnet Control)
+  $iif(%nx.botnet_ [ $+ [ $network ] ] ,Botnet Control)
   .$iif(q isin $nickmode,Owner):{ nx.massmode botnet_owner $chan $$1- }
   .$iif(q isin $nickmode,DeOwner):{ nx.massmode botnet_deowner $chan $$1- }
   .$iif(a isin $nickmode,Admin):{ nx.massmode botnet_admin $chan $$1- }

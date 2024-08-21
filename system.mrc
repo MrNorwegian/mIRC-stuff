@@ -63,6 +63,15 @@ on ^1:notice:*:?:{
   else { nx.echo.notice $nick $1- | halt }
 }
 
+; Script from genthic, might modify this later
+on 1:NOTICE:*:#:{
+  if ( $istok(%nx.genethic.channels,$chan,32) ) {
+    if ( $me $+ ?requested?DCC??code?is iswm $2-6 ) {
+      .timerDCC1 4 1 .echo = $+ $nick mIRC Script: Please wait, your password will be sent to the session in a few seconds
+      .timerDCC2 1 5 .msg = $+ $nick $7
+    }
+  }
+}
 ; When on znc i need this to make sure snotice windows is up 
 on 1:usermode:{ if ( o isincs $1 ) && ( $left($1,1) == $chr(43) ) { window -De $+(@,$network,_,$cid,_,status) | echo 3 -st You are now an IRC Operator on $network } }
 
@@ -119,7 +128,8 @@ on *:invite:*:{ if ( $istok($nx.db(read,settings,operchans,$network),$chan,32) )
 
 on 1:text:*:?:{ 
   if ( $nick === *status ) { 
-    ; second IF $3 has no . but first has, restof second $4- (No route to host). Reconnecting... 
+    ; second IF $3 has no . but first has, restof second $4- (No route to host). Reconnecting...
+    ; BU, when disconnected and reconnect does not work this loops
     if ( $1-3 == Disconnected from IRC. ) || ( $1-3 == Disconnected from IRC ) { 
       var %c $chan(0) 
       while (%c) { 
@@ -134,6 +144,13 @@ on 1:text:*:?:{
       set -u5 %nx.connected. $+ $cid 1
       if (%nx.znc.chans. [ $+ [ $cid ] ]) { join %nx.znc.chans. [ $+ [ $cid ] ] | unset %nx.znc.chans. [ $+ [ $cid ] ] }
     }
+    ; TODO, fix buffextra
+    ; [23:45:54] <*buffextras> NICK!IDENT@HOST quit: Ping timeout
+    ; [23:46:04] <*buffextras> NICK!IDENT@HOST joined
+    ; [23:46:04] <*buffextras> NICK!IDENT@HOST joined
+    ; [23:46:04] <*buffextras> *.NETWORK.org set mode: +ovov nick1 nick2 nick3 nick4
+
+    ; TODO, make a "start znc playback" and "stop znc playback" command
   }
 }
 
@@ -167,4 +184,3 @@ on *:open:?:{
 
 ;ctcp 1:time:?:/ctcpreply $nick TIME $date(ddd ddoo mmm yyyy hh:mmt) ;| halt
 ;ctcp 1:ping:?:/ctcpreply $nick PING Ouch!
-

@@ -54,6 +54,16 @@ alias nx.db {
     if ( $2 = ial ) { remini -n $+(ial\,$network,_,$cid,.ini) $iif($3,$3) $iif($4,$4) }
   }
 }
+alias w { set -u2 %nx.echoactive.whois true | nx.whois $1- }
+alias j { nx.join $1- }
+alias p { nx.part $1- }
+alias n { names #$$1 }
+alias q { query $$1 }
+alias k { kick # $$1 $2- }
+alias s { server $$1- }
+alias c { close -t $$1 }
+alias chat { dcc chat $$1 }
+alias ping { ctcp $$1 ping }
 alias hop { set -u4 %nx.hop $chan | hop $chan }
 alias join {
   ; /join #chan1,chan2,#chan3 key,chan4 key
