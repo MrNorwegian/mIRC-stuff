@@ -219,6 +219,13 @@ raw *:*:{
   elseif ($event = 332) { return }
   elseif ($event = 333) { return }
 
+  ; /userip result
+  elseif ($event = 340) { 
+    ; Check if i'm supposed to gline user, else return userip as normal
+    if ( %nx.ag. [ $+ [ $gettok($2,1,61) ] ] == 1 ) { echo -st <Auto Gline> $2, user joined bait-channel | .msg uworld forcegline $+(*@,$gettok($2,2,64)) 8d Auto glined, bye | halt }
+    else { echo -at UserIP: $2- | halt }
+   }
+
   ; invited to channel ( 341 $me invited-nick #channel )
   elseif ($event = 341) { echo -at $2 has been invited to $3 | halt }
 

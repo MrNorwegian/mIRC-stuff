@@ -91,8 +91,10 @@ on *:join:*:{
 on ^*:join:#:{
   if ( $nick == $me ) { nx.echo.joinpart join $chan $me | set -u5 %nx.joined. $+ $cid $+ $chan 1 }
   else { 
+    ; Clonescan, 1 3 4 = $address($nick,X)
     var %nx.jck 1 3 4, %c 1
     while ( $gettok(%nx.jck,%c,32) ) { 
+      ; Is it more than 1 clone?
       if ($ialchan($address($nick,$gettok(%nx.jck,%c,32)),$chan,N) > 1) && (!%nx.jc) { 
         var %nx.jc $ialchan($address($nick,$gettok(%nx.jck,%c,32)),$chan,N), %i 1
         var %nx.jcn %nx.jc
@@ -105,6 +107,22 @@ on ^*:join:#:{
         }
       }
       inc %c
+    }
+    ; auto gline on baitchannel 
+    if ( $nx.db(read,settings,opernet,$network) ) && ( $chan == #bait-channel.do.not.join.you.will.be.glined ) {
+      ; Check if nick is not me and not in first operchan in settings
+      if ( $nick != $me ) && ( $nick !ison $gettok($nx.db(read,settings,operchans,$network),1,32) ) {
+        ; Check if ~ isin ident and user is not authed and ident is not nick
+        var %nx.ag.ident $gettok($gettok($address($nick,5),1,64),2,33)
+        var %nx.ag.host $gettok($address($nick,5),2,64)
+        if ( ~ isin %nx.ag.ident ) && ( .users. !isin %nx.ag.host) && ( $nick !isin %nx.ag.ident ) {
+          ; Check if host is ip, else do userip and msg uworld in raws.mrc
+          if ( $iptype(%nx.ag.host) == ipv4 ) { 
+            echo -st <Auto Gline> $address($nick,5) - User joined bait-channel | .msg uworld forcegline $+(*@,%nx.ag.host) 8d Auto glined, bye
+          }
+          else { set -u10 %nx.ag. $+ $nick 1 | userip $nick }
+        }
+      }
     }
     nx.echo.joinpart join $chan $nick %nx.jcn
   }
