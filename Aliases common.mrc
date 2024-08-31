@@ -7,13 +7,20 @@ alias nx.echo.joinpart {
       if ( $istok(%nx.znc.chans. [ $+ [ $cid ] ],$2,44) ) { echo 12 -t $2 * Disconnected }
       else { echo 3 -t $2 * You have left $2 }
     }
-    else { echo 3 -t $2 * $3 $+($chr(40),$ial($3,1).addr,$chr(41)) has left $2 } 
+    ; Possible bug, p (or a) might be wrong, not tested
+    ; Temoporarily replaced r with space, do i need to specify regular users ? :/
+    else { echo 3 -t $2 * $replace($4,q,~,p,&,o,@,h,%,v,+,r,$chr(32)) $3 $+($chr(40),$ial($3,1).addr,$chr(41)) has left $2 } 
   }
   if ( $1 = join ) {
     if ( $3 == $me ) { echo 3 -t $2 * Now talking in $2 }
     else { echo 3 -t $2 * $3 $+($chr(40),$ial($3,1).addr,$chr(41)) has joined $2 $iif($4, $+(54,$chr(40),$4-,$chr(41)),$null) } 
   }
 }
+; This alias is kinda just placeholder for now, will be used to show custom quit events with the mode user had on every common channel
+; usage /nx.echo.quit <chan> <nick> <address> <reason>
+alias nx.echo.quit { echo 2 -t $2 $3 $4 has quit $5- }
+
+; Flood limit this incase of flood attack, also consider echo to a own "notice window" or to a status window in addition to echo to active window
 alias nx.echo.notice { echo 40 -at $+(-,$1 @ $network,-) $2- }
 alias nx.echo.snotice {
   if ( $active = Status Window ) { 
@@ -64,7 +71,15 @@ alias s { server $$1- }
 alias c { close -t $$1 }
 alias chat { dcc chat $$1 }
 alias ping { ctcp $$1 ping }
-alias hop { set -u4 %nx.hop $chan | hop $chan }
+
+; Consider to use the same logic as in alias join, where "/hop channel" wil work
+alias hop {
+  if ( $chan ) {
+    if ( $1 ) { set -u4 %nx.hop $1 | hop $1 }
+    else { set -u4 %nx.hop $chan | hop $chan }
+  }
+  else { echo 4 -at Usage /hop <channel> or /hop while on an active channel | halt }
+}
 alias join {
   ; /join #chan1,chan2,#chan3 key,chan4 key
   ; Todo, check for &localchan, for now it's vanilla /join &localchan
@@ -110,7 +125,7 @@ alias random {
     }
     return %t
   }
-  else { echo -at Usage $chr(36) $+ random(99,CN,ULR) }
+  else { echo -at Usage $chr(36) $+ random(99,CNR,ULR) }
 }
 
 ; nx.*tok is a replacement for $addtok, $remtok, $istok that is case sensitive

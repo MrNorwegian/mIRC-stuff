@@ -134,10 +134,20 @@ on ^*:part:#:{
     if ( %nx.hop = $chan ) { unset %nx.hop  }
     else { nx.echo.joinpart part $chan $me }
   }
-  else { nx.echo.joinpart part $chan $nick }
-  halt
+  else {
+    var %nx.onpart.modes q,p,o,h,v,r
+    var %nx.onpart.i $numtok(%nx.onpart.modes,44)
+    while (%nx.onpart.i) { 
+      if ( $nick($chan,$nick,$gettok(%nx.onpart.modes,%nx.onpart.i,44)) ) { var %nx.onpart.m $addtok(%nx.onpart.m,$gettok(%nx.onpart.modes,%nx.onpart.i,44),32) }
+      dec %nx.onpart.i
+    }
+    nx.echo.joinpart part $chan $nick $remove(%nx.onpart.m,$chr(32))
+
+    halt
+  }
 }
 
+; TODO, loop channels and show mode the user had (like we do on part)
 on *:quit:{ return }
 
 on ^1:SNOTICE:*:{ nx.echo.snotice $1- | halt }
