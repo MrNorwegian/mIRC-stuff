@@ -184,6 +184,7 @@ on 1:dialog:nx.dialog.cc:*:*: {
 ; bahamut beI,k,jl,ciPAmMnOprRsSt
 ; ratbox eIb,k,l,imnpstS
 ; inspircd (TODO, InspIRCd-3) Xbegw,k,FHJdfjl,BCDGMNOPQRSTcimnprst
+; hybrid-7.2.2+oftc1.7.3 eIqb,k,l,cimnpstzMRS
 
 alias nx.cc.refmodes { 
   if ( $dialog(nx.dialog.cc) ) && ( %nx.cc.chan ischan ) {

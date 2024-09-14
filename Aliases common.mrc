@@ -9,7 +9,7 @@ alias nx.echo.joinpart {
     }
     ; Possible bug, p (or a) might be wrong, not tested
     ; Temoporarily replaced r with space, do i need to specify regular users ? :/
-    else { echo 3 -t $2 * $replace($4,q,~,p,&,o,@,h,%,v,+,r,$chr(32)) $3 $+($chr(40),$ial($3,1).addr,$chr(41)) has left $2 } 
+    else { echo 3 -t $2 * $replace($4,q,~,p,&,o,@,h,%,v,+,r,$chr(32)) $+ $3 $+($chr(40),$ial($3,1).addr,$chr(41)) has left $2 } 
   }
   if ( $1 = join ) {
     if ( $3 == $me ) { echo 3 -t $2 * Now talking in $2 }
@@ -29,7 +29,7 @@ alias nx.echo.snotice {
     elseif ( $strip($1) = nick.NICK_COLLISION ) { echo 5 -t $+(@,$network,_,$cid,_,status) $1- | halt }
     elseif ( $strip($1) = flood.FLOOD_BLOCKED ) { echo 5 -t $+(@,$network,_,$cid,_,status) $1- | halt }
 
-    else { echo 5 -st $1- | halt }
+    else { echo 5 -st $1- | echo 5 -t $+(@,$network,_,$cid,_,status) $1- | halt }
   }
   elseif ( $window($+(@,$network,_,$cid,_,status)) ) { echo 5 -t $+(@,$network,_,$cid,_,status) $1- | halt }
   else { echo 5 -st $1- | halt }    

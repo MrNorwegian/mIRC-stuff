@@ -73,6 +73,9 @@ raw *:*:{
   elseif ($event = 015) { nx.echo.snotice $2- | halt } 
   elseif ($event = 017) { nx.echo.snotice $2- | halt } 
 
+  ; nick IDnumber your unique ID
+  elseif ($event = 042) { return }
+
   ; /stats return
   elseif ($event = 210) { nx.echo.snotice $2- | halt }
 
@@ -190,6 +193,8 @@ raw *:*:{
   elseif ($event = 344) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 $4- | halt } | else { return } }
   ; nick is using ip with a reputation 
   elseif ($event = 320) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt } | else { return } }
+  ; nick is using a secure connection
+  elseif ($event = 275) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt } | else { return } }
   ; nick has client certificate
   elseif ($event = 276) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt } | else { return } }
   ; using host
@@ -224,7 +229,7 @@ raw *:*:{
     ; Check if i'm supposed to gline user, else return userip as normal
     if ( %nx.ag. [ $+ [ $gettok($2,1,61) ] ] == 1 ) { echo -st <Auto Gline> $2, user joined bait-channel | .msg uworld forcegline $+(*@,$gettok($2,2,64)) 8d Auto glined, bye | halt }
     else { echo -at UserIP: $2- | halt }
-   }
+  }
 
   ; invited to channel ( 341 $me invited-nick #channel )
   elseif ($event = 341) { echo -at $2 has been invited to $3 | halt }
@@ -298,7 +303,10 @@ raw *:*:{
   elseif ($event = 396) { return }
 
   ; no souch nick ( $2 )
-  elseif ($event = 401) { return }
+  elseif ($event = 401) { 
+    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt }
+    else { return }
+  }
 
   ; No such channel
   elseif ($event = 403) { return }
@@ -341,6 +349,9 @@ raw *:*:{
   ; Cannot join channel (+b)
   elseif ($event = 474) { return }
 
+  ; nick register first
+  elseif ($event = 451) { return }
+
   ; Not enough parameters
   elseif ($event = 461) { return }
 
@@ -349,7 +360,8 @@ raw *:*:{
 
   ; :Cannot join channel (+i) ( $2 = channel )
   ; TODO use %nx.loggedon or something before .msg 
-  elseif ( $event = 473 ) { if ( $istok($nx.db(read,settings,operchans,$network),$2,32)) { .msg bworld invite $2 $me } | return }
+  ; Todo, use settings to get the botname (uworld) because it can change
+  elseif ( $event = 473 ) { if ( $istok($nx.db(read,settings,operchans,$network),$2,32)) { .timer_ai_ $+ $2 1 10 .msg uworld invite $2 $me } | return }
 
   ; invalid password
   elseif ($event = 464) { return }
@@ -368,6 +380,9 @@ raw *:*:{
 
   ; You're not an channel operator
   elseif ($event = 482) { echo -at * $+($1,:) You're not channel operator | halt }
+
+  ; No Operator block for your host
+  elseif ($event = 491) { echo -at * $+($1,:) No Operator block for your host | halt }
 
   ; You're not a channel owner
   elseif ($event = 499) { echo -at * $+($1,:) You're not channel owner | halt }

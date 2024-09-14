@@ -1,7 +1,10 @@
 ; connectall is just a bunch of /server -m
 on *:start:{ if ( %nx.autoconnect = yes ) { connectall } }
 
-on 1:connect:{ return }
+on 1:connect:{ 
+  set %nx.flood.query. $+ $cid 0
+  return 
+}
 
 on 1:disconnect:{ 
   unset %nx.maxbans. [ $+ [ $cid ] ]
@@ -43,7 +46,7 @@ on ^1:notice:*:?:{
     else { nx.echo.notice $nick $1- }
     halt
   }
-  ; Ignore spambots when excecuted a command
+  ; Ignore emech when excecuted a command
   elseif ( 172.1 isin $address($nick,2) ) && ( %mechfloodprotect ) {
     if ( $5 = immortal ) { halt }
     elseif ( $3 = already ) { halt }
@@ -75,22 +78,27 @@ on 1:NOTICE:*:#:{
 ; When on znc i need this to make sure snotice windows is up 
 on 1:usermode:{ if ( o isincs $1 ) && ( $left($1,1) == $chr(43) ) { window -De $+(@,$network,_,$cid,_,status) | echo 3 -st You are now an IRC Operator on $network } }
 
+; Just some placeholders
 on 1:mode:#:{ return }
-
 on 1:nick:{ return }
-
-on *:join:*:{
-  if ( $me !isvoice $chan ) && ( $chan = #IdleRPG ) && ( $nick != $me ) {
-    ; TODO make a check on timer to check if bot is gettig OP
-    if ( $address($nick,5) = IdleBot!idlerpg@idlebot.users.deepnet.chat ) { .timer_idlebot_ $+ $cid 1 2 .msg $nick login %nx.idlerpg.user %nx.idlerpg.pass }
-    if ( $address($nick,5) = idlerpg!multirpg@idlerpg.users.undernet.org ) { .timer_idlebot_ $+ $cid 1 2 .msg $nick login %nx.idlerpg.user %nx.idlerpg.pass }
-    if ( $address($nick,5) = idlerpg!*IdleRPG@idle.rpgsystems.org ) { .timer_idlebot_ $+ $cid 1 2 .msg $nick login %nx.idlerpg.user %nx.idlerpg.pass }
-  }
-}
 
 on ^*:join:#:{
   if ( $nick == $me ) { nx.echo.joinpart join $chan $me | set -u5 %nx.joined. $+ $cid $+ $chan 1 }
-  else { 
+  else {
+    if ( $me !isvoice $chan ) && ( $chan = #IdleRPG ) {
+      ; TODO, make a list of all IdleRPG bots in settings.ini file, and check if idlerpg is oped, (has to be another check)
+      ; Maby make a tmp variable and do the .msg in on mode ? 
+      if ( $address($nick,5) == IdleBot!idlerpg@idlebot.users.deepnet.chat ) { .timer_idlebot_ $+ $cid 1 2 .msg $nick login %nx.idlerpg.user %nx.idlerpg.pass }
+      if ( $address($nick,5) == idlerpg!multirpg@idlerpg.users.undernet.org ) { .timer_idlebot_ $+ $cid 1 2 .msg $nick login %nx.idlerpg.user %nx.idlerpg.pass }
+      if ( $address($nick,5) == idlerpg!*IdleRPG@idle.rpgsystems.org ) { .timer_idlebot_ $+ $cid 1 2 .msg $nick login %nx.idlerpg.user %nx.idlerpg.pass }
+      if ( $address($nick,5) == IdleRPG!idlerpg@2a03:b0c0:1:d0::aea:b001 ) { .timer_idlebot_ $+ $cid 1 2 .msg $nick login %nx.idlerpg.user %nx.idlerpg.adminpass }
+    }
+    ; Auto perform on znc when service bots becomes online if we are not authed
+    ; Idea: make use of /notify ?? this needs to se the bot join a channel, with notify i dont need to join any channels to get the notice
+    if ( $nick == X ) && ( $network == UnderNet ) && ( .users.undernet.org !isin $address($me,2) ) && ( %nx.autoperform.xjoined. [ $+ [ $network ] ] != 1 ) { set -u5 %nx.autoperform.xjoined. $+ $network 1 | .msg *perform Execute }
+    if ( $nick == Q ) && ( $network == QuakeNet ) && ( .users.quakenet.org !isin $address($me,2) ) && ( %nx.autoperform.qjoined. [ $+ [ $network ] ] != 1 ) { set -u5 %nx.autoperform.qjoined. $+ $network 1 | .msg *perform Execute }
+
+    ; Bug: number 4 is showing same subnet but that's mostly false-positive, need to only check this if hostname is an IP, or if it's a dns use userip, if *.users. ignore it.
     ; Clonescan, 1 3 4 = $address($nick,X)
     var %nx.jck 1 3 4, %c 1
     while ( $gettok(%nx.jck,%c,32) ) { 
@@ -117,9 +125,7 @@ on ^*:join:#:{
         var %nx.ag.host $gettok($address($nick,5),2,64)
         if ( ~ isin %nx.ag.ident ) && ( .users. !isin %nx.ag.host) && ( $nick !isin %nx.ag.ident ) {
           ; Check if host is ip, else do userip and msg uworld in raws.mrc
-          if ( $iptype(%nx.ag.host) == ipv4 ) { 
-            echo -st <Auto Gline> $address($nick,5) - User joined bait-channel | .msg uworld forcegline $+(*@,%nx.ag.host) 8d Auto glined, bye
-          }
+          if ( $iptype(%nx.ag.host) == ipv4 ) { echo -st <Auto Gline> $address($nick,5) - User joined bait-channel | .msg uworld forcegline $+(*@,%nx.ag.host) 8d Auto glined, bye bye! }
           else { set -u10 %nx.ag. $+ $nick 1 | userip $nick }
         }
       }
@@ -135,19 +141,23 @@ on ^*:part:#:{
     else { nx.echo.joinpart part $chan $me }
   }
   else {
-    var %nx.onpart.modes q,p,o,h,v,r
+    ; echo -st $nick($chan,$nick).pnick $nick
+    ; TODO test if  pnick is a good replacement for the while loop, jsut need a unrealircd server to test +q+a+h
+    ; This setup is not checking % (helpop)
+    ; IDEA, make a join\part flood protection
+    var %nx.onpart.modes ~,&,@,+
     var %nx.onpart.i $numtok(%nx.onpart.modes,44)
     while (%nx.onpart.i) { 
       if ( $nick($chan,$nick,$gettok(%nx.onpart.modes,%nx.onpart.i,44)) ) { var %nx.onpart.m $addtok(%nx.onpart.m,$gettok(%nx.onpart.modes,%nx.onpart.i,44),32) }
       dec %nx.onpart.i
     }
-    nx.echo.joinpart part $chan $nick $remove(%nx.onpart.m,$chr(32))
-
+    ; echo -at aftr while %nx.onpart.m
+    nx.echo.joinpart part $chan $nick $iif(%nx.onpart.m,$remove(%nx.onpart.m,$chr(32)),$null)
     halt
   }
 }
 
-; TODO, loop channels and show mode the user had (like we do on part)
+; TODO, loop channels and show mode the user had (like we do on part), this is not needed if we do not edit quit event message
 on *:quit:{ return }
 
 on ^1:SNOTICE:*:{ nx.echo.snotice $1- | halt }
@@ -183,29 +193,42 @@ on 1:text:*:?:{
 }
 
 on *:open:?:{
+  ; IDEA, echo time and date on open
+  ; TODO, check if pr server $cid is working right
+
   ; check for own botnet or znc
   if ( $istok(%nx.botnet_ [ $+ [ $network ] ],$nick,32)) || ($left($nick,1) = $chr(42) ) { return }
   else {
-    var %nx.flood.query.ugh 4
-    var %nx.flood.query.max 10
+    var %nx.flood.query.ugh 3
+    var %nx.flood.query.max 5
+    var %nx.flood.query.godhelpme 10
     var %nx.flood.query.time 10
 
-    inc -u10 %nx.flood.query 1
-    if (%nx.flood.query >= %nx.flood.query.max) {
-      echo 4 -at Anti Query flood har blokkert %nx.flood.query query'er
-      ignore -u60 $address($nick,2)
-      .timer_nx.flood.query 1 %nx.flood.query.time dec %nx.flood.query
+    inc -u10 %nx.flood.query. $+ $cid 1
+
+    if (%nx.flood.query. [ $+ [ $cid ] ] >= %nx.flood.query.godhelpme) {
+      echo 4 -st Anti Query flood has blocked %nx.flood.query. $+ $cid query's, this time $nick, now ignoring *!~*@* for 10 seconds
+      ignore -u10 *!~*@*
+      .timer_nx.flood.query. $+ $cid 1 %nx.flood.query.time dec %nx.flood.query. $+ $cid
       close -m $nick
     }
-    elseif (%nx.flood.query >= %nx.flood.query.ugh) {
-      echo 4 -at Anti Query flood har blokkert %nx.flood.query query'er
+    elseif (%nx.flood.query. [ $+ [ $cid ] ] >= %nx.flood.query.max) {
+      echo 4 -st Anti Query flood has blocked %nx.flood.query. $+ $cid query's, this time $nick
       ignore -u60 $address($nick,2)
-      .timer_nx.flood.query 1 %nx.flood.query.time dec %nx.flood.query
+      .timer_nx.flood.query. $+ $cid 1 %nx.flood.query.time dec %nx.flood.query. $+ $cid
+      close -m $nick
+      ; Check for an usermode and see if i can set mode $me +something to prevent unauthed users to query me, it has to be pr server, ircu does not support this
+    }
+    elseif (%nx.flood.query. [ $+ [ $cid ] ]  >= %nx.flood.query.ugh) {
+      echo 4 -st Anti Query flood has blocked %nx.flood.query query's, this time $nick
+      ignore -u60 $address($nick,2)
+      .timer_nx.flood.query. $+ $cid 1 %nx.flood.query.time dec %nx.flood.query. $+ $cid
       close -m $nick
     }
     else {
+      set -u2 %nx.echoactive.whois true
       whois $nick $nick
-      .timer_nx.flood.query 1 %nx.flood.query.time dec %nx.flood.query
+      .timer_nx.flood.query. $+ $cid 1 %nx.flood.query.time dec %nx.flood.query. $+ $cid
     }
   }
 }
