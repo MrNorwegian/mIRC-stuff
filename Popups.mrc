@@ -57,6 +57,23 @@ Menu Channel {
   .22 Ducks detector (5 xp):{ say !shop 22 }
   .23 Mechanical duck (50 xp):{ say !shop 23 }
   .ShowDucks:{ echo -a Ducks: %nx_duck_ducks }
+
+  ZNC
+  .EnableChan $chan :/msg *status EnableChan $chan
+  .DisableChan $chan :/msg *status DisableChan $chan
+  .Topics - Show topics in all your channels:{ set -u1 %nx.znc.popupcmd true | msg *status Topics }
+  .Buffer
+  ..ClearAllQueryBuffers      - Clear the query buffers:/msg *status ClearAllQueryBuffers 
+  ..ClearAllChannelBuffers    - Clear the channel buffers :/msg *status ClearAllChannelBuffers 
+  ..-
+  ..ClearBuffer <#chan|query> - Clear the specified buffer:/msg *status ClearBuffer $$?="<#chan|query>"
+  ..ClearBuffer $active       - Clear the specified buffer of $active:/msg *status ClearBuffer $active
+  ..-
+  ..PlayBuffer <#chan|query>  - Play back the specified buffer :/msg *status PlayBuffer $$?="<#chan|query>"
+  ..PlayBuffer $active        - Play back the specified buffer of $active :/msg *status PlayBuffer $active
+  ..-
+  ..SetBuffer <#chan|query> [linecount] - Set the buffer count :/msg *status SetBuffer $$?="<#chan|query> [linecount]"
+  ..SetBuffer $active [linecount] - Set the buffer count of $active:/msg *status SetBuffer $active $$?="[linecount]"
 }
 menu Status {
   Lusers:/lusers
@@ -71,10 +88,6 @@ menu Status {
   .Oper:{ oper $$?="Username" $$?="Password" }
   .Add Opernet:{ nx.db write settings opernet $network Yes | nx.echo.settings Added $network as opernet }
   .Del Opernet:{ nx.db rem settings opernet $network | nx.echo.settings Removed $network as opernet }
-
-  ; Services:/services
-  ; Botnet:/botnet
-
   -
   Debug:{ debug -nptN $+(@,$network,_,$cid,_,debug) }
   DebugOff:{ debug -c off }
@@ -89,6 +102,29 @@ menu Status {
   Reconnect:/server $serverip
   Quit:/quit $$?="Reason"
   -
+  ZNC
+  .Server\Network
+  ..AddServer <host> [[+]port] [pass]:msg *status AddServer $$?="<host> [[+]port] [pass]"
+  ..DelServer <host> [port] [pass]:msg *status DelServer $$?="<host> [port] [pass]"
+  ..Connect:msg *status Connect
+  ..Disconnect:msg *status Disconnect
+  ..Jump:msg *status Jump
+  ..-
+  ..ListServers:{ set -u1 %nx.znc.popupcmd true | msg *status ListServers }
+  ..-
+  ..AddNetwork <name>:msg *status AddNetwork $$?="Name of new network?"
+  ..DelNetwork <name>:msg *status DelNetwork $$?="Name of remove network?"
+  ..JumpNetwork <network>:msg *status JumpNetwork $$?="Jump to another network (Alternatively, you can connect to ZNC several times, using `user/network` as username)"
+  ..-
+  ..ListNetworks:{ set -u1 %nx.znc.popupcmd true | msg *status ListNetworks }
+  .-
+  .Mods - (Admin)
+  .Mods - (User)
+  .ListAllUserNetworks - (Admin):{ set -u1 %nx.znc.popupcmd true | msg *status ListAllUserNetworks }
+  .Traffic:{ set -u1 %nx.znc.popupcmd true | msg *status Traffic }
+  .Uptime:{ set -u1 %nx.znc.popupcmd true | msg *status Uptime }
+  .SaveConfig - (Admin):{ set -u1 %nx.znc.popupcmd true | msg *status SaveConfig }
+  .Rehash - (Admin) Reloads znc.conf:{ set -u1 %nx.znc.popupcmd true | msg *status Rehash }
 }
 
 menu Nicklist {

@@ -14,6 +14,7 @@ alias nx.samode {
 alias nx.mode { nx.anti.excess mode $1- }
 alias nx.kick { nx.anti.excess kick $1- }
 alias nx.whois { nx.anti.excess whois $1- }
+alias nx.who { nx.anti.excess who $1- }
 alias nx.msg { nx.anti.excess msg $1- }
 alias .nx.msg { nx.anti.excess .msg $1- }
 alias nx.say { nx.anti.excess say $1- }

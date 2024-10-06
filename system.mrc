@@ -1,9 +1,12 @@
 ; connectall is just a bunch of /server -m
-on *:start:{ if ( %nx.autoconnect = yes ) { connectall } }
+on *:start:{ 
+  if ( %nx.autoconnect = yes ) { connectall } 
+  .timer_nx.announce.newday 00:00:00 1 1 scid -a nx.announce.newday
+}
 
 on 1:connect:{ 
   set %nx.flood.query. $+ $cid 0
-  return 
+  set %nx.ialfill.timer_ $+ $cid 0
 }
 
 on 1:disconnect:{ 
@@ -12,6 +15,7 @@ on 1:disconnect:{
   unset %nx.topiclen. [ $+ [ $cid ] ]
   unset %nx.anex_ [ $+ [ $cid ] ]
   unset %nx.anex_lastcmd_ [ $+ [ $cid ] ]
+  unset %nx.ialfill.timer_ [ $+ [ $cid ] ]
 }
 
 on 1:exit:{ unset %mi %mech.* %nx.maxbans.* %nx.silencenum.* %nx.topiclen.* %nx.anex_* %nx.anex_lastcmd_.* %nx.flood.query }
@@ -83,7 +87,12 @@ on 1:mode:#:{ return }
 on 1:nick:{ return }
 
 on ^*:join:#:{
-  if ( $nick == $me ) { nx.echo.joinpart join $chan $me | set -u5 %nx.joined. $+ $cid $+ $chan 1 }
+  if ( $nick == $me ) { 
+    nx.echo.joinpart join $chan $me
+    set -u60 %nx.joined. $+ $cid $+ $chan 1
+    inc %nx.ialfill.timer_ $+ $cid 2
+    .timer_nx_ialfill_ $+ $cid $+ _ $+ $chan 1 %nx.ialfill.timer_ [ $+ [ $cid ] ] nx.who $chan 
+  }
   else {
     if ( $me !isvoice $chan ) && ( $chan = #IdleRPG ) {
       ; TODO, make a list of all IdleRPG bots in settings.ini file, and check if idlerpg is oped, (has to be another check)
@@ -137,8 +146,7 @@ on ^*:join:#:{
 
 on ^*:part:#:{ 
   if ( $nick == $me ) { 
-    if ( %nx.hop = $chan ) { unset %nx.hop  }
-    else { nx.echo.joinpart part $chan $me }
+    nx.echo.joinpart part $chan $me
   }
   else {
     ; echo -st $nick($chan,$nick).pnick $nick
@@ -178,7 +186,7 @@ on 1:text:*:?:{
       } 
       echo 12 -st * ZNC Disconnected from IRC.
     }
-    if ( $1 = Connected! ) {
+    elseif ( $1 = Connected! ) {
       set -u5 %nx.connected. $+ $cid 1
       if (%nx.znc.chans. [ $+ [ $cid ] ]) { join %nx.znc.chans. [ $+ [ $cid ] ] | unset %nx.znc.chans. [ $+ [ $cid ] ] }
     }
@@ -189,9 +197,41 @@ on 1:text:*:?:{
     ; [23:46:04] <*buffextras> *.NETWORK.org set mode: +ovov nick1 nick2 nick3 nick4
 
     ; TODO, make a "start znc playback" and "stop znc playback" command
+
+    ; echo text from *status in active window, %nx.znc.popupcmd is a variable set when using znc commands from Popups.mrc
+    elseif ( %nx.znc.popupcmd = true ) { echo 11 -at $1- }
   }
 }
+; Stolen from https://wiki.znc.in/Buffextras/mIRC
+; Might want to redo this (check for clones on JOINED, and add @+% to parted if possible 
+on ^*:TEXT:*:#: {
+  if ($nick == *buffextras) {
+    var %nick = $gettok($1,1,$asc(!))
 
+    if ($3 == MODE:)       echo $color(mode) -t $+ $msgstamp $chan * %nick sets mode: $4-
+    elseif ($2 == JOINED)  echo $color(join) -t $+ $msgstamp $chan * %nick ( $+ $gettok($1, 2, $asc(!)) $+ ) has joined $chan
+    elseif ($2 == QUIT:)    echo $color(quit) -t $+ $msgstamp $chan * %nick ( $+ $gettok($1, 2, $asc(!)) $+ ) Quit ( $+ $3- $+ )
+    elseif ($2 == PARTED:)  echo $color(part) -t $+ $msgstamp $chan * %nick ( $+ $gettok($1, 2, $asc(!)) $+ ) has left $chan
+    elseif (($2 == IS) && ($3 == NOW)) echo $color(nick) -t $+ $msgstamp $chan * %nick is now known as $6
+    elseif ($2 == KICKED)  echo $color(kick) -t $+ $msgstamp $chan * $3 was kicked by $gettok($1,1,$asc(!)) ( $+ $6- $+ )
+    elseif ($2 == CHANGED) echo $color(join) -t $+ $msgstamp $chan * %nick changes topic to ' $+ $6- $+ '
+    else                   echo $color(erro) -t $+ $msgstamp $chan *** UNHANDLED LINE < $+ $1- $+ >
+    halt
+  }
+  var %nx.highlight.nicks naka nakamura
+  var %nx.highlight.ignore_chans #idlerpg #multirpg 
+  var %t $1-
+  var %h $numtok(%t,32)
+  while (%h) {
+    ; echo -a DEBUG $gettok($1-,%h,32)
+    if ($findtok(%nx.highlight.nicks,$remove($gettok($1-,%h,32),$chr(44)),1,32)) && (!$findtok(%nx.highlight.ignore_chans,$chan,1,32)) { 
+      echo 4 -t $chan $+(<,$nick($chan,$nick).pnick,>) $1-
+      window -g2 $chan
+      halt
+    }
+    dec %h
+  }
+}
 on *:open:?:{
   ; IDEA, echo time and date on open
   ; TODO, check if pr server $cid is working right
@@ -226,7 +266,7 @@ on *:open:?:{
       close -m $nick
     }
     else {
-      set -u2 %nx.echoactive.whois true
+      set -u2 %nx.echoquery.whois. $+ $cid $+ . $+ $nick true
       whois $nick $nick
       .timer_nx.flood.query. $+ $cid 1 %nx.flood.query.time dec %nx.flood.query. $+ $cid
     }

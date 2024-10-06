@@ -166,6 +166,8 @@ raw *:*:{
 
   ; WHOIS
   ; nick ident host * realname
+  ; TODO, use %nx.echoquery.whois. $+ $cid $+ . $+ $nick
+  ; replace -at with $window or something ? or a whole new echo line with elseif 
   elseif ($event = 311) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $chr(45) | echo %nx.echo.color -at $2 is $+($3,@,$4-) | halt } | else { return } }
   ; is identified for this nick
   elseif ($event = 307) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 on $3- | halt } | else { return } }
@@ -204,9 +206,6 @@ raw *:*:{
   ; End of whois
   elseif ($event = 318) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | echo %nx.echo.color -at $chr(45) | halt } | else { return } }
 
-  ; end of /who
-  elseif ($event = 315) { return }
-
   ; topline of /list "Channel Users Name"
   elseif ($event = 321) { return }
 
@@ -238,17 +237,39 @@ raw *:*:{
   ; RAW 351 naka UnrealIRCd-6.1.4. Champingvogna.da9.no Fhn6OoErmM [Linux IrcStuff 6.1.0-17-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.69-1 (2023-12-30) x86_64=6100]
   elseif ($event = 351) { return }
 
-  ; /who list
+  ; /who $chan
   elseif ($event = 352) {
     if ( %checkforircop ) && ( $iif($chr(42) isin $7,true,false) = true ) { echo 3 -at %checkforircop Ircop found: nick ( $6 ) | return }
+    elseif ( %nx.joined. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) { 
+      inc -u10 %nx.ialchan. $+ $cid $+ $2
+      ; Check if nick is ircop and color it (for nicklist)
+      if (* isin $7) {
+        var %t = $comchan($6,0), %c = 1
+        while (%c <= %t) {
+          cline -m 13 $comchan($6,%c) $6
+          inc %c    
+        }
+      }
+      halt
+    }
     else { return }
+  }
+  ; end of /who
+  elseif ($event = 315) { 
+    if ( %nx.joined. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) {
+      echo 12 -st Updated IAL for $2 with %nx.ialchan. [ $+ [ $cid ] ] [ $+ [ $2 ] ] users
+      unset %nx.joined. $+ $cid $+ $2 | unset %nx.ialchan. $+ $cid $+ $2 
+      dec %nx.ialfill.timer_ $+ $cid
+      halt
+    }
+    return
   }
 
   elseif ($event = 353) { 
     if (%nx.joined. [ $+ [ $cid ] ] [ $+ [ $3 ] ] == 1) || (%nx.connected. [ $+ [ $cid ] ] == 1) { halt }
   }
 
-  ; Names list (After /ialfill)
+  ; end of /names
   elseif ($event = 354) { return }
 
   ; #chan End of /NAMES list

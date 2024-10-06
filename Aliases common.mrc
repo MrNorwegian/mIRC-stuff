@@ -5,16 +5,17 @@ alias nx.echo.joinpart {
   if ( $1 = part ) { 
     if ( $3 == $me ) { 
       if ( $istok(%nx.znc.chans. [ $+ [ $cid ] ],$2,44) ) { echo 12 -t $2 * Disconnected }
-      else { echo 3 -t $2 * You have left $2 }
+      else { echo 3 -t $2 * You have left $2 | echo 3 -st You parted: $2 }
     }
     ; Possible bug, p (or a) might be wrong, not tested
     ; Temoporarily replaced r with space, do i need to specify regular users ? :/
     else { echo 3 -t $2 * $replace($4,q,~,p,&,o,@,h,%,v,+,r,$chr(32)) $+ $3 $+($chr(40),$ial($3,1).addr,$chr(41)) has left $2 } 
   }
-  if ( $1 = join ) {
-    if ( $3 == $me ) { echo 3 -t $2 * Now talking in $2 }
+  elseif ( $1 = join ) {
+    if ( $3 == $me ) { echo 3 -t $2 * Now talking in $2 | echo 3 -st You joined: $2 }
     else { echo 3 -t $2 * $3 $+($chr(40),$ial($3,1).addr,$chr(41)) has joined $2 $iif($4, $+(54,$chr(40),$4-,$chr(41)),$null) } 
   }
+  else { echo 4 -st Syntax error in nx.echo.joinpart, DEBUG Network: $network Server: $server Text: $1- | halt }
 }
 ; This alias is kinda just placeholder for now, will be used to show custom quit events with the mode user had on every common channel
 ; usage /nx.echo.quit <chan> <nick> <address> <reason>
@@ -34,6 +35,16 @@ alias nx.echo.snotice {
   elseif ( $window($+(@,$network,_,$cid,_,status)) ) { echo 5 -t $+(@,$network,_,$cid,_,status) $1- | halt }
   else { echo 5 -st $1- | halt }    
 }
+
+alias nx.announce.newday { 
+  var %nx.announce.newday.chans $chan(0)
+  while ( %nx.announce.newday.chans ) { 
+    echo 3 -tn $chan(%nx.announce.newday.chans) * It's a new day, $fulldate
+    dec %nx.announce.newday.chans
+  }
+  .timer_nx.announce.newday 00:00 0 1 scid -a nx.announce.newday
+}
+
 ; Placeholder for custom perform stuff
 alias nx.perform { return }
 
@@ -64,9 +75,9 @@ alias nx.db {
 alias w { set -u2 %nx.echoactive.whois true | nx.whois $1- }
 alias j { nx.join $1- }
 alias p { nx.part $1- }
-alias n { names #$$1 }
+alias n { names $$1 }
 alias q { query $$1 }
-alias k { kick # $$1 $2- }
+alias k { kick $chan $$1 $2- }
 alias s { server $$1- }
 alias c { close -t $$1 }
 alias chat { dcc chat $$1 }

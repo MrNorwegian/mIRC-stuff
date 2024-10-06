@@ -16,7 +16,7 @@ alias makemech3 {
   if ( $1 >= 1 ) {
     window -De @mech
     window -De @mechdebug
-    
+
     set %mech.interface enp0s31f6
     set %mech.chan $iif($2,$2,#spambots)
     set %mech.randomip no
@@ -79,7 +79,7 @@ alias makemech3 {
       if ( $mechpick = false ) { echo 4 -t @mech FAILED, was not able to pick a nick or ip | unset %mech.* | halt }
       ; Little hack since 172.19.255.255 is broadcast use .18. instead (within the same subnet)
       if ( %mech.ip = 172.19.255.255 ) { set %mech.ip 172.18.255.255 }
-        ; echo 3 @mechdebug ID: %i NICK: %mech.nick IP: %mech.ip
+      ; echo 3 @mechdebug ID: %i NICK: %mech.nick IP: %mech.ip
       ; pause for 1 second every xx bots (to avoid ping time out)
       if ( %p > 50 ) { echo -t @mech Time: 7 $duration($calc($ctime - %mech.ctime)) ( %i \ %mech.numbots bots ) - 14 %mech.sum.nicks | pause %mech.pause | set %p 1 | set %mech.ctime $ctime | unset %mech.sum.nicks }
       else { inc %p | set %mech.sum.nicks $addtok(%mech.sum.nicks,%mech.nick,32) }
@@ -106,7 +106,7 @@ alias makemech3 {
       write %serverconf ip addr add dev %mech.interface $+(%mech.ip,%mech.prefix)
       ; writeini %mech.db usedips %mech.ip true
       ; writeini %mech.db usednicks %mech.nick true
-      
+
       unset %mech.nick
     }
     else { echo 3 -at Syntax /makemech 128 }
