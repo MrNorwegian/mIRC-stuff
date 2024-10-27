@@ -1,7 +1,15 @@
+alias nx.masmode.deall {
+  if ( q isin $nickmode ) { nx.massmode $iif($1 == user,deowner,$iif($1 == oper, oper_deowner, botnet_deowner)) $2 $$3- }
+  if ( a isin $nickmode ) { nx.massmode $iif($1 == user,deadmin,$iif($1 == oper, oper_deadmin, botnet_deadmin)) $2 $$3- }
+  if ( o isin $nickmode ) { nx.massmode $iif($1 == user,deop,$iif($1 == oper, oper_deop, botnet_deop)) $2 $$2- }
+  if ( h isin $nickmode ) { nx.massmode $iif($1 == user,dehalfop,$iif($1 == oper, oper_dehalfop, botnet_dehalfop)) $2 $$3- }
+  if ( v isin $nickmode ) { nx.massmode $iif($1 == user,devoice,$iif($1 == oper, oper_devoice, botnet_devoice)) $2 $$3- }
+}
+
 
 alias nx.massmode {
-  ; /massmode op\deop\voice\devoice #chan nick nick1 nick2
-  ; /massmode botnet_op\botnet_deop\oper_op\oper_deop #chan nick nick1 nick2
+  ; /nx.massmode op\deop\voice\devoice #chan nick nick1 nick2
+  ; /nx.massmode botnet_op\botnet_deop\oper_op\oper_deop #chan nick nick1 nick2
   ; - botnet_ checks for %nx.botnet_NetWork botnick1 botnick2 and required active dcc chat with bot.
   ; TODO: Check if user is +k then skip it ( Use cached info from /who channel ? )
   ; TODO: Idea, use X, Q, ChanServ ?
@@ -135,6 +143,14 @@ alias nx.botnet.control {
       dec %i
     }
   }
+  elseif ( $istok(jump rehash restart die,$1,32) ) { 
+    var %i $numtok($2-,32)
+    while (%i) { msg $+(=,$gettok($2-,%i,32)) $+(.,$1) | dec %i }
+  }
+  elseif ( $istok(hello,$1,32) ) { 
+    var %i $numtok($2-,32)
+    while (%i) { msg $gettok($2-,%i,32) hello | dec %i }
+  }
 }
 alias nx.masskick {
   if ($3) { 
@@ -178,7 +194,7 @@ alias nx.massban {
           else { set %nx.ban.nextrund $gettok($3-,%nx.ban.num,32) }
         }
       }
-      ; Take is not finished or tested, need to check if user is banned
+      ; Need to check if user is banned
       if ( $istok(unban botnet_unban ,$1,32) ) { 
         var %nx.ban.addrNick $addtok(%nx.ban.addrNick,%nx.ban.tmpaddr,32) 
         var %nx.ban.mode $iif(%nx.ban.mode,$+(%nx.ban.mode,-b),-b)

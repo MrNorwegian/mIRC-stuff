@@ -7,16 +7,15 @@ raw *:*:{
   ; batch +eJ2YePPoPApi8e95KGaJfU chathistory #opers ; batch -eJ2YePPoPApi8e95KGaJfU
   elseif ($event = batch) { return }
 
-  ; chghost naka hostname.info
   elseif ($event = chghost) { return }
   elseif ($event = account) { return }
   elseif ($event = tagmsg) { return }
   elseif ($event = away) { return }
 
-  ; Welcome
+  ; Welcome to the SERVER DESC, NICK
   elseif ($event = 001) { return }
 
-  ; your host
+  ; Your host is SERVERNAME, running version SERVERVERSION
   elseif ($event = 002) { 
     if ( $6-7 = running version ) { 
       if ( UnrealIRCd isin $8 ) { 
@@ -44,6 +43,7 @@ raw *:*:{
         else { nx.db write settings ircd ratbox $addtok($nx.db(read,settings,ircd,ratbox),$network,32) | return }
       }
       ; TODO add bircd,InspIRCd-3,and others
+      ; solanum (libera)
       else { return }
     }
   }
@@ -52,7 +52,8 @@ raw *:*:{
   elseif ($event = 003) { return }
   elseif ($event = 004) { return }
   elseif ($event = 005) { 
-    ; ircu
+    ; ircu2:
+    ; MAXNICKLEN=15 TOPICLEN=160 AWAYLEN=160 KICKLEN=160 CHANNELLEN=200 MAXCHANNELLEN=200 CHANTYPES=#& PREFIX=(ov)@+ STATUSMSG=@+ CHANMODES=b,k,l,imnpstrDdRcCPM CASEMAPPING=rfc1459 NETWORK=MyNetwork are supported by this server
     if ($gettok($wildtok($1-,TOPICLEN=?*,1,32),2,61)) { set %nx.topiclen. $+ $cid $v1 }
     if ($gettok($wildtok($1-,SILENCE=?*,1,32),2,61)) { set %nx.silencenum. $+ $cid $v1 }
     if ($gettok($wildtok($1-,MAXBANS=?*,1,32),2,61)) { set %nx.maxbans. $+ $cid $v1 }
@@ -160,6 +161,9 @@ raw *:*:{
 
   ; Channel mode is
   elseif ($event = 324) { return }
+
+  ; Channel URL is 
+  elseif ($event = 328) { return }
 
   ; Channel mode set timestap ????
   elseif ($event = 329) { return }
@@ -306,6 +310,10 @@ raw *:*:{
   ; end of /links list
   elseif ($event = 365) { return }
 
+  ; /info
+  elseif ($event = 371) { return }
+  elseif ($event = 374) { return }
+  
   ; MOTD start - motd - end of motd
   elseif ($event = 375) { return }
   elseif ($event = 372) { return }
@@ -356,8 +364,8 @@ raw *:*:{
   ; 437 naka_ #idlerpg :Cannot change nickname while banned on channel or channel is moderated
   elseif ($event = 437) { 
     if ( $1 = $me ) && ( $1 != $nx.db(read,settings,mainnick,$network)  ) {
-      if ( $2 = #idlerpg ) { .part #idlerpg | .timer_chnick 1 1 .nick $nx.db(read,settings,mainnick,$network) | .timer_rejoin_idlerpg 1 10 .join #idlerpg }
-      elseif ( $me ison $2 ) { .part $2 | .timer_chnick 1 1 .nick $nx.db(read,settings,mainnick,$network) | .timer_rejoin_ $+ $2 1 10 .join $2 }
+      if ( $timer(_chnick) ) { .part $2 | .timer_rejoin_ $+ $2 1 10 .join $2 }
+      else { .part $2 | .timer_chnick 1 1 .nick $nx.db(read,settings,mainnick,$network) | .timer_rejoin_ $+ $2 1 10 .join $2 }
     }
   }
 

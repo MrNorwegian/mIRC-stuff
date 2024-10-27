@@ -182,9 +182,10 @@ on 1:dialog:nx.dialog.cc:*:*: {
 ; nefarious be,k,Ll,aCcDdiMmNnOpQRrSsTtZz
 ; unreal beI,fkL,lFH,cdimnprstzCDGKMNOPQRSTVZ
 ; bahamut beI,k,jl,ciPAmMnOprRsSt
-; ratbox eIb,k,l,imnpstS
-; inspircd (TODO, InspIRCd-3) Xbegw,k,FHJdfjl,BCDGMNOPQRSTcimnprst
-; hybrid-7.2.2+oftc1.7.3 eIqb,k,l,cimnpstzMRS
+; Efnet - ratbox eIb,k,l,imnpstS
+; Efnet? - hybrid-7.2.2+oftc1.7.3 eIqb,k,l,cimnpstzMRS
+; InspIRCd-3 Xbegw,k,FHJdfjl,BCDGMNOPQRSTcimnprst
+; Librea - solanum-1.0-dev eIbq,k,flj,CFLMPQRSTcgimnprstuz 
 
 alias nx.cc.refmodes { 
   if ( $dialog(nx.dialog.cc) ) && ( %nx.cc.chan ischan ) {

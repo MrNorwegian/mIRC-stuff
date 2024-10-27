@@ -16,9 +16,10 @@ on 1:disconnect:{
   unset %nx.anex_ [ $+ [ $cid ] ]
   unset %nx.anex_lastcmd_ [ $+ [ $cid ] ]
   unset %nx.ialfill.timer_ [ $+ [ $cid ] ]
+  unset %nx.flood.query. [ $+ [ $cid ] ]
 }
 
-on 1:exit:{ unset %mi %mech.* %nx.maxbans.* %nx.silencenum.* %nx.topiclen.* %nx.anex_* %nx.anex_lastcmd_.* %nx.flood.query }
+on 1:exit:{ unset %mi %mech.* %nx.maxbans.* %nx.silencenum.* %nx.topiclen.* %nx.anex_* %nx.anex_lastcmd_.* %nx.flood.query.* %nx.ialfill.timer_* }
 
 on ^1:notice:*:?:{
   if ($istok(%nx.services.bots,$nick,32)) {
@@ -27,28 +28,29 @@ on ^1:notice:*:?:{
       if (This nickname is registered. isin $1-4) && ( $istok($nx.db(read,settings,services,Atheme),$network,32) ) {
         if ( $gettok($nx.db(read,settings,nickserv,$network),1,32) = $me ) {
           .msg nickserv identify $me $gettok($nx.db(read,settings,nickserv,$network),2,32)
+          nx.echo.notice $nick $1-
+          halt
         }
       }
-      if ( has been ghosted. isin $2-4 ) && ( $istok($nx.db(read,settings,services,Atheme),$network,32) ) { 
-        nick $strip($1)
-      }
+      if ( has been ghosted. isin $2-4 ) && ( $istok($nx.db(read,settings,services,Atheme),$network,32) ) { nick $strip($1) | nx.echo.notice $nick $1- | halt }
       else { nx.echo.notice $nick $1- | halt }
     }
-    elseif (( $nick = UWorld ) || ($nick == Bworld)) && ( $nx.db(read,opernet,$network) ) {
+    elseif ( $istok(uworld bworld euworld,$nick,32) ) && ( $nx.db(read,opernet,$network) ) {
       nx.echo.notice $nick $1-
       if ( $5 = authenticated ) { halt }
       ; Bworld says nick. and uworld says nick! 
-      elseif ( $1- = Authentication successful as ) {
+      elseif ( $1-3 = Authentication successful as ) {
         ; TODO add %nx.loggedon to confirm in raw (invite) before doing msg bworld invite
         var %nx.check.onoperchan $nx.db(read,settings,operchans,$network)
-        while ( %nx.check.onoperchan >= 0 ) {
-          if ( $me !ison $gettok($nx.db(read,settings,operchans,$network),%nx.check.onoperchan,32) ) { .msg $nick invite $gettok($nx.db(read,settings,operchans,$network),%nx.check.onoperchan,32) }
-          dec %nx.check.onoperchan
+        var %o $numtok(%nx.check.onoperchan,32)
+        while ( %o ) {
+          if ( $me !ison $gettok(%nx.check.onoperchan,%o,32) ) { .msg $nick invite $gettok(%nx.check.onoperchan,%o,32) }
+          dec %o
         }
+        halt
       }
     }
-    else { nx.echo.notice $nick $1- }
-    halt
+    else { nx.echo.notice $nick $1- | halt }
   }
   ; Ignore emech when excecuted a command
   elseif ( 172.1 isin $address($nick,2) ) && ( %mechfloodprotect ) {
@@ -62,11 +64,14 @@ on ^1:notice:*:?:{
     elseif ( $2 = open) { halt }
     else { nx.echo.notice $nick $1- | halt }
   } 
-  elseif ( $1-9 = As master you really need to set a password: ) { 
-    .timer_autosetpass 1 2 msg $nick pass p455w0rd 
+  ; Set a temporary password to new eggdrops
+  elseif ( $1-9 = As master you really need to set a password: ) && ( $istok(%nx.botnet_ [ $+ [ $network ] ],$nick,32) ) { 
+    .timer_autosetpass_ $+ $nick 1 2 msg $nick pass %nx.botnet_password 
     nx.echo.notice $nick $1-
     halt
   }
+  ; Check if nick is eg idlerpg and echo only to status window 
+  elseif ( $istok(%nx.echo.status.nicks,$nick,32) ) { nx.echo.notice status $nick $1- | halt }
   else { nx.echo.notice $nick $1- | halt }
 }
 

@@ -84,24 +84,30 @@ menu Status {
   .Uptime:{ stats u }
   .Vservers:{ /stats v }
   - 
-  Oper
-  .Oper:{ oper $$?="Username" $$?="Password" }
-  .Add Opernet:{ nx.db write settings opernet $network Yes | nx.echo.settings Added $network as opernet }
-  .Del Opernet:{ nx.db rem settings opernet $network | nx.echo.settings Removed $network as opernet }
-  -
-  Debug:{ debug -nptN $+(@,$network,_,$cid,_,debug) }
-  DebugOff:{ debug -c off }
-  -
-  Raw:{ set %debug_raw_ $+ $cid 1 | window -e $+(@,$network,_,$cid,_,raw) }
-  RawOff:{ unset %debug_raw_ $+ $cid 1 | close -@ $+(@,$network,_,$cid,_,raw) }
-  -
-  Snotice:{ window -e $+(@,$network,_,$cid,_,status) }
-  -
-  Connect:/server $serverip
-  Disconnect:/disconnect
+  Connect:/server $$?="Server IP\Host"
+  New Server:/server -m $$?="Server IP\Host"
   Reconnect:/server $serverip
+  Disconnect:/disconnect
   Quit:/quit $$?="Reason"
   -
+  Oper
+  .Oper:{ oper $$?="Username" $$?="Password" }
+  .Add Opernet:{ nx.db write settings opernet $network Yes | nx.echo.setting Added $network as opernet }
+  .Del Opernet:{ nx.db rem settings opernet $network | nx.echo.setting Removed $network as opernet }
+  -
+  Custom Windows
+  .Debug:{ debug -nptN $+(@,$network,_,$cid,_,debug) }
+  .DebugOff:{ debug -c off }
+  .-
+  .Raw:{ set %debug_raw_ $+ $cid 1 | window -e $+(@,$network,_,$cid,_,raw) }
+  .RawOff:{ unset %debug_raw_ $+ $cid 1 | close -@ $+(@,$network,_,$cid,_,raw) }
+  .-
+  .Snotice:{ window -e $+(@,$network,_,$cid,_,status) }
+  -
+  Settings
+  .Set nick:{ var %n $$?="Nick" | nx.db write settings mainnick $network %n | nx.echo.setting Nick set to %n }
+  -
+  ; IDEA, can this ZNC be cloned to menu query? and if used in Status make *status $active ?
   ZNC
   .Server\Network
   ..AddServer <host> [[+]port] [pass]:msg *status AddServer $$?="<host> [[+]port] [pass]"
@@ -147,7 +153,7 @@ menu Nicklist {
   .$iif(v isin $nickmode,Voice):{ nx.massmode voice $chan $$1- }
   .$iif(v isin $nickmode,Devoice):{ nx.massmode devoice $chan $$1- }
   .-
-  ; TODO Remove all modes
+  .Remove all modes: { nx.masmode.deall user $chan $$1- }
   ; TODO Kick + ban
   .Kick:{ set %nx.masskick.reason $?"Reason or emtpy for default" | nx.masskick kick $chan $$1- }
   .Ban:{ nx.massban ban $chan $$1- }
@@ -164,6 +170,8 @@ menu Nicklist {
   .$iif(h isin $nickmode,Dehalfop):{ nx.massmode oper_dehalfop $chan $$1- }
   .$iif(v isin $nickmode,Voice):{ nx.massmode oper_voice $chan $$1- }
   .$iif(v isin $nickmode,Devoice):{ nx.massmode oper_devoice $chan $$1- }
+  .-
+  .Remove all modes: { nx.masmode.deall oper $chan $$1- }
   ; TODO Kill + Gline
   $iif(%nx.botnet_ [ $+ [ $network ] ] ,Botnet Control)
   .$iif(q isin $nickmode,Owner):{ nx.massmode botnet_owner $chan $$1- }
@@ -177,6 +185,8 @@ menu Nicklist {
   .$iif(v isin $nickmode,Voice):{ nx.massmode botnet_voice $chan $$1- }
   .$iif(v isin $nickmode,Devoice):{ nx.massmode botnet_devoice $chan $$1- }
   .-
+  .Remove all modes: { nx.masmode.deall botnet $chan $$1- }
+
   .Kick:{ set %nx.masskick.reason $?"Reason or emtpy for default" | nx.masskick botnet_kick $chan $$1- }
   .-
   .Chattr:{ nx.botnet.control chattr $chan $$1- }
@@ -187,6 +197,13 @@ menu Nicklist {
   .Join:{ nx.botnet.control join $$?="Channel?" $$1- }
   .Part:{ nx.botnet.control part $$?="Channel?" $$1- }
   ; TODO Kick + ban
+  .-
+  .Hello:{ nx.botnet.control hello $$1- }
+  .Rehash:{ nx.botnet.control rehash $$1- }
+  .Jump:{ nx.botnet.control jump $$1- }
+  .Restart\die
+  ..Restart:{ nx.botnet.control restart $$1- }
+  ..Die:{ nx.botnet.control die $$1- }
   CTCP
   .Ping:{ var %i $numtok($$1-,32) | while (%i) { nx.ctcp $gettok($$1-,%i,32) ping | dec %i } }
   .Time:{ var %i $numtok($$1-,32) | while (%i) { nx.ctcp $gettok($$1-,%i,32) time | dec %i } }

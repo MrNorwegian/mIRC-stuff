@@ -22,7 +22,10 @@ alias nx.echo.joinpart {
 alias nx.echo.quit { echo 2 -t $2 $3 $4 has quit $5- }
 
 ; Flood limit this incase of flood attack, also consider echo to a own "notice window" or to a status window in addition to echo to active window
-alias nx.echo.notice { echo 40 -at $+(-,$1 @ $network,-) $2- }
+alias nx.echo.notice { 
+  if ( $1 = status ) { echo 40 -st $+(-,$2,-) $3- }
+  else { echo 40 -at $+(-,$1 @ $network,-) $2- }
+}
 alias nx.echo.snotice {
   if ( $active = Status Window ) { 
     if ( $strip($1) = connect.LOCAL_CLIENT_CONNECT ) {  echo 5 -t $+(@,$network,_,$cid,_,status) $1- | halt }
@@ -30,19 +33,31 @@ alias nx.echo.snotice {
     elseif ( $strip($1) = nick.NICK_COLLISION ) { echo 5 -t $+(@,$network,_,$cid,_,status) $1- | halt }
     elseif ( $strip($1) = flood.FLOOD_BLOCKED ) { echo 5 -t $+(@,$network,_,$cid,_,status) $1- | halt }
 
-    else { echo 5 -st $1- | echo 5 -t $+(@,$network,_,$cid,_,status) $1- | halt }
+    if ( $window($+(@,$network,_,$cid,_,status)) ) { echo 5 -st $1- | echo 5 -t $+(@,$network,_,$cid,_,status) $1- | halt }
+    else { echo 5 -st $1- | halt }
   }
   elseif ( $window($+(@,$network,_,$cid,_,status)) ) { echo 5 -t $+(@,$network,_,$cid,_,status) $1- | halt }
   else { echo 5 -st $1- | halt }    
 }
 
+alias nx.specialday {
+  var %d = $asctime(ddmm)
+  if (%d == 0101) { return Happy new year! }
+  elseif (%d == 1402) { return Happy valentines day <3 }
+  elseif (%d == 1703) { return It's St. Patrick's day, time to get some booze! }
+  elseif (%d == 3008) { return Happy $ord($calc($asctime(yyyy) -1986)) birthday :D }
+  elseif (%d == 3110) { return Trick or treat? }
+  elseif (%d == 2412) || (%d == 2512) || (%d == 2612) { return We wish you a merry christmas... *sings* }
+}
+
 alias nx.announce.newday { 
   var %nx.announce.newday.chans $chan(0)
   while ( %nx.announce.newday.chans ) { 
-    echo 3 -tn $chan(%nx.announce.newday.chans) * It's a new day, $fulldate
+    ; Idea, echo statistics for this channel today (total joined\parted\quit\kicked\mode changes\topic changes etc)
+    echo 3 -tn $chan(%nx.announce.newday.chans) * It's a new day, $fulldate $+ . $nx.specialday
     dec %nx.announce.newday.chans
   }
-  .timer_nx.announce.newday 00:00 0 1 scid -a nx.announce.newday
+  .timer_nx_restart_newday 1 300 .timer_nx.announce.newday -io 00:00 1 0 scid -a nx.announce.newday
 }
 
 ; Placeholder for custom perform stuff
