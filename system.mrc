@@ -71,7 +71,7 @@ on ^1:notice:*:?:{
     halt
   }
   ; Check if nick is eg idlerpg and echo only to status window 
-  elseif ( $istok(%nx.echo.status.nicks,$nick,32) ) { nx.echo.notice status $nick $1- | halt }
+  elseif ( $istok(%nx.echo.status.nicks,$nick,32) ) { nx.echo.notice $iif($active == $nick,active,status) $nick $1- | halt }
   else { nx.echo.notice $nick $1- | halt }
 }
 
@@ -186,7 +186,7 @@ on 1:text:*:?:{
       while (%c) { 
         ; if channel key is set, save it!
         set %nx.znc.chans. $+ $cid $addtok(%nx.znc.chans. [ $+ [ $cid ] ],$chan(%c),44)
-        .msg *status detach $chan(%c)
+        .!msg *status detach $chan(%c)
         dec %c
       } 
       echo 12 -st * ZNC Disconnected from IRC.
@@ -195,40 +195,16 @@ on 1:text:*:?:{
       set -u5 %nx.connected. $+ $cid 1
       if (%nx.znc.chans. [ $+ [ $cid ] ]) { join %nx.znc.chans. [ $+ [ $cid ] ] | unset %nx.znc.chans. [ $+ [ $cid ] ] }
     }
-    ; TODO, fix buffextra
-    ; [23:45:54] <*buffextras> NICK!IDENT@HOST quit: Ping timeout
-    ; [23:46:04] <*buffextras> NICK!IDENT@HOST joined
-    ; [23:46:04] <*buffextras> NICK!IDENT@HOST joined
-    ; [23:46:04] <*buffextras> *.NETWORK.org set mode: +ovov nick1 nick2 nick3 nick4
-
-    ; TODO, make a "start znc playback" and "stop znc playback" command
-
     ; echo text from *status in active window, %nx.znc.popupcmd is a variable set when using znc commands from Popups.mrc
     elseif ( %nx.znc.popupcmd = true ) { echo 11 -at $1- }
   }
 }
-; Stolen from https://wiki.znc.in/Buffextras/mIRC
-; Might want to redo this (check for clones on JOINED, and add @+% to parted if possible 
-on ^*:TEXT:*:#: {
-  if ($nick == *buffextras) {
-    var %nick = $gettok($1,1,$asc(!))
 
-    if ($3 == MODE:)       echo $color(mode) -t $+ $msgstamp $chan * %nick sets mode: $4-
-    elseif ($2 == JOINED)  echo $color(join) -t $+ $msgstamp $chan * %nick ( $+ $gettok($1, 2, $asc(!)) $+ ) has joined $chan
-    elseif ($2 == QUIT:)    echo $color(quit) -t $+ $msgstamp $chan * %nick ( $+ $gettok($1, 2, $asc(!)) $+ ) Quit ( $+ $3- $+ )
-    elseif ($2 == PARTED:)  echo $color(part) -t $+ $msgstamp $chan * %nick ( $+ $gettok($1, 2, $asc(!)) $+ ) has left $chan
-    elseif (($2 == IS) && ($3 == NOW)) echo $color(nick) -t $+ $msgstamp $chan * %nick is now known as $6
-    elseif ($2 == KICKED)  echo $color(kick) -t $+ $msgstamp $chan * $3 was kicked by $gettok($1,1,$asc(!)) ( $+ $6- $+ )
-    elseif ($2 == CHANGED) echo $color(join) -t $+ $msgstamp $chan * %nick changes topic to ' $+ $6- $+ '
-    else                   echo $color(erro) -t $+ $msgstamp $chan *** UNHANDLED LINE < $+ $1- $+ >
-    halt
-  }
-  var %nx.highlight.nicks naka nakamura
-  var %nx.highlight.ignore_chans #idlerpg #multirpg 
+on ^*:TEXT:*:#: {
+  var %nx.highlight.ignore_chans #idlerpg #multirpg #werewolf
   var %t $1-
   var %h $numtok(%t,32)
   while (%h) {
-    ; echo -a DEBUG $gettok($1-,%h,32)
     if ($findtok(%nx.highlight.nicks,$remove($gettok($1-,%h,32),$chr(44)),1,32)) && (!$findtok(%nx.highlight.ignore_chans,$chan,1,32)) { 
       echo 4 -t $chan $+(<,$nick($chan,$nick).pnick,>) $1-
       window -g2 $chan
@@ -236,7 +212,74 @@ on ^*:TEXT:*:#: {
     }
     dec %h
   }
+
+  ; Stolen from https://wiki.znc.in/Buffextras/mIRC
+  ; Modified to work with my script
+  if ($nick == *buffextras) {
+    var %nx.bex.nick = $gettok($1,1,$asc(!))
+    var %nx.bex.address = $gettok($1,2,$asc(!))
+    var %nx.bex.timestamp $msgstamp
+
+    if ($3 == MODE:) { nx.echo.mode $msgstamp $chan %nx.bex.nick $4- }
+    elseif ($2 == QUIT:) { nx.echo.quit $msgstamp $chan %nx.bex.nick %nx.bex.address $3- }
+    elseif ($2 == JOINED) { nx.echo.joinpart bejoin $chan %nx.bex.nick %nx.bex.address %nx.bex.timestamp }
+    elseif ($2 == PARTED:) { nx.echo.joinpart bepart $chan %nx.bex.nick %nx.bex.address %nx.bex.timestamp }
+    elseif (($2 == IS) && ($3 == NOW)) { nx.echo.nick $msgstamp $chan %nx.bex.nick $6 }
+
+    elseif ($2 == KICKED) { nx.echo.kick $msgstamp $chan %nx.bex.nick $3 $6- }
+    elseif ($2 == CHANGED) { nx.echo.topic $msgstamp $chan %nx.bex.nick $6- }
+    else { echo 4 -t $+ $msgstamp $chan *** UNHANDLED LINE < $+ $1- $+ > }
+    halt
+  }
+  
+  ; #ranks "cheat"???? script ^^
+  if ( $istok(DeepNet QuakeNet,$network,32) ) && ( $chan == #ranks ) && ( $nick == MACHINE[] ) && ( $nick isop #ranks ) {
+    if (IT IS SCORING TIME isin $1-) || (BONUS TIME isin $1-) || (MEGA 10K BINUS isin $1-) || (500 pts QUICK-ROUND isin $1-) { 
+      set %ranks.active true
+      if ( %ranks.jump.channel == on ) && ( %nx.anex_lastcmd_ [ $+ [ $cid ] ] < 1000 ) { window -a #ranks }
+    }
+    if ( Please /MSG me the answer isin $3-9 ) && ( %ranks.active ) {
+      var %ranks.t $numtok($1-,32)
+      var %ranks.x 1
+      while ( %ranks.x <= %ranks.t ) {
+        var %ranks.tmp $gettok($1-,%ranks.x,32)
+        var %ranks.tmpnextword $strip($gettok($1-,$calc(%ranks.x +1),32))
+        if ( $+($chr(3),04) == %ranks.tmp ) && ( $regex(%ranks.tmpnextword,/\d+[\+\-\*\\]\d+/g) ) { 
+          set %ranks.answer $calc(%ranks.tmpnextword)
+          set %ranks.math %ranks.tmpnextword
+          echo 4 -t $chan <RANKS ANSWER> %ranks.math == %ranks.answer
+          echo 4 -t $chan <RANKS ANSWER> /msg $nick %ranks.answer
+        }
+        inc %ranks.x
+      }
+    }
+    if (Scoring over isin $1-) {
+      if ( $9 == $me ) { echo 4 -t $chan <RANKS SCORES> Score earned: $strip($20) (fastest) }
+      if ( $25 == $me $+ , ) { echo 4 -t $chan <RANKS SCORES> Score earned: $strip($29) (average) }
+      unset %ranks.active %ranks.answer %ranks.math
+    }
+    if (HAHA! isin $1-) && (FOOL? isin $1-) && ($me isin $1-) { echo 4 -t $chan <RANKS FOOL> Get yourself together punk! | unset %ranks.active %ranks.answer %ranks.math }
+  }
+  ; end of #ranks "cheat" script
 }
+
+on 1:input:#:{
+  if ( $istok(DeepNet QuakeNet,$network,32) ) && ( $chan == #ranks ) && ( $nick == $me ) && ( %ranks.active ) && (!$2) { 
+    if ( $regex($1,/\d+[\+\-\*\\]\d+/g) ) {
+      if ( $1 != %ranks.math ) { echo 4 -t $chan <RANKS MATH> $1 is not the correct math question you fool!! }
+      nx.msg MACHINE[] $calc($1)
+      unset %ranks.active %ranks.answer %ranks.math
+      halt
+    }
+    if ( $1 isnum ) {
+      if ( $1 != %ranks.answer ) { echo 4 -t $chan <RANKS ANSWER> $1 is not the correct answer you fool!! }
+      nx.msg MACHINE[] $1
+      unset %ranks.active %ranks.answer %ranks.math
+      halt
+    }
+  }
+}
+
 on *:open:?:{
   ; IDEA, echo time and date on open
   ; TODO, check if pr server $cid is working right

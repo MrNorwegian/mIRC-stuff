@@ -353,6 +353,8 @@ raw *:*:{
   elseif ($event = 432) { return }
 
   ; Nickname is already in use
+  ; TODO add a check if you are on dalnet with Guest* nick,  /msg NickServ@services.dal.net RELEASE $me password
+  
   elseif ($event = 433) { 
     if ( $istok($nx.db(read,settings,services,Atheme),$network,32) ) {
       echo a $gettok($nx.db(read,settings,nickserv,$network),1,32) and $1
@@ -383,6 +385,9 @@ raw *:*:{
 
   ; Not enough parameters
   elseif ($event = 461) { return }
+
+  ; Glined
+  elseif ($event = 465) { return }
 
   ; unkonwn mode ( nick N is unknown mode char to me )
   elseif ($event = 472) { return }

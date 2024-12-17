@@ -15,15 +15,35 @@ alias nx.echo.joinpart {
     if ( $3 == $me ) { echo 3 -t $2 * Now talking in $2 | echo 3 -st You joined: $2 }
     else { echo 3 -t $2 * $3 $+($chr(40),$ial($3,1).addr,$chr(41)) has joined $2 $iif($4, $+(54,$chr(40),$4-,$chr(41)),$null) } 
   }
+  ; ZNC *buffextras messages
+  elseif ( $1 == bejoin ) { echo 3 -t $+ $5 $2 * $3 $+($chr(40),$4,$chr(41)) has joined $3 }
+  elseif ( $1 == bepart ) { echo 3 -t $+ $5 $2 * $3 $+($chr(40),$4,$chr(41)) has parted $3 }
+
   else { echo 4 -st Syntax error in nx.echo.joinpart, DEBUG Network: $network Server: $server Text: $1- | halt }
 }
-; This alias is kinda just placeholder for now, will be used to show custom quit events with the mode user had on every common channel
+
+; ZNC *buffextras stuff
+alias nx.echo.mode { echo 3 -t $+ $1 $2 * $3 sets mode: $4- }
+alias nx.echo.nick { echo 3 -t $+ $1 $2 * $3 is now known as $4 }
+
+; elseif ($2 == KICKED) { nx.echo.kick $msgstamp $chan $3 %nx.bex.nick $6-
+; elseif ($2 == CHANGED) { nx.echo.topic $msgstamp $chan %nx.bex.nick $6-
+
+alias nx.echo.kick { echo 12 -t $+ $1 $2 * $3 was kicked by $4 $+($chr(40),$5-,$chr(41)) }
+alias nx.echo.topic { echo 3 -t $+ $1 $2 * $3 changes topic to $4- }
+
+
 ; usage /nx.echo.quit <chan> <nick> <address> <reason>
-alias nx.echo.quit { echo 2 -t $2 $3 $4 has quit $5- }
+; ZNC *buffextras /nx.echo.quit timestamp chan nick reason
+alias nx.echo.quit { 
+  if ( $left($1,1) == $chr(35) ) { echo 12 -t $1 * $2 $+($chr(40),$3,$chr(41)) has quit $+($chr(40),$4-,$chr(41)) }
+  else { echo 12 -t $+ $1 $2 * $3 $+($chr(40),$4,$chr(41)) has quit $+($chr(40),$5-,$chr(41))  }
+}
 
 ; Flood limit this incase of flood attack, also consider echo to a own "notice window" or to a status window in addition to echo to active window
 alias nx.echo.notice { 
   if ( $1 = status ) { echo 40 -st $+(-,$2,-) $3- }
+  elseif ( $1 = active ) { echo 40 -at $+(-,$2,-) $3- }
   else { echo 40 -at $+(-,$1 @ $network,-) $2- }
 }
 alias nx.echo.snotice {
@@ -57,7 +77,7 @@ alias nx.announce.newday {
     echo 3 -tn $chan(%nx.announce.newday.chans) * It's a new day, $fulldate $+ . $nx.specialday
     dec %nx.announce.newday.chans
   }
-  .timer_nx_restart_newday 1 300 .timer_nx.announce.newday -io 00:00 1 0 scid -a nx.announce.newday
+  .timer_nx_restart_newday 1 300 .timer_nx.announce.newday 00:00 1 0 scid -a nx.announce.newday
 }
 
 ; Placeholder for custom perform stuff

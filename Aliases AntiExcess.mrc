@@ -11,15 +11,44 @@ alias nx.samode {
   elseif ($istok($nx.db(read,settings,ircd,samode),$network,32)) { samode $1- }
   else { echo -at Unsupported ircd, no opmode or samode | halt }
 }
-alias nx.mode { nx.anti.excess mode $1- }
-alias nx.kick { nx.anti.excess kick $1- }
-alias nx.whois { nx.anti.excess whois $1- }
-alias nx.who { nx.anti.excess who $1- }
-alias nx.msg { nx.anti.excess msg $1- }
-alias .nx.msg { nx.anti.excess .msg $1- }
-alias nx.say { nx.anti.excess say $1- }
-alias nx.me { nx.anti.excess me $1- }
-alias nx.ctcp { nx.anti.excess ctcp $1- }
+
+alias say { nx.say $1- }
+alias .say { .nx.say $1- }
+alias me { nx.me $1- }
+alias .me { .nx.me $1- }
+alias msg { nx.msg $1- }
+alias .msg { .nx.msg $1- }
+
+alias mode { nx.mode $1- }
+
+; Disabled, for some reason !opmode (in nx.opmode) doesnt use original opmode but loops back to this alias
+alias opmode_disabled { nx.opmode $1- }
+alias samoded_disabled { nx.samode $1- }
+alias kick { nx.kick $1- }
+
+alias ctcp { nx.ctcp $1- }
+alias topic { nx.topic $1- }
+alias whois { nx.whois $1- }
+alias who { nx.who $1- }
+alias stats { nx.stats $1- }
+
+alias nx.say { nx.anti.excess !say $1- }
+alias .nx.say { nx.anti.excess .!say $1- }
+alias nx.me { nx.anti.excess !me $1- }
+alias .nx.me { nx.anti.excess .!me $1- }
+alias nx.msg { nx.anti.excess !msg $1- }
+alias .nx.msg { nx.anti.excess .!msg $1- }
+
+alias nx.mode { nx.anti.excess !mode $1- }
+alias nx.opmode { nx.anti.excess !opmode $1- }
+alias nx.samode { nx.anti.excess !samode $1- }
+alias nx.kick { nx.anti.excess !kick $1- }
+
+alias nx.ctcp { nx.anti.excess !ctcp $1- }
+alias nx.topic { nx.anti.excess !topic $1- }
+alias nx.whois { nx.anti.excess !whois $1- }
+alias nx.who { nx.anti.excess !who $1- }
+alias nx.stats { nx.anti.excess !stats $1- }
 
 alias nx.anti.excess { 
   ; $1 = command
