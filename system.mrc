@@ -152,6 +152,7 @@ on ^*:join:#:{
 on ^*:part:#:{ 
   if ( $nick == $me ) { 
     nx.echo.joinpart part $chan $me
+    halt
   }
   else {
     ; echo -st $nick($chan,$nick).pnick $nick
@@ -166,12 +167,27 @@ on ^*:part:#:{
     }
     ; echo -at aftr while %nx.onpart.m
     nx.echo.joinpart part $chan $nick $iif(%nx.onpart.m,$remove(%nx.onpart.m,$chr(32)),$null)
+
+    ; Regain op if $me is alone without op
+    if (!$nick($chan,$me,qo)) && ($nick($chan,0) <= 2) { .hop $chan }
     halt
   }
 }
 
+on ^*:kick:#:{
+  ; todo in rare cases if last op kicks itself regain op if $me is alone without op
+}
+
 ; TODO, loop channels and show mode the user had (like we do on part), this is not needed if we do not edit quit event message
-on *:quit:{ return }
+on *:quit:{ 
+  ; Regain op if $me is alone without op
+  var %nx.onquit.i $chan(0)
+  while (%nx.onquit.i) { 
+    if (!$nick($chan(%nx.onquit.i),$me,qo)) && ($nick($chan(%nx.onquit.i),0) <= 2) { .hop $chan(%nx.onquit.i) }
+    dec %nx.onquit.i
+  }
+  return 
+}
 
 on ^1:SNOTICE:*:{ nx.echo.snotice $1- | halt }
 
@@ -231,7 +247,7 @@ on ^*:TEXT:*:#: {
     else { echo 4 -t $+ $msgstamp $chan *** UNHANDLED LINE < $+ $1- $+ > }
     halt
   }
-  
+
   ; #ranks "cheat"???? script ^^
   if ( $istok(DeepNet QuakeNet,$network,32) ) && ( $chan == #ranks ) && ( $nick == MACHINE[] ) && ( $nick isop #ranks ) {
     if (IT IS SCORING TIME isin $1-) || (BONUS TIME isin $1-) || (MEGA 10K BINUS isin $1-) || (500 pts QUICK-ROUND isin $1-) { 
@@ -263,6 +279,7 @@ on ^*:TEXT:*:#: {
   ; end of #ranks "cheat" script
 }
 
+; TODO: add this to anex check (anti excess)
 on 1:input:#:{
   if ( $istok(DeepNet QuakeNet,$network,32) ) && ( $chan == #ranks ) && ( $nick == $me ) && ( %ranks.active ) && (!$2) { 
     if ( $regex($1,/\d+[\+\-\*\\]\d+/g) ) {

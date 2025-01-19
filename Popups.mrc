@@ -106,6 +106,7 @@ menu Status {
   -
   Settings
   .Set nick:{ var %n $$?="Nick" | nx.db write settings mainnick $network %n | nx.echo.setting Nick set to %n }
+  .Anex reset:{ nx.db rem settings anex $cid | nx.echo.setting Anex reset for $cid ( $network ) }
   -
   ; IDEA, can this ZNC be cloned to menu query? and if used in Status make *status $active ?
   ZNC

@@ -1,6 +1,5 @@
 raw *:*:{
-  ; ack
-  if (%debug_raw_ [ $+ [ $cid ] ]) { echo -t $+(@,$network,_,$cid,_,raw) Event: $event Text: $1- }
+  if ($eval(% $+ debug_raw_ $+ $cid,2)) { echo -t $+(@,$network,_,$cid,_,raw) Event: $event Text: $1- }
   if ($event = ack) { return }
   elseif ($event = cap) { return }
 
@@ -154,6 +153,9 @@ raw *:*:{
 
   ; auto away
   elseif ($event = 301) { return }
+
+  ; external host
+  elseif ($event = 302) { return }
 
   ; marked as away - no longer marked as away
   elseif ($event = 306) { return }

@@ -1,5 +1,3 @@
-; Lots of placeholders for custom anti excess flood stuff and custom /commands
-
 alias nx.opmode {
   if ($istok($nx.db(read,settings,ircd,opmode),$network,32)) { opmode $1- }
   elseif ($istok($nx.db(read,settings,ircd,samode),$network,32)) { samode $1- }
@@ -77,9 +75,33 @@ alias nx.anti.excess {
   else { $1 $2 $3- }
 }
 
-alias nx.anex.cmd {
-  if ( %nx.anex_ [ $+ [ $cid ] ] < 0 ) { echo 3 -at Anex below 0 = %nx.anex_ [ $+ [ $cid ] ] | set %nx.anex_ $+ $cid 0 }
-  inc %nx.anex_ [ $+ [ $cid ] ] 
-  .timer_nx_anex_dec_ $+ $cid $+ _ $+ %nx.anex_ [ $+ [ $cid ] ] $+ _ $+ $ctime 1 %nx.anex_ [ $+ [ $cid ] ] dec %nx.anex_ [ $+ [ $cid ] ]
-  return %nx.anex_ [ $+ [ $cid ] ] 
+alias nx.anex.cmd { 
+    if ( $nx.anex.cmd2(get,$cid) ) {
+    var %nx.anex.v1 $v1
+    var %nx.anex.timer $+($cid,_,$v1,_,$nx.random(2,R,R),_,$ctime)
+    ; Failsafe if timers fail
+    if ( %nx.anex.v1 < 0 ) { echo 3 -at Anex below 0 = %nx.anex.v1, setting it to 1 | nx.anex.cmd2 set $cid 1 }
+    nx.anex.cmd2 inc $cid
+    .timer_nx_anex_dec_ $+ %nx.anex.timer 1 %nx.anex.v1 nx.anex.cmd2 dec $cid
+    return %nx.anex.v1
+  }
+  ; First message
+  else { 
+    var %nx.anex.timer $+($cid,_,1,_,$nx.random(2,R,R),_,$ctime)
+    nx.db write settings anex $cid 1
+    .timer_nx_anex_dec_ $+ %nx.anex.timer 1 1 nx.anex.cmd2 dec $cid
+    return 1
+    }
+}
+alias nx.anex.cmd2 {
+  if ( $1 == dec ) { 
+    if ( $nx.db(read,settings,anex,$2) <= 1) { nx.db rem settings anex $2 }
+    else { nx.db write settings anex $2 $calc($nx.db(read,settings,anex,$2) - 1) }
+  }
+  elseif ( $1 == inc ) { nx.db write settings anex $2 $calc($nx.db(read,settings,anex,$2) + 1) }
+
+  elseif ( $1 == get ) { return $nx.db(read,settings,anex,$2) }
+  elseif ( $1 == set ) { nx.db write settings anex $2 $3 }
+  elseif ( $1 == del ) { nx.db rem settings anex $2 }
+  elseif ( $1 == reset ) { nx.db write settings anex $2 1 }
 }

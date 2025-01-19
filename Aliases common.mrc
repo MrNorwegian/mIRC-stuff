@@ -65,7 +65,7 @@ alias nx.specialday {
   if (%d == 0101) { return Happy new year! }
   elseif (%d == 1402) { return Happy valentines day <3 }
   elseif (%d == 1703) { return It's St. Patrick's day, time to get some booze! }
-  elseif (%d == 3008) { return Happy $ord($calc($asctime(yyyy) -1986)) birthday :D }
+  elseif (%d == $gettok(%birthday,1,1)) { return Happy $ord($calc($asctime(yyyy) $+(-,$gettok(%birthday,1,2)))) $gettok(%birthday,1,3) }
   elseif (%d == 3110) { return Trick or treat? }
   elseif (%d == 2412) || (%d == 2512) || (%d == 2612) { return We wish you a merry christmas... *sings* }
 }
@@ -85,13 +85,15 @@ alias nx.perform { return }
 
 alias nx.db {
   ; $nx.db(read,settings,operchans,$network)
-  ; /nx.db write settings operchans #chan1 #chan2 #chan3
+  ; /nx.db write settings operchans $network #chan1 #chan2 #chan3
   ; /nx.db rem\del settings operchans
+  ; /nx.db rem\del settings operchans $network
   ; later i wil use hashtables as db and readini as "long storage" 
   if ( $1 = read ) {
     if ( $4 ) {
       if ( $2 = settings ) { return $readini(nx.settings.ini,$3,$4) }
       if ( $2 = ial ) { return $readini($+(ial\,$network,_,$cid,.ini),$3,$4) }
+      else { return $readini($+($2,.ini),$3,$4) }
     }
   }
   ; nx.db write operchans\opernet\ircd $network stuff
@@ -99,12 +101,14 @@ alias nx.db {
     if ( $5 ) {
       if ( $2 = settings ) { writeini nx.settings.ini $3 $4 $5- }
       if ( $2 = ial ) {  writeini -n $+(ial\,$network,_,$cid,.ini) $3 $4 $5- }
+      else { writeini $+($2,.ini) $3 $4 $5- }
     }
   }
   ; nx.db rem settings <opt> <opt2>
   elseif ( $1 = rem ) || ( $1 = del ) {
     if ( $2 = settings ) { remini nx.settings.ini $iif($3,$3) $iif($4,$4) }
     if ( $2 = ial ) { remini -n $+(ial\,$network,_,$cid,.ini) $iif($3,$3) $iif($4,$4) }
+    else { remini $+($2,.ini) $iif($3,$3) $iif($4,$4) }
   }
 }
 alias w { set -u2 %nx.echoactive.whois true | nx.whois $1- }
@@ -120,10 +124,8 @@ alias ping { ctcp $$1 ping }
 
 ; Consider to use the same logic as in alias join, where "/hop channel" wil work
 alias hop {
-  if ( $chan ) {
-    if ( $1 ) { set -u4 %nx.hop $1 | hop $1 }
-    else { set -u4 %nx.hop $chan | hop $chan }
-  }
+  if ( $1 ) { set -u4 %nx.hop $1 | hop $1 }
+  elseif ( $chan == $active ) { set -u4 %nx.hop $chan | hop $chan }
   else { echo 4 -at Usage /hop <channel> or /hop while on an active channel | halt }
 }
 alias join {
@@ -149,27 +151,28 @@ alias join {
   }
   else { echo -at Usage /join #chan1,chan2,#chan3 key,chan4 key }
 }
-alias random {
+alias nx.random {
   ; $random(12,N) for random 1-9
   ; $random(12,R,R) for random 1-9,a-z,A-Z
   ; $random(12,R,U) for random 1-9,A-Z 
   ; $random(12,R,L) for random 1-9,a-z
   ; $random(12,C,R) for random a-z,A-Z
+  ; $random(12,R,R) for random 1-9,a-z,A-Z
   ; 12 is length of random string
   if ( $1 isnum ) && ($istok(C N R,$2,32)) { 
-    if (!$istok(U L R,$3,32)) && ($istok($2,R,C)) { echo -at Usage $chr(36) $+ random(99,CN,ULR) | halt }
+    if (!$istok(U L R,$3,32)) && ($istok($2,R,C)) { echo -at Usage $chr(36) $+ random(99,CNR,ULR) | halt }
     var %r $1
-    while (%r) { 
+    while (%r) {
       var %v $iif($2 = R,$rand(1,2),$iif($2 = C,2,1))
-      if ( %v = 1 ) { var %t $+(%t,$rand(1,9)) }
+      if ( %v = 1 ) { var %nx.random.tmp $+(%nx.random.tmp,$rand(1,9)) }
       if ( %v = 2 ) { 
-        if ( $3 == U ) { var %t $+(%t,$rand(A,Z)) }
-        elseif ( $3 == L ) { var %t $+(%t,$rand(a,z)) }
-        elseif ( $3 == R ) { var %t $+(%t,$iif($r(1,2) = 1,$rand(a,z),$rand(A,Z))) }
+        if ( $3 == U ) { var %nx.random.tmp $+(%nx.random.tmp,$rand(A,Z)) }
+        elseif ( $3 == L ) { var %nx.random.tmp $+(%nx.random.tmp,$rand(a,z)) }
+        elseif ( $3 == R ) { var %nx.random.tmp $+(%nx.random.tmp,$iif($r(1,2) = 1,$rand(a,z),$rand(A,Z))) }
       }
       dec %r
     }
-    return %t
+    return %nx.random.tmp
   }
   else { echo -at Usage $chr(36) $+ random(99,CNR,ULR) }
 }
