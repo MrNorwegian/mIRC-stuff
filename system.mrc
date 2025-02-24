@@ -165,11 +165,11 @@ on ^*:part:#:{
       if ( $nick($chan,$nick,$gettok(%nx.onpart.modes,%nx.onpart.i,44)) ) { var %nx.onpart.m $addtok(%nx.onpart.m,$gettok(%nx.onpart.modes,%nx.onpart.i,44),32) }
       dec %nx.onpart.i
     }
-    ; echo -at aftr while %nx.onpart.m
     nx.echo.joinpart part $chan $nick $iif(%nx.onpart.m,$remove(%nx.onpart.m,$chr(32)),$null)
 
     ; Regain op if $me is alone without op
-    if (!$nick($chan,$me,qo)) && ($nick($chan,0) <= 2) { .hop $chan }
+    ; Disabled, need to optimize IAL update and check if ial is updated ?
+    ;if (!$nick($chan,$me,qo)) && ($nick($chan,0) <= 2) { .hop $chan ;}
     halt
   }
 }
@@ -183,7 +183,7 @@ on *:quit:{
   ; Regain op if $me is alone without op
   var %nx.onquit.i $chan(0)
   while (%nx.onquit.i) { 
-    if (!$nick($chan(%nx.onquit.i),$me,qo)) && ($nick($chan(%nx.onquit.i),0) <= 2) { .hop $chan(%nx.onquit.i) }
+    if (1 == DISABLED) && (!$nick($chan(%nx.onquit.i),$me,qo)) && ($nick($chan(%nx.onquit.i),0) <= 2) { .hop $chan(%nx.onquit.i) }
     dec %nx.onquit.i
   }
   return 

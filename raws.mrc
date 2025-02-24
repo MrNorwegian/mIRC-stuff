@@ -64,9 +64,9 @@ raw *:*:{
   ; /map return (unrealircd)
   ; /map sumary (last line in /map) (unrealircd)
   ; End of /map (unrealircd)
-  elseif ($event = 006) { nx.echo.snotice $2- | halt }
-  elseif ($event = 018) { nx.echo.snotice $2- | halt } 
-  elseif ($event = 007) { nx.echo.snotice $2- | halt } 
+  elseif ($event = 006) { halt }
+  elseif ($event = 018) { halt } 
+  elseif ($event = 007) { halt } 
 
   ; /map return (ircu)
   ; End of /map (ircu)
@@ -75,6 +75,11 @@ raw *:*:{
 
   ; nick IDnumber your unique ID
   elseif ($event = 042) { return }
+
+  ; /trace return, "user Other nick[ident@host] ?Num?", end of trace
+  elseif ($event = 200) { nx.echo.snotice $2- | halt }
+  elseif ($event = 205) { nx.echo.snotice $2- | halt }
+  elseif ($event = 262) { nx.echo.snotice $2- | halt }
 
   ; /stats return
   elseif ($event = 210) { nx.echo.snotice $2- | halt }
@@ -222,6 +227,10 @@ raw *:*:{
     return
   }
 
+  ; whowas + end of whowas
+  elseif ($event = 314) { return }
+  elseif ($event = 369) { return }
+  
   ; no topic set 
   elseif ($event = 331) { return }
 
@@ -315,7 +324,7 @@ raw *:*:{
   ; /info
   elseif ($event = 371) { return }
   elseif ($event = 374) { return }
-  
+
   ; MOTD start - motd - end of motd
   elseif ($event = 375) { return }
   elseif ($event = 372) { return }
@@ -356,7 +365,7 @@ raw *:*:{
 
   ; Nickname is already in use
   ; TODO add a check if you are on dalnet with Guest* nick,  /msg NickServ@services.dal.net RELEASE $me password
-  
+
   elseif ($event = 433) { 
     if ( $istok($nx.db(read,settings,services,Atheme),$network,32) ) {
       echo a $gettok($nx.db(read,settings,nickserv,$network),1,32) and $1
@@ -365,9 +374,13 @@ raw *:*:{
       }
     }
   }
-  ; 437 naka_ #idlerpg :Cannot change nickname while banned on channel or channel is moderated
+  ; 437 YourNICK #channel :Cannot change nickname while banned on channel or channel is moderated
+  ; 437 #channel Nick/channel is temporarily unavailable ( From EFNet ) 
   elseif ($event = 437) { 
-    if ( $1 = $me ) && ( $1 != $nx.db(read,settings,mainnick,$network)  ) {
+    if ( $3-6 == Nick/channel is temporarily unavailable ) { return }
+    elseif ( $1 = $me ) && ( $1 != $nx.db(read,settings,mainnick,$network) ) && ( $left($1,1) = $chr(38) ) {
+
+      ; TODO, count number of tries and delay part\rejoin if it fails too many times
       if ( $timer(_chnick) ) { .part $2 | .timer_rejoin_ $+ $2 1 10 .join $2 }
       else { .part $2 | .timer_chnick 1 1 .nick $nx.db(read,settings,mainnick,$network) | .timer_rejoin_ $+ $2 1 10 .join $2 }
     }
@@ -390,6 +403,9 @@ raw *:*:{
 
   ; Glined
   elseif ($event = 465) { return }
+
+  ; Channel key already set
+  elseif ($event = 467) { return }
 
   ; unkonwn mode ( nick N is unknown mode char to me )
   elseif ($event = 472) { return }
@@ -423,6 +439,8 @@ raw *:*:{
   ; You're not a channel owner
   elseif ($event = 499) { echo -at * $+($1,:) You're not channel owner | halt }
 
+  ; Unknown user MODE flag
+  elseif ($event == 501) { return }
   ; Cannot join channel
   elseif ($event = 520) { return }
 

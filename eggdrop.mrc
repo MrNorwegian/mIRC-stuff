@@ -81,43 +81,56 @@ alias botattr {
 }
 
 alias egg { 
-  var %nx.eggdropchan #spychan
-  if ( $1 = addchan ) { 
-    say .+chan %nx.eggdropchan
-  }
+  if ( $left($active,1) != $chr(61) ) { echo 4 -at This command can only be used in a dcc chat | halt }
+  ; TODO, use logon info to get nicklen instead for 99
+  if (!$istok(%nx.botnet_ [ $+ [ $network ] ],$mid($active,2,99),32)) { echo 4 -at This command can only be used in a dcc chat with a bot that is in variable nx.botnet_NETWORK, current bots is: %nx.botnet_ [ $+ [ $network ] ] | halt }
+
+  var %nx.eggdropchan #naka
+  if ( $1 = addchan ) { !say .+chan $iif($2,$2,%nx.eggdropchan) }
+  elseif ( $1 == delchan ) { !say .-chan $iif($2,$2,%nx.eggdropchan) }
+
+  ; Little hack
   if ( $1 = addhubuser ) { 
-    .say .+user $+($2,hub) 
-    .say .+host $+($2,hub) $address($3,6)
-    .say .chattr $+($2,hub) +afo
+    !say .+user $+($2,hub) 
+    !say .+host $+($2,hub) $address($3,6)
+    !say .chattr $+($2,hub) +afo
   }
   elseif ( $1 = leafbotattr ) { 
     if ( $2 ) {
-      .say .unlink $2
-      .timer_botattr_ $+ $2 1 1 .say .botattr $2 s
-      .timer_link_ $+ $2 1 2 .say .link $2
+      !say .unlink $2
+      .timer_botattr_ $+ $2 1 1 !say .botattr $2 s
+      .timer_link_ $+ $2 1 2 !say .link $2
     }
   }
+  ; Adding new bots
   elseif ( $1 = add ) { 
     if ( $2 = leaf ) {
-      if ( $3 ison %nx.eggdropchan ) {
-        .say .+bot $3 $gettok($address($3,2),2,64) 3331
-        .say .+host $3 $address($3,6)
-        .timer_addleafb1_ $+ $3 1 1 .say .botattr $3 s|s %nx.eggdropchan
-        ; .timer_addleafb2_ $+ $3 1 1 .say .botattr $3 +l
-        .timer_addleafc_ $+ $3 1 1 .say .chattr $3 +afob
-        .timer_addleaflink_ $+ $3 1 2 .say .link $3
+      if ( $3 ) {
+        ; TODO, if host doesnt include IP or you want to use custom ip
+        if ( $regex($gettok($address($3,2),2,64), (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})) ) {
+          .say .+bot $3 $gettok($address($3,2),2,64) 3333
+          .say .+host $3 $address($3,6)
+          .timer_addleafb1_ $+ $3 1 1 .say .botattr $3 s|s %nx.eggdropchan
+          ; .timer_addleafb2_ $+ $3 1 1 .say .botattr $3 +l
+          .timer_addleafc_ $+ $3 1 1 .say .chattr $3 +afob
+          .timer_addleaflink_ $+ $3 1 2 .say .link $3
+        }
+        else { echo 4 -at Error: No ip on $3 ( $address($3,2) ) found  | halt }
       }
     }
     if ( $2 = hub ) {
-      if ( $3 ison %nx.eggdropchan ) {
-        .say .+bot $3 $gettok($address($3,2),2,64) 3331
-        .say .+host $3 $address($3,6)
-        .timer_addhubb_ $+ $3 1 1 .say .botattr $3 +hp
-        .timer_addhubc_ $+ $3 1 1 .say .chattr $3 +afob
-        .timer_addhublink_ $+ $3 1 2 .say .link $3
+      if ( $3 ) {
+        if ( $regex($gettok($address($3,2),2,64), (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})) ) {
+          .say .+bot $3 $gettok($address($3,2),2,64) 3333
+          .say .+host $3 $address($3,6)
+          .timer_addhubb_ $+ $3 1 1 .say .botattr $3 +hp
+          .timer_addhubc_ $+ $3 1 1 .say .chattr $3 +afob
+          .timer_addhublink_ $+ $3 1 2 .say .link $3
+        }
+        else { echo 4 -at Error: No ip on $3 ( $address($3,2) ) found | halt }
       }
     }
-    else { echo 9 -a /egg add <leaf\hub> <nick> - Bot must be in %nx.eggdropchan }
+    else { echo 4 -at Syntax: /egg add <leaf\hub> <nick> - Bot must be in %nx.eggdropchan | halt }
   }
   elseif ( $1 = botattrleafs ) { 
     if ( $nick = Tassen ) { botattr donald $2 | botattr KalleAnka $2 | botattr AndersAnd $2 }
@@ -132,5 +145,5 @@ alias egg {
     if ( $istok(Rip Rap Rup,$nick,32) ) { botattr AndersAnd  $2 }
     if ( $istok(Knatte Tjatte Fnatte,$nick,32) ) { botattr KalleAnka $2 }
   } 
-  else { echo 9 -a /egg <leaf\hub> }
+  else { echo 4 -at Syntax: /egg add <leaf\hub> <nick> | halt }
 }

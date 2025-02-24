@@ -1,5 +1,5 @@
 alias nx.echo.error { echo 4 -at $1- }
-alias nx.echo.raw { echo 7 -at DEBUG: $1- }
+alias nx.echo.raw { echo 7 -st DEBUG: $1- }
 alias nx.echo.setting { echo 15 -at $+(-,Setting,-) $1- }
 alias nx.echo.joinpart {
   if ( $1 = part ) { 
@@ -122,15 +122,21 @@ alias c { close -t $$1 }
 alias chat { dcc chat $$1 }
 alias ping { ctcp $$1 ping }
 
+alias htop_DISABLED_UNTIL_I_MAKE_nx.hop_WORK { nx.hop $1- }
+
 ; Consider to use the same logic as in alias join, where "/hop channel" wil work
-alias hop {
-  if ( $1 ) { set -u4 %nx.hop $1 | hop $1 }
-  elseif ( $chan == $active ) { set -u4 %nx.hop $chan | hop $chan }
+; todo, add anex check (anti excess flood)
+; bug, /nx.hop $chan doesnt hop the channel if the channel is not $active 
+alias nx.hop {
+  if ( $me ison $1 ) { set -u4 %nx.hop $1 | !.hop $1 }
+  elseif ( $chan == $active ) { set -u4 %nx.hop $chan | !.hop $chan }
   else { echo 4 -at Usage /hop <channel> or /hop while on an active channel | halt }
 }
+
 alias join {
   ; /join #chan1,chan2,#chan3 key,chan4 key
   ; Todo, check for &localchan, for now it's vanilla /join &localchan
+  ; todo, add anex check (anti excess flood)
   if ($1) {
     if ( $left($1,1) = $chr(38) ) { join $1- }
     else {
