@@ -6,7 +6,7 @@ on *:start:{
 
 on 1:connect:{ 
   set %nx.flood.query. $+ $cid 0
-  set %nx.ialfill.timer_ $+ $cid 0
+  .timer_ialupdate_ $+ $cid 0 $calc($calc(60*15) + $r(1,30)) nx.ialupdate $cid 
 }
 
 on 1:disconnect:{ 
@@ -15,11 +15,10 @@ on 1:disconnect:{
   unset %nx.topiclen. [ $+ [ $cid ] ]
   unset %nx.anex_ [ $+ [ $cid ] ]
   unset %nx.anex_lastcmd_ [ $+ [ $cid ] ]
-  unset %nx.ialfill.timer_ [ $+ [ $cid ] ]
   unset %nx.flood.query. [ $+ [ $cid ] ]
 }
 
-on 1:exit:{ unset %mi %mech.* %nx.maxbans.* %nx.silencenum.* %nx.topiclen.* %nx.anex_* %nx.anex_lastcmd_.* %nx.flood.query.* %nx.ialfill.timer_* }
+on 1:exit:{ unset %mi %mech.* %nx.maxbans.* %nx.silencenum.* %nx.topiclen.* %nx.anex_* %nx.anex_lastcmd_.* %nx.flood.query.* }
 
 on ^1:notice:*:?:{
   if ($istok(%nx.services.bots,$nick,32)) {
@@ -94,9 +93,8 @@ on 1:nick:{ return }
 on ^*:join:#:{
   if ( $nick == $me ) { 
     nx.echo.joinpart join $chan $me
-    set -u60 %nx.joined. $+ $cid $+ $chan 1
-    inc %nx.ialfill.timer_ $+ $cid 2
-    .timer_nx_ialfill_ $+ $cid $+ _ $+ $chan 1 %nx.ialfill.timer_ [ $+ [ $cid ] ] nx.who $chan 
+    set %nx.joined. $+ $cid $+ $chan 1
+    .timer_nx_ialfill_ $+ $cid $+ _ $+ $chan 1 $r(120,240) nx.who $chan 
   }
   else {
     if ( $me !isvoice $chan ) && ( $chan = #IdleRPG ) {
@@ -156,7 +154,7 @@ on ^*:part:#:{
   }
   else {
     ; echo -st $nick($chan,$nick).pnick $nick
-    ; TODO test if  pnick is a good replacement for the while loop, jsut need a unrealircd server to test +q+a+h
+    ; TODO test if  pnick is a good replacement for the while loop, just need a unrealircd server to test +q+a+h
     ; This setup is not checking % (helpop)
     ; IDEA, make a join\part flood protection
     var %nx.onpart.modes ~,&,@,+
@@ -166,10 +164,6 @@ on ^*:part:#:{
       dec %nx.onpart.i
     }
     nx.echo.joinpart part $chan $nick $iif(%nx.onpart.m,$remove(%nx.onpart.m,$chr(32)),$null)
-
-    ; Regain op if $me is alone without op
-    ; Disabled, need to optimize IAL update and check if ial is updated ?
-    ;if (!$nick($chan,$me,qo)) && ($nick($chan,0) <= 2) { .hop $chan ;}
     halt
   }
 }

@@ -176,10 +176,10 @@ alias nx.massban {
     if ( $left($1,7) = botnet_ ) { var %nx.ban.usebotnet 1 }
     var %nx.ban.num $numtok($3-,32)
     while (%nx.ban.num) { 
-      var %nx.ban.tmpaddr $address($gettok($3-,%nx.ban.num,32),5)
+      var %nx.ban.tmpaddr $address($gettok($3-,%nx.ban.num,32),2)
       if ( $istok(ban botnet_ban ,$1,32) ) { 
         if ( %nx.ban.nextrund isop $2 ) { 
-          var %nx.ban.addrNick $addtok(%nx.ban.addrNick,$address(%nx.ban.addrNick,5),32) 
+          var %nx.ban.addrNick $addtok(%nx.ban.addrNick,$address(%nx.ban.addrNick,2),32) 
           var %nx.ban.mode $iif(%nx.ban.mode,$+(%nx.ban.mode,-o),-o) 
           unset %nx.ban.nextrund
         }

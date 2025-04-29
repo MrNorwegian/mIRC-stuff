@@ -41,6 +41,11 @@ raw *:*:{
         if ( $istok($nx.db(read,settings,ircd,ratbox),$network,32) ) { return }
         else { nx.db write settings ircd ratbox $addtok($nx.db(read,settings,ircd,ratbox),$network,32) | return }
       }
+      elseif ( solanum-1.0-dev isin $8 ) { 
+        if ( $istok($nx.db(read,settings,ircd,solanum),$network,32) ) { return }
+        else { nx.db write settings ircd solanum $addtok($nx.db(read,settings,ircd,solanum),$network,32) | return }
+      }
+      else { return }
       ; TODO add bircd,InspIRCd-3,and others
       ; solanum (libera)
       else { return }
@@ -78,7 +83,10 @@ raw *:*:{
 
   ; /trace return, "user Other nick[ident@host] ?Num?", end of trace
   elseif ($event = 200) { nx.echo.snotice $2- | halt }
+  elseif ($event = 204) { nx.echo.snotice $2- | halt }
   elseif ($event = 205) { nx.echo.snotice $2- | halt }
+  elseif ($event = 206) { nx.echo.snotice $2- | halt }
+  elseif ($event = 209) { nx.echo.snotice $2- | halt }
   elseif ($event = 262) { nx.echo.snotice $2- | halt }
 
   ; /stats return
@@ -230,7 +238,7 @@ raw *:*:{
   ; whowas + end of whowas
   elseif ($event = 314) { return }
   elseif ($event = 369) { return }
-  
+
   ; no topic set 
   elseif ($event = 331) { return }
 
@@ -249,18 +257,19 @@ raw *:*:{
   elseif ($event = 341) { echo -at $2 has been invited to $3 | halt }
 
   ; server info (OS etc)
-  ; RAW 351 naka UnrealIRCd-6.1.4. Champingvogna.da9.no Fhn6OoErmM [Linux IrcStuff 6.1.0-17-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.69-1 (2023-12-30) x86_64=6100]
+  ; RAW 351 <nick> <Server version 1.2.3>. <Servername> Fhn6OoErmM [uname -a ??]
   elseif ($event = 351) { return }
 
   ; /who $chan
   elseif ($event = 352) {
     if ( %checkforircop ) && ( $iif($chr(42) isin $7,true,false) = true ) { echo 3 -at %checkforircop Ircop found: nick ( $6 ) | return }
-    elseif ( %nx.joined. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) { 
-      inc -u10 %nx.ialchan. $+ $cid $+ $2
+    elseif ( %nx.joined. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) || ( %nx.ialupdate. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) { 
+      inc -u10 %nx.ialchanusers. $+ $cid $+ $2
       ; Check if nick is ircop and color it (for nicklist)
       if (* isin $7) {
         var %t = $comchan($6,0), %c = 1
         while (%c <= %t) {
+          ; Here, echo "Nick just opered ???"
           cline -m 13 $comchan($6,%c) $6
           inc %c    
         }
@@ -269,26 +278,31 @@ raw *:*:{
     }
     else { return }
   }
-  ; end of /who
+
+  ; End of /who
   elseif ($event = 315) { 
-    if ( %nx.joined. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) {
-      echo 12 -st Updated IAL for $2 with %nx.ialchan. [ $+ [ $cid ] ] [ $+ [ $2 ] ] users
-      unset %nx.joined. $+ $cid $+ $2 | unset %nx.ialchan. $+ $cid $+ $2 
-      dec %nx.ialfill.timer_ $+ $cid
+    if ( %nx.ialupdate. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) { 
+      unset %nx.ialupdate. $+ $cid $+ $2
+      halt
+    } 
+    elseif ( %nx.joined. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) {
+      echo 12 -st Updated IAL for $2 with %nx.ialchanusers. [ $+ [ $cid ] ] [ $+ [ $2 ] ] users.
+      unset %nx.joined. $+ $cid $+ $2 | unset %nx.ialchanusers. $+ $cid $+ $2 
       halt
     }
+    ; Manual /who request, do nothing for now
+    else { return }
     return
   }
 
-  elseif ($event = 353) { 
-    if (%nx.joined. [ $+ [ $cid ] ] [ $+ [ $3 ] ] == 1) || (%nx.connected. [ $+ [ $cid ] ] == 1) { halt }
-  }
+  ; /names list
+  elseif ($event = 353) { return }
 
   ; end of /names
   elseif ($event = 354) { return }
 
   ; #chan End of /NAMES list
-  elseif ($event = 366) { if (%nx.joined. [ $+ [ $cid ] ] [ $+ [ $2 ] ] == 1) || (%nx.connected. [ $+ [ $cid ] ] == 1) { halt } }
+  elseif ($event = 366) { return }
 
   ; Ban list
   elseif ($event = 367) {
@@ -317,7 +331,11 @@ raw *:*:{
   }
 
   ; /links list
-  elseif ($event = 364) { return }
+  elseif ($event = 364) { 
+    write links $+ $network $+ .db $2 $3
+    
+    return 
+  }
   ; end of /links list
   elseif ($event = 365) { return }
 
@@ -386,6 +404,12 @@ raw *:*:{
     }
   }
 
+  ; Target change too fast.
+  elseif ($event = 439) { return }
+
+  ; Nick #channel They aren't on that channel
+  elseif ($event = 441) { return }
+ 
   ; You're not on that channel
   elseif ($event = 442) { return }
 
@@ -397,6 +421,12 @@ raw *:*:{
 
   ; nick register first
   elseif ($event = 451) { return }
+
+  ; /admin return
+  elseif ($event = 256) { return }
+  elseif ($event = 257) { return }
+  elseif ($event = 258) { return }
+  elseif ($event = 259) { return }
 
   ; Not enough parameters
   elseif ($event = 461) { return }
@@ -413,7 +443,7 @@ raw *:*:{
   ; :Cannot join channel (+i) ( $2 = channel )
   ; TODO use %nx.loggedon or something before .msg 
   ; Todo, use settings to get the botname (uworld) because it can change
-  elseif ( $event = 473 ) { if ( $istok($nx.db(read,settings,operchans,$network),$2,32)) { .timer_ai_ $+ $2 1 10 .msg uworld invite $2 $me } | return }
+  elseif ( $event = 473 ) { if ( $istok($nx.db(read,settings,operchans,$network),$2,32)) { .timer_ai_ $+ $2 1 10 .msg euworld invite $2 $me } | return }
 
   ; invalid password
   elseif ($event = 464) { return }
@@ -426,6 +456,12 @@ raw *:*:{
 
   ; Cannot join channel ( +l )
   elseif ($event = 471) { return }
+
+  ; Cannot join channel (+k)
+  elseif ($event = 475) { 
+    if ( $network == $gettok(%nx.secret.channel,1,32) ) && ( $1 == $gettok(%nx.secret.channel,2,32) ) { msg $gettok(%nx.secret.channel,3,32) invite $1 }
+    return
+  }
 
   ; You need a registered nick to join that channel.
   elseif ($event = 477) { return }

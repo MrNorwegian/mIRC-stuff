@@ -83,6 +83,20 @@ alias nx.announce.newday {
 ; Placeholder for custom perform stuff
 alias nx.perform { return }
 
+; Loop channels on and .ialfill them /nx.ialupdate <cid> [time]
+alias nx.ialupdate {
+  if ($1 == $cid) { var %cid $cid }
+  else { echo 4 -ast Usage: /nx.ialupdate <cid> [time] | halt }
+
+  var %c $chan(0), %i 1, %t 2
+  while ( $chan(%i) ) {
+    set -u60 %nx.ialupdate. $+ %cid $+ $chan(%i) 1
+    .timer_ial_update_ $+ %cid $+ $chan(%i) 1 $iiF($2,$2,%t) .who $chan(%i) 
+    inc %i
+    if (!$2) { inc %t 2 }
+  }
+}
+
 alias nx.db {
   ; $nx.db(read,settings,operchans,$network)
   ; /nx.db write settings operchans $network #chan1 #chan2 #chan3
@@ -203,6 +217,7 @@ alias nx.remtok {
     return %newvalue
   }
 }
+
 ; $nx.istok(a B c,b,32) returns $false
 ; $nx.istok(a b c,b,32) returns $true  
 alias nx.istok {
@@ -214,6 +229,82 @@ alias nx.istok {
       inc %i
     }
     return $false
+  }
+}
+
+; I got boored, //say $pride(Hello world!) //prideread wil read everything in pride.txt
+alias prideread {
+  set -u10 %prideread 1
+  var %i 1 
+  while ($read(pride.txt,%i)) { 
+    ; quote privmsg $active $pridesay($read(pride.txt,%i))
+    nx.say $pride($read(pride.txt,%i))
+    inc %i
+  }
+  unset %prideread %pridecolors.i.read
+}
+alias prideascii {
+  if (!$1) { echo -at Usage: //say $prideascii(<word>) | halt }
+  else {
+    var %pridecolors.r 4 7 8 3 12 2 6
+    var %pridecolors.i 1
+    var %word $1-
+    var %lines 5
+
+    ; Definer ASCII-tegn for bokstaver og mellomrom
+    var %ascii.a  .-   |   | |   | |--- |   | |--- 
+    var %ascii.b  |--- |   | |--- |   | |--- 
+    var %ascii.c   --- |   | |     |   |  --- 
+    var %ascii.space $str($chr(32),5)
+
+    ; Loop over hver linje i ASCII-tegningen
+    var %line 1
+    while (%line <= %lines) {
+      var %output
+      var %i 1
+      while (%i <= $len(%word)) {
+        var %char $mid(%word, %i, 1)
+        var %ascii $eval($+(%ascii.,$iif(%char == $chr(32),space,%char)),2)
+        if (%ascii) {
+          var %color $gettok(%pridecolors.r, %pridecolors.i, 32)
+          var %output $+(%output, , %color, $gettok(%ascii, %line, |), $chr(32))
+          inc %pridecolors.i
+          if (%pridecolors.i > $numtok(%pridecolors.r, 32)) { var %pridecolors.i 1 }
+        }
+        inc %i
+      }
+      echo -a %output
+      inc %line
+    }
+  }
+}
+alias pride {
+  if (!$1) { echo -at Usage: //say $pride(<sentence>) | halt }
+  else {
+    var %pridecolors.r 4 7 8 3 12 2 6
+    if (%pridecolors.i.read) { var %pridecolors.i $v1 }
+    else { var %pridecolors.i 1 }
+    var %pridecolors.sentence $1-
+    var %pridecolors.words $numtok(%pridecolors.sentence,32)
+    var %pridecolors.wordi 1
+    while (%pridecolors.wordi <= %pridecolors.words) {
+      var %pridecolors.word $gettok(%pridecolors.sentence,%pridecolors.wordi,32)
+      var %pridecolors.letters $len(%pridecolors.word)
+      var %pridecolors.letteri 1
+      while (%pridecolors.letteri <= %pridecolors.letters) {
+        var %pridecolors.letter $mid(%pridecolors.word,%pridecolors.letteri,1)
+        var %pridecolors.color $gettok(%pridecolors.r,%pridecolors.i,32)
+        var %pridecolors.newword $+(%pridecolors.newword,,%pridecolors.color,%pridecolors.letter)
+        inc %pridecolors.i
+        if (%pridecolors.i > $numtok(%pridecolors.r,32)) { var %pridecolors.i 1 }
+        inc %pridecolors.letteri
+      }
+      var %pridecolors.NewSetence $addtok(%pridecolors.NewSetence,%pridecolors.newword,32)
+      unset %pridecolors.newword
+      inc %pridecolors.wordi
+    }
+    if ( %prideread ) { set -u10 %pridecolors.i.read %pridecolors.i }
+    return %pridecolors.NewSetence
   }
 }
 

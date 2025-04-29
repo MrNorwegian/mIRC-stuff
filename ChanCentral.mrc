@@ -28,8 +28,8 @@ dialog nx.dialog.cc {
   check "&Oper only +O", 163, 250 240 140 18, disable tab 100
   check "&No knock +K", 176, 250 440 140 18, disable tab 100
   check "&SSL only +z", 164, 250 260 140 18, disable tab 100
-  check "&Link to +L", 161, 250 220 70 18, disable tab 100
-  edit "", 162, 345 220 100 20, disable tab 100 limit 200
+  check "&Link to +L", 161, 250 540 70 18, disable tab 100
+  edit "", 162, 345 540 100 20, disable tab 100 limit 200
   box "Default channel modes", 140, 10 200 220 363, tab 100
   check "&Delayed join +D", 184, 480 280 140 18, disable tab 100
   check "&AuthModerated +M", 188, 480 360 140 18, disable tab 100
@@ -49,7 +49,7 @@ dialog nx.dialog.cc {
   check "&No Invite +V", 177, 250 460 140 18, disable tab 100
   check "&No Kicks +Q", 178, 250 480 140 18, disable tab 100
   check "&History +H", 169, 250 360 90 18, disable tab 100
-  check "&No notice +T (unreal)", 167, 250 320 140 18, disable tab 100
+  check "&No notice +T", 167, 250 320 140 18, disable tab 100
   check "&No Part msg +P ((ircu)", 181, 480 220 140 18, disable tab 100
   check "&No part\quit +u (snircd)", 183, 480 260 140 18, disable tab 100
   box "Other modes", 160, 240 200 220 363, tab 100
@@ -60,6 +60,7 @@ dialog nx.dialog.cc {
   check "&No multi msg +T (snircd)", 189, 480 380 140 18, disable tab 100
   edit "", 172, 345 379 100 20, disable tab 100 limit 200
   edit "", 174, 345 398 100 20, disable tab 100 limit 200
+  check "&Admin only +A (solanum)", 1631, 250 220 140 18, disable tab 100
   tab "Bans", 300
   list 310, 10 33 674 442, tab 300 size
   text "Current/maximum bans:", 313, 11 480 122 14, tab 300
@@ -204,6 +205,8 @@ alias nx.cc.refmodes {
     var %nx.cc.cmnefarious $+(%nx.cc.cm,CcDMNOQRSTZz)
     ; Ratbox todo add +S
     var %nx.cc.cmratbox $+(%nx.cc.cm,S)
+    ; Solanum todo add +A(admin only)
+    var %nx.cc.cmsolanum $+(%nx.cc.cm,AOCcr)
 
     if ( $istok($nx.db(read,settings,ircd,ircu2),$network,32) ) { set %nx.cc.sv ircu2 | set %nx.cc.ircd %nx.cc.cmircu }
     elseif ( $istok($nx.db(read,settings,ircd,nefarious),$network,32) ) { set %nx.cc.sv nefarious | set %nx.cc.ircd %nx.cc.cmnefarious }
@@ -211,6 +214,8 @@ alias nx.cc.refmodes {
     elseif ( $istok($nx.db(read,settings,ircd,unreal),$network,32) ) { set %nx.cc.sv unreal | set %nx.cc.ircd %nx.cc.cmunreal }
     elseif ( $istok($nx.db(read,settings,ircd,bahamut),$network,32) ) { set %nx.cc.sv bahamut | set %nx.cc.ircd %nx.cc.cmbahamut }
     elseif ( $istok($nx.db(read,settings,ircd,ratbox),$network,32) ) { set %nx.cc.sv ratbox | set %nx.cc.ircd %nx.cc.cmratbox }
+    elseif ( $istok($nx.db(read,settings,ircd,solanum),$network,32) ) { set %nx.cc.sv solanum | set %nx.cc.ircd %nx.cc.cmsolanum }
+
     else { set %nx.cc.sv unknown | set %nx.cc.ircd %nx.cc.cm }
 
     nx.echo.dialog debug 14 Starting to check modes for 3 %nx.cc.sv 14 modes: 3 %nx.cc.ircd 14 currmode: 3 %nx.cc.currmode 14 chanmodes: 3 %nx.cc.chanmodes 14 opt: 3 %nx.cc.currmode.opt 
@@ -315,6 +320,11 @@ alias nx.cc.chk.id {
   if ( $1 == 161 ) { return L }
   if ( $1 === O ) { return 163 }
   if ( $1 == 163 ) { return O }
+
+  ; Solanum 
+  if ( $1 === A ) { return 1631 }
+  if ( $1 == 1631 ) { return A }
+  
   if ( $1 === z ) { return 164 }
   if ( $1 == 164 ) { return z }
   if ( $1 === R ) { return 165 }
