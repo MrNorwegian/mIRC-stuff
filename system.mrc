@@ -107,23 +107,47 @@ on ^*:join:#:{
     }
     ; Auto perform on znc when service bots becomes online if we are not authed
     ; Idea: make use of /notify ?? this needs to se the bot join a channel, with notify i dont need to join any channels to get the notice
-    if ( $nick == X ) && ( $network == UnderNet ) && ( .users.undernet.org !isin $address($me,2) ) && ( %nx.autoperform.xjoined. [ $+ [ $network ] ] != 1 ) { set -u5 %nx.autoperform.xjoined. $+ $network 1 | .msg *perform Execute }
-    if ( $nick == Q ) && ( $network == QuakeNet ) && ( .users.quakenet.org !isin $address($me,2) ) && ( %nx.autoperform.qjoined. [ $+ [ $network ] ] != 1 ) { set -u5 %nx.autoperform.qjoined. $+ $network 1 | .msg *perform Execute }
+    if ( $nick == X ) && ( $network == UnderNet ) && ( .users.undernet.org !isin $address($me,2) ) && ( %nx.autoperform.xjoined. [ $+ [ $network ] ] != 1 ) { set -u15 %nx.autoperform.xjoined. $+ $network 1 | .msg *perform Execute }
+    if ( $nick == Q ) && ( $network == QuakeNet ) && ( .users.quakenet.org !isin $address($me,2) ) && ( %nx.autoperform.qjoined. [ $+ [ $network ] ] != 1 ) { set -u15 %nx.autoperform.qjoined. $+ $network 1 | .msg *perform Execute }
 
-    ; Bug: number 4 is showing same subnet but that's mostly false-positive, need to only check this if hostname is an IP, or if it's a dns use userip, if *.users. ignore it.
     ; Clonescan, 1 3 4 = $address($nick,X)
     var %nx.jck 1 3 4, %c 1
     while ( $gettok(%nx.jck,%c,32) ) { 
       ; Is it more than 1 clone?
-      if ($ialchan($address($nick,$gettok(%nx.jck,%c,32)),$chan,N) > 1) && (!%nx.jc) { 
-        var %nx.jc $ialchan($address($nick,$gettok(%nx.jck,%c,32)),$chan,N), %i 1
-        var %nx.jcn %nx.jc
-        if ($gettok(%nx.jck,%c,32) == 1) { var %nx.jcn $addtok(%nx.jcn,Clones:,32) }
-        elseif ($gettok(%nx.jck,%c,32) == 3) { var %nx.jcn $addtok(%nx.jcn,Possible clones:,32) }
-        elseif ($gettok(%nx.jck,%c,32) == 4) { var %nx.jcn $addtok(%nx.jcn,Same subnet:,32) }
-        while (%i <= %nx.jc) {
-          if ( $ialchan($address($nick,$gettok(%nx.jck,%c,32)),$chan,%i).nick != $nick ) && ($numtok(%nx.jcn,32) < 6) { var %nx.jcn $addtok(%nx.jcn,$ialchan($address($nick,$gettok(%nx.jck,%c,32)),$chan,%i).nick,32) }
-          inc %i
+      var %nx.clonecheck.num $ialchan($address($nick,$gettok(%nx.jck,%c,32)),$chan,N)
+      
+      if (%nx.clonecheck.num > 1) && (!%nx.jc) { 
+        ; getting number of matching clients and reset %i
+        var %nx.jc %nx.clonecheck.num
+        
+        ; This %nx.clonereport is the beginning of the message "<num> Clones: nick1 nick2"
+        var %nx.clonereport %nx.clonecheck.num
+
+        ; Checking *!*@host\ip
+        if ($gettok(%nx.jck,%c,32) == 1) { var %nx.clonereport $addtok(%nx.clonereport,Clones:,32) }
+
+        ; Checking *!*ident@*.host or *!*ident@ip.*
+        elseif ($gettok(%nx.jck,%c,32) == 3) { var %nx.clonereport $addtok(%nx.clonereport,Possible clones:,32) }
+
+        ; Checking *!*@*.host or *!*@ip.*
+        elseif ($gettok(%nx.jck,%c,32) == 4) {
+          ; TODO later pick out .users.net.org with gettok or something. but this ignores *!*@<*Username*>.users.NETWORK.org for "Same subnet"
+          if ( $+(users,.,$lower($network)) isin $address($nick,4) ) { unset %nx.clonereport }
+          else { var %nx.clonereport $addtok(%nx.clonereport,Same subnet:,32) }
+        }
+
+        ; Gather all nicks in the channel that have matched %nx.jc above 
+        ; This only reports the first 6 clones, if you want more, change the number in the if statement ($numtok(%nx.clonereport,32) =< 6)
+        ; variable %nx.clonereport is used later ( ns.echo.joinpart join $chan $nick %nx.clonereport )
+
+        ; %nx.clonereport is unset if .users.network isin address($nick,4)
+        if (%nx.clonereport !isnum) && (%nx.clonereport != $null) {
+          var %i 1
+          while (%i <= %nx.jc) {
+            var %nx.tmpnick $ialchan($address($nick,$gettok(%nx.jck,%c,32)),$chan,%i).nick
+            if ( %nx.tmpnick != $nick ) && ($numtok(%nx.clonereport,32) <= 6) { var %nx.clonereport $addtok(%nx.clonereport,%nx.tmpnick,32) }
+            inc %i
+          }
         }
       }
       inc %c
@@ -142,7 +166,7 @@ on ^*:join:#:{
         }
       }
     }
-    nx.echo.joinpart join $chan $nick %nx.jcn
+    nx.echo.joinpart join $chan $nick %nx.clonereport
   }
   halt
 }
