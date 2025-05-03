@@ -111,7 +111,7 @@ on ^*:join:#:{
     if ( $nick == Q ) && ( $network == QuakeNet ) && ( .users.quakenet.org !isin $address($me,2) ) && ( %nx.autoperform.qjoined. [ $+ [ $network ] ] != 1 ) { set -u15 %nx.autoperform.qjoined. $+ $network 1 | .msg *perform Execute }
 
     ; Clonescan, 1 3 4 = $address($nick,X)
-    var %nx.jck 1 3 4, %c 1
+    var %nx.jck 2 3 4, %c 1
     while ( $gettok(%nx.jck,%c,32) ) { 
       ; Is it more than 1 clone?
       var %nx.clonecheck.num $ialchan($address($nick,$gettok(%nx.jck,%c,32)),$chan,N)
@@ -124,7 +124,7 @@ on ^*:join:#:{
         var %nx.clonereport %nx.clonecheck.num
 
         ; Checking *!*@host\ip
-        if ($gettok(%nx.jck,%c,32) == 1) { var %nx.clonereport $addtok(%nx.clonereport,Clones:,32) }
+        if ($gettok(%nx.jck,%c,32) == 2) { var %nx.clonereport $addtok(%nx.clonereport,Clones:,32) }
 
         ; Checking *!*ident@*.host or *!*ident@ip.*
         elseif ($gettok(%nx.jck,%c,32) == 3) { var %nx.clonereport $addtok(%nx.clonereport,Possible clones:,32) }
@@ -133,7 +133,13 @@ on ^*:join:#:{
         elseif ($gettok(%nx.jck,%c,32) == 4) {
           ; TODO later pick out .users.net.org with gettok or something. but this ignores *!*@<*Username*>.users.NETWORK.org for "Same subnet"
           if ( $+(users,.,$lower($network)) isin $address($nick,4) ) { unset %nx.clonereport }
-          else { var %nx.clonereport $addtok(%nx.clonereport,Same subnet:,32) }
+
+          ; If .users is not in the address, check if *!*@ip.* is in the address
+          var %nx.ipregex4 ^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.\*$
+          if ( $regex($gettok($address($nick,4),2,64),%nx.ipregex4) ) { var %nx.clonereport $addtok(%nx.clonereport,Same subnet:,32) }
+        
+          ; This is just to see if things works, this is not needed
+          else { var %nx.clonereport $addtok(%nx.clonereport,Same domain: ,32) }
         }
 
         ; Gather all nicks in the channel that have matched %nx.jc above 
