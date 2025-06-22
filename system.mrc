@@ -21,21 +21,22 @@ on 1:disconnect:{
 on 1:exit:{ unset %mi %mech.* %nx.maxbans.* %nx.silencenum.* %nx.topiclen.* %nx.anex_* %nx.anex_lastcmd_.* %nx.flood.query.* }
 
 on ^1:notice:*:?:{
+  var %nx.notice.cid $cid
   if ($istok(%nx.services.bots,$nick,32)) {
     ; TODO Check if it's really nickserv (hostname)
     if ($nick = NickServ) {
       if (This nickname is registered. isin $1-4) && ( $istok($nx.db(read,settings,services,Atheme),$network,32) ) {
         if ( $gettok($nx.db(read,settings,nickserv,$network),1,32) = $me ) {
           .msg nickserv identify $me $gettok($nx.db(read,settings,nickserv,$network),2,32)
-          nx.echo.notice $nick $1-
+          nx.echo.notice $1-
           halt
         }
       }
-      if ( has been ghosted. isin $2-4 ) && ( $istok($nx.db(read,settings,services,Atheme),$network,32) ) { nick $strip($1) | nx.echo.notice $nick $1- | halt }
-      else { nx.echo.notice $nick $1- | halt }
+      if ( has been ghosted. isin $2-4 ) && ( $istok($nx.db(read,settings,services,Atheme),$network,32) ) { nick $strip($1) | nx.echo.notice $1- | halt }
+      else { nx.echo.notice $1- | halt }
     }
     elseif ( $istok(uworld bworld euworld,$nick,32) ) && ( $nx.db(read,opernet,$network) ) {
-      nx.echo.notice $nick $1-
+      nx.echo.notice $1-
       if ( $5 = authenticated ) { halt }
       ; Bworld says nick. and uworld says nick! 
       elseif ( $1-3 = Authentication successful as ) {
@@ -49,7 +50,7 @@ on ^1:notice:*:?:{
         halt
       }
     }
-    else { nx.echo.notice $nick $1- | halt }
+    else { nx.echo.notice $1- | halt }
   }
   ; Ignore emech when excecuted a command
   elseif ( 172.1 isin $address($nick,2) ) && ( %mechfloodprotect ) {
@@ -61,17 +62,17 @@ on ^1:notice:*:?:{
     elseif ( $1 = Parting) { halt }
     elseif ( $1 = Cycling) { halt }
     elseif ( $2 = open) { halt }
-    else { nx.echo.notice $nick $1- | halt }
+    else { nx.echo.notice $1- | halt }
   } 
   ; Set a temporary password to new eggdrops
   elseif ( $1-9 = As master you really need to set a password: ) && ( $istok(%nx.botnet_ [ $+ [ $network ] ],$nick,32) ) { 
     .timer_autosetpass_ $+ $nick 1 2 msg $nick pass %nx.botnet_password 
-    nx.echo.notice $nick $1-
+    nx.echo.notice $1-
     halt
   }
   ; Check if nick is eg idlerpg and echo only to status window 
-  elseif ( $istok(%nx.echo.status.nicks,$nick,32) ) { nx.echo.notice $iif($active == $nick,active,status) $nick $1- | halt }
-  else { nx.echo.notice $nick $1- | halt }
+  elseif ( $istok(%nx.echo.status.nicks,$nick,32) ) { set -u1 %nx.notice.status true | nx.echo.notice $1- | halt }
+  else { nx.echo.notice $1- | halt }
 }
 
 ; Script from genthic, might modify this later
@@ -83,11 +84,12 @@ on 1:NOTICE:*:#:{
     }
   }
 }
+on ^1:SNOTICE:*:{ nx.echo.snotice $1- | halt }
+
 ; When on znc i need this to make sure snotice windows is up 
 on 1:usermode:{ if ( o isincs $1 ) && ( $left($1,1) == $chr(43) ) { window -De $+(@,$network,_,$cid,_,status) | echo 3 -st You are now an IRC Operator on $network } }
 
 ; Just some placeholders
-on 1:mode:#:{ return }
 on 1:nick:{ return }
 
 on ^*:join:#:{
@@ -136,7 +138,7 @@ on ^*:join:#:{
 
           ; If .users is not in the address, check if *!*@ip.* is in the address
           var %nx.ipregex4 ^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.\*$
-          if ( $regex($gettok($address($nick,4),2,64),%nx.ipregex4) ) { var %nx.clonereport $addtok(%nx.clonereport,Same subnet:,32) }
+          elseif ( $regex($gettok($address($nick,4),2,64),%nx.ipregex4) ) { var %nx.clonereport $addtok(%nx.clonereport,Same subnet:,32) }
         
           ; This is just to see if things works, this is not needed
           else { var %nx.clonereport $addtok(%nx.clonereport,Same domain: ,32) }
@@ -198,26 +200,36 @@ on ^*:part:#:{
   }
 }
 
-on ^*:kick:#:{
-  ; todo in rare cases if last op kicks itself regain op if $me is alone without op
+on ^*:kick:#lol:{
+  echo 12 -t $chan * $nick and $1-
+  halt
+}
+on ^*:rawmode:#:{
+  echo 3 -t $chan * $nick sets mode: $1-
+  halt
 }
 
 ; TODO, loop channels and show mode the user had (like we do on part), this is not needed if we do not edit quit event message
-on *:quit:{ 
+on ^*:quit:{
   ; Regain op if $me is alone without op
   var %nx.onquit.i $chan(0)
   while (%nx.onquit.i) { 
     if (1 == DISABLED) && (!$nick($chan(%nx.onquit.i),$me,qo)) && ($nick($chan(%nx.onquit.i),0) <= 2) { .hop $chan(%nx.onquit.i) }
     dec %nx.onquit.i
   }
-  return 
-}
 
-on ^1:SNOTICE:*:{ nx.echo.snotice $1- | halt }
+  ; Some bug with znc i think, timestamp is wrong to doing echo in all comchans
+  var %c = $comchan($nick,0)
+  while (%c) {
+    echo 12 -t $comchan($nick,%c) * $nick ( $+ $address $+ ) Quit $iif($1,$+($chr(40),$1-,$chr(41)),$null)
+    dec %c
+  }
+  halt
+}
 
 on *:invite:*:{ if ( $istok($nx.db(read,settings,operchans,$network),$chan,32) ) { join $chan } }
 
-on 1:text:*:?:{ 
+on ^1:text:*:?:{ 
   if ( $nick === *status ) { 
     ; second IF $3 has no . but first has, restof second $4- (No route to host). Reconnecting...
     ; BU, when disconnected and reconnect does not work this loops
@@ -225,20 +237,41 @@ on 1:text:*:?:{
       var %c $chan(0) 
       while (%c) { 
         ; if channel key is set, save it!
-        set %nx.znc.chans. $+ $cid $addtok(%nx.znc.chans. [ $+ [ $cid ] ],$chan(%c),44)
+        ; set %nx.znc.chans. $+ $cid $addtok(%nx.znc.chans. [ $+ [ $cid ] ],$chan(%c),44)
         .!msg *status detach $chan(%c)
         dec %c
-      } 
+      }
+      set %nx.znc.connected $remtok(%nx.znc.connected,$cid,32)
       echo 12 -st * ZNC Disconnected from IRC.
     }
     elseif ( $1 = Connected! ) {
-      set -u5 %nx.connected. $+ $cid 1
-      if (%nx.znc.chans. [ $+ [ $cid ] ]) { join %nx.znc.chans. [ $+ [ $cid ] ] | unset %nx.znc.chans. [ $+ [ $cid ] ] }
+      set %nx.znc.connected $addtok(%nx.znc.connected,$cid,32)
+      set %nx.znc.rejoining $addtok(%nx.znc.rejoining,$cid,32)
+      .!msg *status listchans
+    }
+    elseif ( $istok(%nx.znc.rejoining,$cid,32) ) { 
+      if ( $6 == Detached ) {
+        set %nx.znc.rejoinginginprogress $cid
+        .!msg *status attach $remove($4,@,+,$chr(32))
+      }
+      if ( $4 == Detached ) {
+        set %nx.znc.rejoinginginprogress $cid
+        .!msg *status attach $remove($2,@,+,$chr(32))
+      }
+      elseif ( ------------- isin $1 ) {
+        if ( %nx.znc.rejoinginginprogress ) { 
+          set %nx.znc.rejoining $remtok(%nx.znc.rejoining,$cid,32)
+          unset %nx.znc.rejoinginginprogress
+        }
+      }
     }
     ; echo text from *status in active window, %nx.znc.popupcmd is a variable set when using znc commands from Popups.mrc
     elseif ( %nx.znc.popupcmd = true ) { echo 11 -at $1- }
   }
+  echo -t $nick < $+ $nick $+ > $1-
+  halt
 }
+
 
 on ^*:TEXT:*:#: {
   var %nx.highlight.ignore_chans #idlerpg #multirpg #werewolf

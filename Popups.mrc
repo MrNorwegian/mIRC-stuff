@@ -214,5 +214,15 @@ menu Nicklist {
   .Send:/dcc send $$1
   .Chat:/dcc chat $$1
   -
-  .Slap:{ var %i $numtok($$1-,32) | while (%i) { nx.me slaps $gettok($$1-,%i,32) around a bit with a large trout | dec %i } }
+  .Insult
+  ..Slap:{ var %i $numtok($$1-,32) | while (%i) { nx.me slaps $gettok($$1-,%i,32) around a bit with a large trout | dec %i } }
+  ..Random:{ 
+    var %i $numtok($$1-,32)
+    var %n $nx.db(read,settings,Insults,num)
+    while (%i) {
+      var %r $rand(1,%n)
+      nx.me $replace($nx.db(read,settings,Insults,%r),NICK,$gettok($$1-,%i,32))
+      dec %i
+      }
+    }
 }

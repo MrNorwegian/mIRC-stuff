@@ -117,8 +117,20 @@ raw *:*:{
   elseif ($event = 221) { return }
 
   ; stats v
-  elseif ($event = 236) { nx.echo.snotice $2- | halt }
-
+  elseif ($event = 236) { 
+    if ($2 != Servername) && ( $istok($nx.db(read,settings,ircd,ircu2),$network,32) ) { 
+      ; Servername             Uplink              Flags Hops Numeric Lag RTT   Up Down ? Clients/Max Proto LinkTS      Info
+      ; chainless.deepnet.chat hub.eu.deepnet.chat --H-6 3    AC      2   60000 0  0    0 1 1023      P10   1749640691  shells.chat IRC Services
+      nx.echo.snotice ( $6 $4 ) Servername: $+($chr(40),$2 $12,\,$13,$chr(41)) -> ( $+ $5 hops $+ ) Uplink: $3
+      ; nx.echo.snotice Lag: $7
+      ; nx.echo.snotice RTT: $8
+      ; nx.echo.snotice Up \ Down: $9 \ $10
+      ; nx.echo.snotice Proto: $14
+      ; nx.echo.snotice LinkTS: $15
+      ; nx.echo.snotice Info: $16-
+    }
+    halt
+  }
   ; Stats f
   elseif ($event = 238) { nx.echo.snotice $2- | halt }
 
@@ -486,6 +498,9 @@ raw *:*:{
   ; nefarious ssl
   ; $me $me has client certificate fingerprint E95DC2020C6463088AAB47B38961B6E868F9C7C6B8D42201F1913A45BC1CA458
   elseif ($event = 616) { return }
+
+  ; masktrace return (solanum)
+  elseif ($event = 709) { return }
 
   ; MODE cannot be set due to channel having a active MLOCK restriction (thru chanserv)
   elseif ($event = 742) { return }

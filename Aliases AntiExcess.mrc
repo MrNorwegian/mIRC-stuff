@@ -48,7 +48,8 @@ alias nx.whois { nx.anti.excess !whois $1- }
 alias nx.who { nx.anti.excess !who $1- }
 alias nx.stats { nx.anti.excess !stats $1- }
 
-alias nx.anti.excess { 
+alias nx.anti.excess { $1 $2 $3- }
+alias nx.anti.excess1 { 
   ; $1 = command
   ; $2 = arg1
   ; $3- = args3+++++++
@@ -56,7 +57,7 @@ alias nx.anti.excess {
   ; unreal = 5
   set %nx.anex.freemessage 4
   set %nx.anex.excess 10
-  set %nx.anex.delay 2
+  set %nx.anex.delay 1
   set %nx.anex_lastcmd_ $+ $cid $ctime
   if ( %nx.anex.tmpdisabled != true ) {
     var %nx.anex.value $nx.anex.cmd
@@ -76,7 +77,7 @@ alias nx.anti.excess {
 }
 
 alias nx.anex.cmd { 
-    if ( $nx.anex.cmd2(get,$cid) ) {
+  if ( $nx.anex.cmd2(get,$cid) ) {
     var %nx.anex.v1 $v1
     var %nx.anex.timer $+($cid,_,$v1,_,$nx.random(2,R,R),_,$ctime)
     ; Failsafe if timers fail
@@ -91,7 +92,7 @@ alias nx.anex.cmd {
     nx.db write settings anex $cid 1
     .timer_nx_anex_dec_ $+ %nx.anex.timer 1 1 nx.anex.cmd2 dec $cid
     return 1
-    }
+  }
 }
 alias nx.anex.cmd2 {
   if ( $1 == dec ) { 

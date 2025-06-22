@@ -187,7 +187,7 @@ on 1:dialog:nx.dialog.cc:*:*: {
 ; Efnet? - hybrid-7.2.2+oftc1.7.3 eIqb,k,l,cimnpstzMRS
 ; InspIRCd-3 Xbegw,k,FHJdfjl,BCDGMNOPQRSTcimnprst
 ; Librea - solanum-1.0-dev eIbq,k,flj,CFLMPQRSTcgimnprstuz 
-
+; Evilnet solanum-1.0-dev eIbq,k,flj,ACFLOPQTcgimnprstz
 alias nx.cc.refmodes { 
   if ( $dialog(nx.dialog.cc) ) && ( %nx.cc.chan ischan ) {
     set %nx.cc.chanmodes $+($gettok($chanmodes,-1,44),$iif($gettok($chanmodes,3,44),$v1),$iif($gettok($chanmodes,2,44),$v1))

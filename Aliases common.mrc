@@ -32,32 +32,34 @@ alias nx.echo.nick { echo 3 -t $+ $1 $2 * $3 is now known as $4 }
 alias nx.echo.kick { echo 12 -t $+ $1 $2 * $3 was kicked by $4 $+($chr(40),$5-,$chr(41)) }
 alias nx.echo.topic { echo 3 -t $+ $1 $2 * $3 changes topic to $4- }
 
-
-; usage /nx.echo.quit <chan> <nick> <address> <reason>
+; usage /nx.echo.quit <chan> <nick> <ident@host> <reason>
 ; ZNC *buffextras /nx.echo.quit timestamp chan nick reason
 alias nx.echo.quit { 
-  if ( $left($1,1) == $chr(35) ) { echo 12 -t $1 * $2 $+($chr(40),$3,$chr(41)) has quit $+($chr(40),$4-,$chr(41)) }
+  if ( $left($1,1) == $chr(35) ) { echo CHAN $1 | echo 12 -t $1 * $2 $+($chr(40),$3,$chr(41)) has quit $+($chr(40),$4-,$chr(41)) }
   else { echo 12 -t $+ $1 $2 * $3 $+($chr(40),$4,$chr(41)) has quit $+($chr(40),$5-,$chr(41))  }
 }
 
 ; Flood limit this incase of flood attack, also consider echo to a own "notice window" or to a status window in addition to echo to active window
 alias nx.echo.notice { 
-  if ( $1 = status ) { echo 40 -st $+(-,$2,-) $3- }
-  elseif ( $1 = active ) { echo 40 -at $+(-,$2,-) $3- }
-  else { echo 40 -at $+(-,$1 @ $network,-) $2- }
+  if ( %nx.notice.status ) { echo 40 -st $+(-,$nick,-) $1- | unset %nx.notice.status }
+  elseif ( %nx.notice.active ) { echo 40 -at $+(-,$nick,-) $1- }
+  elseif ( $active = Status Window ) { echo 40 -st $+(-,$nick,-) $1- }
+  ; TODO, need to check if notice is not in active network or something, now if echo is on same network it goes to else
+  else { echo 40 -at $+(-,$nick @ $network,-) $1- | echo 40 -st $+(-,$nick,-) $1- }
 }
+
 alias nx.echo.snotice {
   if ( $active = Status Window ) { 
-    if ( $strip($1) = connect.LOCAL_CLIENT_CONNECT ) {  echo 5 -t $+(@,$network,_,$cid,_,status) $1- | halt }
-    elseif ( $strip($1) = connect.LOCAL_CLIENT_DISCONNECT ) { echo 5 -t $+(@,$network,_,$cid,_,status) $1- | halt }
-    elseif ( $strip($1) = nick.NICK_COLLISION ) { echo 5 -t $+(@,$network,_,$cid,_,status) $1- | halt }
-    elseif ( $strip($1) = flood.FLOOD_BLOCKED ) { echo 5 -t $+(@,$network,_,$cid,_,status) $1- | halt }
+    if ( $strip($1) = connect.LOCAL_CLIENT_CONNECT ) {  echo 5 -t $+(@,$network,_,$cid,_,status) $1- }
+    elseif ( $strip($1) = connect.LOCAL_CLIENT_DISCONNECT ) { echo 5 -t $+(@,$network,_,$cid,_,status) $1- }
+    elseif ( $strip($1) = nick.NICK_COLLISION ) { echo 5 -t $+(@,$network,_,$cid,_,status) $1- }
+    elseif ( $strip($1) = flood.FLOOD_BLOCKED ) { echo 5 -t $+(@,$network,_,$cid,_,status) $1- }
 
-    if ( $window($+(@,$network,_,$cid,_,status)) ) { echo 5 -st $1- | echo 5 -t $+(@,$network,_,$cid,_,status) $1- | halt }
-    else { echo 5 -st $1- | halt }
+    if ( $window($+(@,$network,_,$cid,_,status)) ) { echo 5 -st $1- | echo 5 -t $+(@,$network,_,$cid,_,status) $1- }
+    else { echo 5 -st $1- }
   }
-  elseif ( $window($+(@,$network,_,$cid,_,status)) ) { echo 5 -t $+(@,$network,_,$cid,_,status) $1- | halt }
-  else { echo 5 -st $1- | halt }    
+  elseif ( $window($+(@,$network,_,$cid,_,status)) ) { echo 5 -t $+(@,$network,_,$cid,_,status) $1- }
+  else { echo 5 -st $1- }    
 }
 
 alias nx.specialday {
@@ -136,6 +138,7 @@ alias c { close -t $$1 }
 alias chat { dcc chat $$1 }
 alias ping { ctcp $$1 ping }
 
+; TODO, test uting /raw hop or /quote hop ? also replace other !cmd if it works
 alias htop_DISABLED_UNTIL_I_MAKE_nx.hop_WORK { nx.hop $1- }
 
 ; Consider to use the same logic as in alias join, where "/hop channel" wil work
@@ -243,109 +246,75 @@ alias prideread {
   }
   unset %prideread %pridecolors.i.read
 }
-alias prideascii {
-  if (!$1) { echo -at Usage: //say $prideascii(<word>) | halt }
-  else {
-    var %pridecolors.r 4 7 8 3 12 2 6
-    var %pridecolors.i 1
-    var %word $1-
-    var %lines 5
 
-    ; Definer ASCII-tegn for bokstaver og mellomrom
-    var %ascii.a  .-   |   | |   | |--- |   | |--- 
-    var %ascii.b  |--- |   | |--- |   | |--- 
-    var %ascii.c   --- |   | |     |   |  --- 
-    var %ascii.space $str($chr(32),5)
-
-    ; Loop over hver linje i ASCII-tegningen
-    var %line 1
-    while (%line <= %lines) {
-      var %output
-      var %i 1
-      while (%i <= $len(%word)) {
-        var %char $mid(%word, %i, 1)
-        var %ascii $eval($+(%ascii.,$iif(%char == $chr(32),space,%char)),2)
-        if (%ascii) {
-          var %color $gettok(%pridecolors.r, %pridecolors.i, 32)
-          var %output $+(%output, , %color, $gettok(%ascii, %line, |), $chr(32))
-          inc %pridecolors.i
-          if (%pridecolors.i > $numtok(%pridecolors.r, 32)) { var %pridecolors.i 1 }
-        }
-        inc %i
-      }
-      echo -a %output
-      inc %line
-    }
-  }
-}
 alias pride {
   if (!$1) { echo -at Usage: //say $pride(<sentence>) | halt }
-  else {
-    var %pridecolors.r 4 7 8 3 12 2 6
-    if (%pridecolors.i.read) { var %pridecolors.i $v1 }
-    else { var %pridecolors.i 1 }
-    var %pridecolors.sentence $1-
-    var %pridecolors.words $numtok(%pridecolors.sentence,32)
-    var %pridecolors.wordi 1
-    while (%pridecolors.wordi <= %pridecolors.words) {
-      var %pridecolors.word $gettok(%pridecolors.sentence,%pridecolors.wordi,32)
-      var %pridecolors.letters $len(%pridecolors.word)
-      var %pridecolors.letteri 1
-      while (%pridecolors.letteri <= %pridecolors.letters) {
-        var %pridecolors.letter $mid(%pridecolors.word,%pridecolors.letteri,1)
-        var %pridecolors.color $gettok(%pridecolors.r,%pridecolors.i,32)
-        var %pridecolors.newword $+(%pridecolors.newword,,%pridecolors.color,%pridecolors.letter)
-        inc %pridecolors.i
-        if (%pridecolors.i > $numtok(%pridecolors.r,32)) { var %pridecolors.i 1 }
-        inc %pridecolors.letteri
-      }
-      var %pridecolors.NewSetence $addtok(%pridecolors.NewSetence,%pridecolors.newword,32)
-      unset %pridecolors.newword
-      inc %pridecolors.wordi
+  else {
+  var %pridecolors.r 3 4 5 6 7 8 9 10 11 12 13
+  if (%pridecolors.i.read) { var %pridecolors.i $v1 }
+  else { var %pridecolors.i 1 }
+  var %pridecolors.sentence $1-
+  var %pridecolors.words $numtok(%pridecolors.sentence,32)
+  var %pridecolors.wordi 1
+  while (%pridecolors.wordi <= %pridecolors.words) {
+    var %pridecolors.word $gettok(%pridecolors.sentence,%pridecolors.wordi,32)
+    var %pridecolors.letters $len(%pridecolors.word)
+    var %pridecolors.letteri 1
+    while (%pridecolors.letteri <= %pridecolors.letters) {
+      var %pridecolors.letter $mid(%pridecolors.word,%pridecolors.letteri,1)
+      var %pridecolors.color $gettok(%pridecolors.r,%pridecolors.i,32)
+      var %pridecolors.newword $+(%pridecolors.newword,,%pridecolors.color,%pridecolors.letter)
+      inc %pridecolors.i
+      if (%pridecolors.i > $numtok(%pridecolors.r,32)) { var %pridecolors.i 1 }
+      inc %pridecolors.letteri
     }
-    if ( %prideread ) { set -u10 %pridecolors.i.read %pridecolors.i }
-    return %pridecolors.NewSetence
+    var %pridecolors.NewSetence $addtok(%pridecolors.NewSetence,%pridecolors.newword,32)
+    unset %pridecolors.newword
+    inc %pridecolors.wordi
   }
+  if ( %prideread ) { set -u10 %pridecolors.i.read %pridecolors.i }
+  return %pridecolors.NewSetence
+}
 }
 
 ; Thanks wikichip (https://en.wikichip.org/wiki/mirc/thread)
 alias pause {
-  if ($1 !isnum 1-) return
-  var %a = $ticks $+ .vbs
-  write %a wscript.sleep $1
-  .comopen %a wscript.shell
-  if (!$comerr) .comclose %a $com(%a,Run,3,bstr,%a,uint,0,bool,true) 
-  .remove %a
+if ($1 !isnum 1-) return
+var %a = $ticks $+ .vbs
+write %a wscript.sleep $1
+.comopen %a wscript.shell
+if (!$comerr) .comclose %a $com(%a,Run,3,bstr,%a,uint,0,bool,true) 
+.remove %a
 }
 
 alias showhash {
-  if ( $1 ) {
-    if ( $hget($1,0) ) { 
-      var %i = 1
-      while ( %i <= $hget($1,0).item ) { 
-        echo -a $hget($1,%i).item => $hget($1,%i).data
-        inc %i
-      }
+if ( $1 ) {
+  if ( $hget($1,0) ) { 
+    var %i = 1
+    while ( %i <= $hget($1,0).item ) { 
+      echo -a $hget($1,%i).item => $hget($1,%i).data
+      inc %i
     }
-    else { echo -a Hash table $1 is empty }
   }
-  else { echo -a Usage: /showhash <name> }
+  else { echo -a Hash table $1 is empty }
+}
+else { echo -a Usage: /showhash <name> }
 }
 
 ; Thanks nnscript (https://nnscript.com/)
 alias wait {
-  var %o = $calc($nnticks + $1)
-  while ($nnticks < %o) { }
+var %o = $calc($nnticks + $1)
+while ($nnticks < %o) { }
 }
 
 alias nnticks {
-  if (%precisetiming) {
-    if ($nndll(PerformanceCounter)) { return $v1 }
-    else {
-      unset %precisetiming
-      thmerror -s Precise timing is not available on your PC. Option unset.
-      return $calc($ticks /1000)
-    }
+if (%precisetiming) {
+  if ($nndll(PerformanceCounter)) { return $v1 }
+  else {
+    unset %precisetiming
+    thmerror -s Precise timing is not available on your PC. Option unset.
+    return $calc($ticks /1000)
   }
-  else { return $calc($ticks /1000) }
+}
+else { return $calc($ticks /1000) }
 }
