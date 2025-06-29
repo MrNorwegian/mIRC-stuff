@@ -174,6 +174,10 @@ on ^*:join:#:{
         }
       }
     }
+    ; This is part of antispam (bot joining and spamming about a girl with a phone number and stuff)
+    if ( .users. !isin $gettok($address($nick,5),2,64) ) && ( ~ isin $gettok($gettok($address($nick,5),1,64),2,33) ) && ( $remove($gettok($gettok($address($nick,5),1,64),2,33),~) isin $nick ) {
+      set -u5 %nx.mcz $addtok(%nx.mcz,$nick,32) 
+    }
     nx.echo.joinpart join $chan $nick %nx.clonereport
   }
   halt
@@ -334,6 +338,16 @@ on ^*:TEXT:*:#: {
     if (HAHA! isin $1-) && (FOOL? isin $1-) && ($me isin $1-) { echo 4 -t $chan <RANKS FOOL> Get yourself together punk! | unset %ranks.active %ranks.answer %ranks.math }
   }
   ; end of #ranks "cheat" script
+  elseif ( $istok(%nx.mcz,$nick,32) ) && ( $nick !isop $chan ) { 
+    ; This is a spam bot that joins and spams 
+    if ( Hi Guys! It's Madeleine Czura! Just thought I'd leave my number here in case you're lonely isin $1- ) { 
+      if ( $me !isop $chan ) { .msg X ban $chan $nick }
+      elseif ( $me isop $chan ) { 
+        mode $chan +b $address($nick,3)
+        kick $chan $nick Get a life.
+      }
+    }
+  }
 }
 
 ; TODO: add this to anex check (anti excess)

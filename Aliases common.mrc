@@ -275,46 +275,45 @@ alias pride {
   if ( %prideread ) { set -u10 %pridecolors.i.read %pridecolors.i }
   return %pridecolors.NewSetence
 }
-}
 
 ; Thanks wikichip (https://en.wikichip.org/wiki/mirc/thread)
 alias pause {
-if ($1 !isnum 1-) return
-var %a = $ticks $+ .vbs
-write %a wscript.sleep $1
-.comopen %a wscript.shell
-if (!$comerr) .comclose %a $com(%a,Run,3,bstr,%a,uint,0,bool,true) 
-.remove %a
+  if ($1 !isnum 1-) return
+  var %a = $ticks $+ .vbs
+  write %a wscript.sleep $1
+  .comopen %a wscript.shell
+  if (!$comerr) .comclose %a $com(%a,Run,3,bstr,%a,uint,0,bool,true) 
+  .remove %a
 }
 
 alias showhash {
-if ( $1 ) {
-  if ( $hget($1,0) ) { 
-    var %i = 1
-    while ( %i <= $hget($1,0).item ) { 
-      echo -a $hget($1,%i).item => $hget($1,%i).data
-      inc %i
+  if ( $1 ) {
+    if ( $hget($1,0) ) { 
+      var %i = 1
+      while ( %i <= $hget($1,0).item ) { 
+        echo -a $hget($1,%i).item => $hget($1,%i).data
+        inc %i
+      }
     }
+    else { echo -a Hash table $1 is empty }
   }
-  else { echo -a Hash table $1 is empty }
-}
-else { echo -a Usage: /showhash <name> }
+  else { echo -a Usage: /showhash <name> }
 }
 
 ; Thanks nnscript (https://nnscript.com/)
 alias wait {
-var %o = $calc($nnticks + $1)
-while ($nnticks < %o) { }
+  var %o = $calc($nnticks + $1)
+  while ($nnticks < %o) { }
 }
 
 alias nnticks {
-if (%precisetiming) {
-  if ($nndll(PerformanceCounter)) { return $v1 }
-  else {
-    unset %precisetiming
-    thmerror -s Precise timing is not available on your PC. Option unset.
-    return $calc($ticks /1000)
+  if (%precisetiming) {
+    if ($nndll(PerformanceCounter)) { return $v1 }
+    else {
+      unset %precisetiming
+      thmerror -s Precise timing is not available on your PC. Option unset.
+      return $calc($ticks /1000)
+    }
   }
-}
-else { return $calc($ticks /1000) }
+  else { return $calc($ticks /1000) }
 }
