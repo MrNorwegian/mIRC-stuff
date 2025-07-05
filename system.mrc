@@ -117,11 +117,11 @@ on ^*:join:#:{
     while ( $gettok(%nx.jck,%c,32) ) { 
       ; Is it more than 1 clone?
       var %nx.clonecheck.num $ialchan($address($nick,$gettok(%nx.jck,%c,32)),$chan,N)
-      
+
       if (%nx.clonecheck.num > 1) && (!%nx.jc) { 
         ; getting number of matching clients and reset %i
         var %nx.jc %nx.clonecheck.num
-        
+
         ; This %nx.clonereport is the beginning of the message "<num> Clones: nick1 nick2"
         var %nx.clonereport %nx.clonecheck.num
 
@@ -139,7 +139,7 @@ on ^*:join:#:{
           ; If .users is not in the address, check if *!*@ip.* is in the address
           var %nx.ipregex4 ^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.\*$
           elseif ( $regex($gettok($address($nick,4),2,64),%nx.ipregex4) ) { var %nx.clonereport $addtok(%nx.clonereport,Same subnet:,32) }
-        
+
           ; This is just to see if things works, this is not needed
           else { var %nx.clonereport $addtok(%nx.clonereport,Same domain: ,32) }
         }
@@ -175,8 +175,19 @@ on ^*:join:#:{
       }
     }
     ; This is part of antispam (bot joining and spamming about a girl with a phone number and stuff)
+    ; First a anoying dude....
+    if ( ariciu isin $nick ) || ( ariciu isin $gettok($gettok($address($nick,5),1,64),2,33) ) {
+      if ( $me isop $chan ) { mode $chan +b $address($nick,3) | .kick $chan $nick You need to work on your social skills. }
+      else { .msg X ban $chan $nick You need to work on your social skills. }
+    }
+
+    ; This catches spambots with _ in nick and ident and spamming personal info
     if ( .users. !isin $gettok($address($nick,5),2,64) ) && ( ~ isin $gettok($gettok($address($nick,5),1,64),2,33) ) && ( $remove($gettok($gettok($address($nick,5),1,64),2,33),~) isin $nick ) {
-      set -u5 %nx.mcz $addtok(%nx.mcz,$nick,32) 
+      set -u900 %nx.mcz $addtok(%nx.mcz,$nick,32) 
+    }
+    ; This is catching spambots with ~ in ident, saving for 15 mins 
+    elseif ( ~ isin $gettok($gettok($address($nick,5),1,64),2,33) ) && ( users !isin $gettok($address($nick,5),2,64) ) { 
+      set -u900 %nx.njspam $addtok(%nx.njspam,$nick,32)
     }
     nx.echo.joinpart join $chan $nick %nx.clonereport
   }
@@ -338,13 +349,24 @@ on ^*:TEXT:*:#: {
     if (HAHA! isin $1-) && (FOOL? isin $1-) && ($me isin $1-) { echo 4 -t $chan <RANKS FOOL> Get yourself together punk! | unset %ranks.active %ranks.answer %ranks.math }
   }
   ; end of #ranks "cheat" script
-  elseif ( $istok(%nx.mcz,$nick,32) ) && ( $nick !isop $chan ) { 
-    ; This is a spam bot that joins and spams 
-    if ( Hi Guys! It's Madeleine Czura! Just thought I'd leave my number here in case you're lonely isin $1- ) { 
-      if ( $me !isop $chan ) { .msg X ban $chan $nick }
+
+  ; Some spam stuff
+  elseif ( irc.supernets.org isin $1- ) || ( $istok(%nx.njspam,$nick,32) ) {
+    if ( $nick !isvoice $chan ) || ( $nick !isop $chan ) {
+      if ( $me !isop $chan ) { .msg X ban $chan $nick Spam }
       elseif ( $me isop $chan ) { 
         mode $chan +b $address($nick,3)
-        kick $chan $nick Get a life.
+        kick $chan $nick Spam
+      }
+    }
+  }
+  ; This is a spam bot that joins and spams 
+  elseif ( $istok(%nx.mcz,$nick,32) ) && ( $nick !isop $chan ) { 
+    if ( Hi Guys! It's Madeleine Czura! Just thought I'd leave my number here in case you're lonely isin $1- ) { 
+      if ( $me !isop $chan ) { .msg X ban $chan $nick Spam }
+      elseif ( $me isop $chan ) { 
+        mode $chan +b $address($nick,3)
+        kick $chan $nick Spam
       }
     }
   }
