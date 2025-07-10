@@ -351,7 +351,7 @@ on ^*:TEXT:*:#: {
   ; end of #ranks "cheat" script
 
   ; Some spam stuff
-  elseif ( irc.supernets.org isin $1- ) || ( $istok(%nx.njspam,$nick,32) ) {
+  elseif ( irc.supernets.org isin $1- ) && ( $istok(%nx.njspam,$nick,32) ) {
     if ( $nick !isvoice $chan ) || ( $nick !isop $chan ) {
       if ( $me !isop $chan ) { .msg X ban $chan $nick Spam }
       elseif ( $me isop $chan ) { 
