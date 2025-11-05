@@ -22,6 +22,11 @@ alias nx.echo.joinpart {
   else { echo 4 -st Syntax error in nx.echo.joinpart, DEBUG Network: $network Server: $server Text: $1- | halt }
 }
 
+alias nx.echo.chanmsg {
+  ; echo with chamode (@+) with nick
+  echo 3 -t $+ $1 $+(<,$nick($chan,$2).pnick,>) $3-
+}
+
 ; ZNC *buffextras stuff
 alias nx.echo.mode { echo 3 -t $+ $1 $2 * $3 sets mode: $4- }
 alias nx.echo.nick { echo 3 -t $+ $1 $2 * $3 is now known as $4 }
@@ -249,31 +254,32 @@ alias prideread {
 
 alias pride {
   if (!$1) { echo -at Usage: //say $pride(<sentence>) | halt }
-  else {
-  var %pridecolors.r 3 4 5 6 7 8 9 10 11 12 13
-  if (%pridecolors.i.read) { var %pridecolors.i $v1 }
-  else { var %pridecolors.i 1 }
-  var %pridecolors.sentence $1-
-  var %pridecolors.words $numtok(%pridecolors.sentence,32)
-  var %pridecolors.wordi 1
-  while (%pridecolors.wordi <= %pridecolors.words) {
-    var %pridecolors.word $gettok(%pridecolors.sentence,%pridecolors.wordi,32)
-    var %pridecolors.letters $len(%pridecolors.word)
-    var %pridecolors.letteri 1
-    while (%pridecolors.letteri <= %pridecolors.letters) {
-      var %pridecolors.letter $mid(%pridecolors.word,%pridecolors.letteri,1)
-      var %pridecolors.color $gettok(%pridecolors.r,%pridecolors.i,32)
-      var %pridecolors.newword $+(%pridecolors.newword,,%pridecolors.color,%pridecolors.letter)
-      inc %pridecolors.i
-      if (%pridecolors.i > $numtok(%pridecolors.r,32)) { var %pridecolors.i 1 }
-      inc %pridecolors.letteri
+  else {
+    var %pridecolors.r 3 4 5 6 7 8 9 10 11 12 13
+    if (%pridecolors.i.read) { var %pridecolors.i $v1 }
+    else { var %pridecolors.i 1 }
+    var %pridecolors.sentence $1-
+    var %pridecolors.words $numtok(%pridecolors.sentence,32)
+    var %pridecolors.wordi 1
+    while (%pridecolors.wordi <= %pridecolors.words) {
+      var %pridecolors.word $gettok(%pridecolors.sentence,%pridecolors.wordi,32)
+      var %pridecolors.letters $len(%pridecolors.word)
+      var %pridecolors.letteri 1
+      while (%pridecolors.letteri <= %pridecolors.letters) {
+        var %pridecolors.letter $mid(%pridecolors.word,%pridecolors.letteri,1)
+        var %pridecolors.color $gettok(%pridecolors.r,%pridecolors.i,32)
+        var %pridecolors.newword $+(%pridecolors.newword,,%pridecolors.color,%pridecolors.letter)
+        inc %pridecolors.i
+        if (%pridecolors.i > $numtok(%pridecolors.r,32)) { var %pridecolors.i 1 }
+        inc %pridecolors.letteri
+      }
+      var %pridecolors.NewSetence $addtok(%pridecolors.NewSetence,%pridecolors.newword,32)
+      unset %pridecolors.newword
+      inc %pridecolors.wordi
     }
-    var %pridecolors.NewSetence $addtok(%pridecolors.NewSetence,%pridecolors.newword,32)
-    unset %pridecolors.newword
-    inc %pridecolors.wordi
+    if ( %prideread ) { set -u10 %pridecolors.i.read %pridecolors.i }
+    return %pridecolors.NewSetence
   }
-  if ( %prideread ) { set -u10 %pridecolors.i.read %pridecolors.i }
-  return %pridecolors.NewSetence
 }
 
 ; Thanks wikichip (https://en.wikichip.org/wiki/mirc/thread)

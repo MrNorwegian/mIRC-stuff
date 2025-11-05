@@ -1,3 +1,5 @@
+; Makemech script to generate mech config files and server ipaddr.sh files
+
 alias makemech {
   unset %mech.*
   var %servers 4

@@ -1,4 +1,6 @@
 ; Usage /wm.make your-config.conf
+; Makes a weathermap config file based on predefined nodes and links
+; You can modify the nodes and links in the wm.make alias
 
 alias wm.make { 
   if (!$1) { echo Usage /wm.make your-config.conf | halt }

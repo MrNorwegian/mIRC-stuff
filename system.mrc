@@ -70,6 +70,9 @@ on ^1:notice:*:?:{
     nx.echo.notice $1-
     halt
   }
+  ; ignore znc attached from notices
+  ; TODO, later make a own znc notice window
+  elseif ( $nick == *status ) && (( $3 == attached ) || ( $3 == detached )) { halt }
   ; Check if nick is eg idlerpg and echo only to status window 
   elseif ( $istok(%nx.echo.status.nicks,$nick,32) ) { set -u1 %nx.notice.status true | nx.echo.notice $1- | halt }
   else { nx.echo.notice $1- | halt }
@@ -197,13 +200,13 @@ on ^*:join:#:{
 on ^*:part:#:{ 
   if ( $nick == $me ) { 
     nx.echo.joinpart part $chan $me
-    halt
   }
   else {
     ; echo -st $nick($chan,$nick).pnick $nick
     ; TODO test if  pnick is a good replacement for the while loop, just need a unrealircd server to test +q+a+h
     ; This setup is not checking % (helpop)
     ; IDEA, make a join\part flood protection
+    ; Not showing partmessage
     var %nx.onpart.modes ~,&,@,+
     var %nx.onpart.i $numtok(%nx.onpart.modes,44)
     while (%nx.onpart.i) { 
@@ -211,8 +214,12 @@ on ^*:part:#:{
       dec %nx.onpart.i
     }
     nx.echo.joinpart part $chan $nick $iif(%nx.onpart.m,$remove(%nx.onpart.m,$chr(32)),$null)
-    halt
   }
+  ; Reop if i'm thelast one without op in the channel
+  if ( $me !isop $chan ) && ( $nick($chan,0) <= 2 ) {
+    ; .hop $chan
+  }
+  halt
 }
 
 on ^*:kick:#lol:{
@@ -226,17 +233,11 @@ on ^*:rawmode:#:{
 
 ; TODO, loop channels and show mode the user had (like we do on part), this is not needed if we do not edit quit event message
 on ^*:quit:{
-  ; Regain op if $me is alone without op
-  var %nx.onquit.i $chan(0)
-  while (%nx.onquit.i) { 
-    if (1 == DISABLED) && (!$nick($chan(%nx.onquit.i),$me,qo)) && ($nick($chan(%nx.onquit.i),0) <= 2) { .hop $chan(%nx.onquit.i) }
-    dec %nx.onquit.i
-  }
-
   ; Some bug with znc i think, timestamp is wrong to doing echo in all comchans
   var %c = $comchan($nick,0)
   while (%c) {
     echo 12 -t $comchan($nick,%c) * $nick ( $+ $address $+ ) Quit $iif($1,$+($chr(40),$1-,$chr(41)),$null)
+    if ($nick($comchan($nick,%c),0) <= 2) && (!$comchan($nick,%c).op) { hop $comchan($nick,%c) }
     dec %c
   }
   halt
@@ -370,6 +371,18 @@ on ^*:TEXT:*:#: {
       }
     }
   }
+  ; pedo spambots
+  elseif ( %nx.pedospam.1 isin $1- ) && ( %nx.pedospam.2 isin $1- ) && ( %nx.pedospam.3 isin $1- ) {
+    if ( $me !isop $chan ) { .msg X ban $chan $nick Spam }
+    elseif ( $me isop $chan ) { 
+      mode $chan +b $address($nick,3)
+      kick $chan $nick Spam
+    }
+  }
+
+  ; Todo echo chanmsg (own theme)
+  ; nx.echo.chanmsg $chan $nick $1-
+  ; halt
 }
 
 ; TODO: add this to anex check (anti excess)

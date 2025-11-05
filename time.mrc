@@ -1,4 +1,4 @@
-; some random time stuff on norwegian
+; Some random time stuff in Norwegian
 
 alias tg {
   var %first Jun 07 2008 10:30:00 ,%next Jun 07 2008 14:00:00 ,%loop 2
