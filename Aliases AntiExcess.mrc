@@ -48,7 +48,25 @@ alias nx.whois { nx.anti.excess !whois $1- }
 alias nx.who { nx.anti.excess !who $1- }
 alias nx.stats { nx.anti.excess !stats $1- }
 
-alias nx.anti.excess { $1 $2 $3- }
+; Nah trusting my ZNC :D
+alias nx.anti.excess { $1- }
+
+; No way this works right ? Trying to limit commands to 2 per second max and made this a little to fast but i think its ok
+; My znc also limits my commands to it might help me so i didnt get to test this much
+; Also might need to tweak the timers a bit more later or redo everything...
+alias nx.anti.excess2 { 
+  if (!$hget(anex,$cid) ) { hadd -mu5 anex $cid 1 }
+  else { hinc -u2 anex $cid 1 }
+  var %cnt = $hget(anex,$cid)
+  if ( %cnt > 4 ) {
+    inc -u1 %nx.anex.i. $+ $cid
+    timer_t $+ $cid $+ $hget(anex,$cid) 1 %nx.anex.i. $+ $cid $1-
+  }
+  else { $1- }
+}
+
+
+; Junk below, old version of anti excess, might be useful later
 alias nx.anti.excess1 { 
   ; $1 = command
   ; $2 = arg1

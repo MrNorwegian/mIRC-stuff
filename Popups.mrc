@@ -1,7 +1,5 @@
-; Idea
-; Menu server
-; Dialog: server type (cache from first login ??)
-; Dialog: oper(+uworld\operserv),services,botnet(nicks)
+; mIRC Popup Menus
+
 menu Query {
   Info:/uwho $$1
   Whois:/nx.whois $1 $1
@@ -30,8 +28,7 @@ Menu Channel {
   -
   ; TODO clearmode (with botnet or ircop + uworld\operserv?)
   -
-  Rejoin:/hop $1
-  Part:/part $chan
+
   DuckHunt
   .1 Extra bullet(7xp):{ say !shop 1 }
   .2 Extra clip (20 xp):{ say !shop 2 }
@@ -61,6 +58,9 @@ Menu Channel {
   ZNC
   .EnableChan $chan :/msg *status EnableChan $chan
   .DisableChan $chan :/msg *status DisableChan $chan
+  .-
+  .Detach $chan :/msg *status Detach $chan | set %nx.znc.detached.$chan true
+  .-
   .Topics - Show topics in all your channels:{ set -u1 %nx.znc.popupcmd true | msg *status Topics }
   .Buffer
   ..ClearAllQueryBuffers      - Clear the query buffers:/msg *status ClearAllQueryBuffers 
@@ -74,21 +74,47 @@ Menu Channel {
   ..-
   ..SetBuffer <#chan|query> [linecount] - Set the buffer count :/msg *status SetBuffer $$?="<#chan|query> [linecount]"
   ..SetBuffer $active [linecount] - Set the buffer count of $active:/msg *status SetBuffer $active $$?="[linecount]"
+  -
+  Rejoin:/hop $1
+  Part:/part $chan
+  -
+  List Delayed users:{ set -u5 %checkfordelayed $chan | nx.who $chan d }
 }
 menu Status {
   Lusers:/lusers
-  Stats
-  .Operline:{ stats o }
-  .Connectline:{ stats c }
-  .Features:{ stats f }
-  .Uptime:{ stats u }
-  .Vservers:{ /stats v }
-  - 
+  -
   Connect:/server $$?="Server IP\Host"
   New Server:/server -m $$?="Server IP\Host"
   Reconnect:/server $serverip
   Disconnect:/disconnect
   Quit:/quit $$?="Reason"
+  -
+  ; /stats
+  Stats
+  ; https://github.com/solanum-ircd/solanum/blob/main/help/opers/stats
+  .Solanum
+  ..Show DNS:/stats A
+  ..Show Active nick delays:/stats b
+  ..Show hash statistics:/stats B
+  ..Show Connect blocks:/stats c
+  ; d,D,e,E,f,g
+  ..Show Auth block:/stats i
+  ; K,k
+  ..Show nicks with ip + generic:/stats L
+  ..Show nicks with hostname + generic:/stats l
+  ; m,n
+  ..Show privset blocks:/stats O
+  ..Show operator blocks:/stats o
+  ..Show Port Blocks:/stats P
+  ..Show Online Opers:/stats p
+  ; q,Q
+  ..Show Server ircd resource:/stats r
+  ; S,s
+  ..Show Server stats:/stats t
+  ..Show Uptime:/stats u
+  ..Show Connected servers + info:/stats v
+  ..Show Connected servers + sendq:/stats ?
+  ; x,X,y,z
   -
   Oper
   .Oper:{ oper $$?="Username" $$?="Password" }
@@ -200,6 +226,7 @@ menu Nicklist {
   ; TODO Kick + ban
   .-
   .Hello:{ nx.botnet.control hello $$1- }
+  .Pass:{ nx.botnet.control pass $$1- }
   .Rehash:{ nx.botnet.control rehash $$1- }
   .Jump:{ nx.botnet.control jump $$1- }
   .Restart\die
@@ -223,6 +250,6 @@ menu Nicklist {
       var %r $rand(1,%n)
       nx.me $replace($nx.db(read,settings,Insults,%r),NICK,$gettok($$1-,%i,32))
       dec %i
-      }
     }
+  }
 }

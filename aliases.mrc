@@ -6,7 +6,6 @@ alias nx.masmode.deall {
   if ( v isin $nickmode ) { nx.massmode $iif($1 == user,devoice,$iif($1 == oper, oper_devoice, botnet_devoice)) $2 $$3- }
 }
 
-
 alias nx.massmode {
   ; /nx.massmode op\deop\voice\devoice #chan nick nick1 nick2
   ; /nx.massmode botnet_op\botnet_deop\oper_op\oper_deop #chan nick nick1 nick2
@@ -151,6 +150,10 @@ alias nx.botnet.control {
     var %i $numtok($2-,32)
     while (%i) { !msg $gettok($2-,%i,32) hello | dec %i }
   }
+  elseif ( $istok(pass,$1,32) ) { 
+    var %i $numtok($2-,32)
+    while (%i) { !msg $gettok($2-,%i,32) pass %nx.botnet_password | dec %i }
+  }
 }
 alias nx.masskick {
   if ($3) { 
@@ -244,4 +247,54 @@ alias massv2 {
     }
     if (%nx.mass.nicks) { mode $1 $+($iif($2 = voice,$chr(43),$chr(45)),$str(%nx.mass.mode,$numtok(%nx.mass.nicks,32))) %nx.mass.nicks | unset %nx.mass.nicks }
   }
+}
+
+
+; Made by a friend of mine, slightly modified by me
+; Usage: /power -e  or just /power
+alias power { 
+  if (!$server) { return 0 } 
+  else { 
+    var %totalnetworks = $scid(0),%totalchans,%totalusers,%opernets,%opchans,%peons,%cids = $scid(0) 
+    while (%cids > 0) { 
+      if ( o isin $usermode ) { inc %opernets }
+      var %chan = 1
+      scid $scon(%cids)
+      while (%chan <= $chan(0)) {
+        inc %totalchans
+        inc %totalusers $calc($nick($chan(%chan),0) -1)
+        if ($me isop $chan(%chan)) {
+          inc %opchans
+          inc %peons $calc($nick($chan(%chan),0) -1)
+        }
+        inc %chan
+      }
+      dec %cids
+    }
+    scid -r
+    if (!$isid) {
+      set %laenge 20 
+      set %wertgesamt %totalusers 
+      set %wertaktiv %peons 
+      unset %bar 
+      set %aktiv $round($calc((%wertaktiv / %wertgesamt) * %laenge),0) 
+      set %i 1 
+      while (%i < %aktiv) { 
+        set %bar %bar $+ 4| 
+        inc %i 
+      } 
+      while (%i < %laenge) { 
+        set %bar %bar $+ 0| 
+        inc %i 
+      } 
+      ; echo AA %bar
+      var %sumoper ( %opernets / %totalnetworks ) $iif(%totalnetworks == 1,network,networks)
+      var %sumchannels ( %opchans / %totalchans ) $iif(%totalchans == 1,channel,channels)
+      var %sumpower ( %peons / %totalusers ) ( $round($calc(%peons / %totalusers *100),2) $+ % ) $iif(%totalusers == 1,user,users) 
+      if ($1 == -e) { echo -ati2 You're ircop on %sumoper , operator in %sumchannels , you also have the power over %sumpower users. } 
+      else { say I'm ircop on %sumoper , operator in %sumchannels , i also have power over %sumpower } 
+    } 
+    else { return $iif(%peons,%peons,0) } 
+  } 
+  unset %totalchans %totalusers %opchans %peons %chan %cids %laenge %wertaktiv %wertgesamt %bar %aktiv %i %sumoper %sumchannels %sumpower %totalnetworks %opernets
 }

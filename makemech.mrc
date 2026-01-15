@@ -2,89 +2,98 @@
 
 alias makemech {
   unset %mech.*
-  var %servers 4
-  while ( %servers ) {
-    remove $+(mech\server,-,s,%servers,.sh)
-    var %chans 16
+  ; Number of servers we wil run mech on, define both variables
+  var %ss 4
+  set %mech.servers 4
+  while ( %ss ) {
+    remove $+(mech\server,-,s,%ss,.sh)
+    var %chans 1
     while ( %chans ) {
-      remove $+(mech\mech,-,s,%servers,c,%chans,.conf)
-      makemech3 $1 $+($chr(35),s,%servers,c,%chans)
+      remove $+(mech\mech,-,s,%ss,c,%chans,.conf)
+      makemech3 $1 $+($chr(35),s,%ss,c,%chans)
       dec %chans
     }
-    dec %servers
+    dec %ss
   }
+  %mech.subnet %mech.endip 
 }
 alias makemech3 {
   if ( $1 >= 1 ) {
-    window -De @mech
     window -De @mechdebug
+    window -De @mech
 
-    set %mech.interface enp0s31f6
+    set %mech.interface eth0
     set %mech.chan $iif($2,$2,#spambots)
-    set %mech.randomip no
-    ; set %mech.randomchan false
-    set %mech.randomchan true
-    set %mech.randomnick true
-    ; set %usenamesfile girlboy\names123
-    set %mech.usenamesfile names123
-    if ( %mech.randomip = no ) {
-      set %mech.startip 172.19.
-      set %mech.ns 0
-      set %mech.endip 0
-      set %mech.prefix /15
 
-      var %s 1 ,%ms 4
-      ; %ms is max servers
-      while (%s <= %ms) {
-        ; %mc is max channels
-        var %inc 4, %c 1, %mc 16
-        while (%c <= %mc) {
-          if ( %mech.chan = $+($chr(35),s,%s,c,%c) ) {
-            echo 3 -t @mech Server %s Channel %c Subnet %mech.ns Chan %mech.chan
-            set %mech.nextsubnet %mech.ns
-            haltdef
-          }
-          inc %mech.ns %inc
-          inc %c
-        }
-        inc %s
-      }
-    }
+    ; if true using %mech.startip then random ip generation
+    ; if false using systematic ip generation
+    set %mech.randomip false
+
+    ; if true chan will be random #chan-N where N is a number  
+    set %mech.randomchan false
+
+    ; if true its using %mech.chan + random letter\num with 12 length
+    set %mech.randomnick true
+
+    ; %usenamesfile options: girlboy , names123
+    set %mech.usenamesfile names123
 
     ; var %mech.db $+(mech,-,$remove($2,$chr(35)),.ini)
     var %mech.db mech-spambots.ini
+
     set %mech.pause 2000
-    ;var %mech.servers 172.18.0.41,172.18.0.42,172.18.0.43
-    ;var %mech.ports 6660,6661,6662,6663,6664,6665,6666,6667,6668,6669,7000
-    var %mech.servers 172.18.0.41,172.18.0.42,172.18.0.43,172.18.0.11,172.18.0.9
-    var %mech.ports 6661,6662,6663,6664,6665,6666,6667,6668,6669
-    var %mech.network CreepNet
+
+    ; Servers to connect to, comma separated for multiple servers
+    var %mech.ircservers 172.18.0.98
+
+    ; More ports more server lines in config (more servers+ports = faster loading)
+    var %mech.ports 6660,6661,6662,6663,6664,6665,6666,6667,6668,6669
+
+    var %mech.network TundraIRC
+
+    if ( %mech.randomip = false ) {
+      set %mech.startip 172.19.
+      ; mech.ns is next subnet, so 172.18.ns.endip
+      if ( %mech.subnet ) { inc %mech.subnet }
+      else { set %mech.subnet 11 }
+      ; endip is checked in the script (starting at whats defined and stopping at 255, then inc mech.ns)
+      set %mech.endip 0
+      set %mech.prefix /15
+    }
+ 
     var %mechconfig $+(mech\mech,-,$remove(%mech.chan,$chr(35)),.conf)
     var %serverconf $+(mech\server,-,$left($remove(%mech.chan,$chr(35)),2),.sh)
 
+    ; Starting to write mech config file
+    write %mechconfig ##### Mech Configuration File #####
     write %mechconfig set ctimeout 60
     write %mechconfig servergroup %mech.network
     set %mech.ctime.start $ctime
-    set %mech.numbots $1
-    var %i 1
     var %p $numtok(%mech.ports,44) 
     set %mech.ctime $ctime
-    echo 13 -t @mech Makemech Writing $calc($numtok(%mech.servers,44)+ $numtok(%mech.ports,44)) server lines and %mech.numbots bots with subnet %mech.nextsubnet
+
+    ; Writing server lines
+    echo 13 -t @mech Makemech Writing $calc($numtok(%mech.ircservers,44)+ $numtok(%mech.ports,44)) server lines
     while (%p) { 
-      var %s $numtok(%mech.servers,44)
-      while (%s) { write %mechconfig SERVER $gettok(%mech.servers,%s,44) $gettok(%mech.ports,%p,44) | dec %s } 
+      var %s $numtok(%mech.ircservers,44)
+      while (%s) { write %mechconfig SERVER $gettok(%mech.ircservers,%s,44) $gettok(%mech.ports,%p,44) | dec %s } 
       dec %p
     }
     write %mechconfig $crlf
     write %mechconfig $crlf
+
+    ; Now writing each bot configuration
+    echo 13 -t @mech Makemech Writing %mech.numbots bot configurations
+
+    var %i 1, %n 1
+    set %mech.numbots $1
     while ( %i <= %mech.numbots ) {
       if ( $mechpick = false ) { echo 4 -t @mech FAILED, was not able to pick a nick or ip | unset %mech.* | halt }
-      ; Little hack since 172.19.255.255 is broadcast use .18. instead (within the same subnet)
-      if ( %mech.ip = 172.19.255.255 ) { set %mech.ip 172.18.255.255 }
-      ; echo 3 @mechdebug ID: %i NICK: %mech.nick IP: %mech.ip
+      if ( %mech.ip = 172.19.255.255 ) { echo 4 -t @mech FAILED, ran out of ips to assign | unset %mech.* | halt }
+      echo 3 @mechdebug ID: %i NICK: %mech.nick IP: %mech.ip
       ; pause for 1 second every xx bots (to avoid ping time out)
-      if ( %p > 50 ) { echo -t @mech Time: 7 $duration($calc($ctime - %mech.ctime)) ( %i \ %mech.numbots bots ) - 14 %mech.sum.nicks | pause %mech.pause | set %p 1 | set %mech.ctime $ctime | unset %mech.sum.nicks }
-      else { inc %p | set %mech.sum.nicks $addtok(%mech.sum.nicks,%mech.nick,32) }
+      if ( %n > 50 ) { echo -t @mech Time: 7 $duration($calc($ctime - %mech.ctime)) ( %i \ %mech.numbots bots ) - 14 %mech.sum.nicks | pause %mech.pause | set %n 1 | set %mech.ctime $ctime | unset %mech.sum.nicks }
+      else { inc %n | set %mech.sum.nicks $addtok(%mech.sum.nicks,%mech.nick,32) }
       ;write mech.set ##### Bot %i Configuration #####
       write %mechconfig set servergroup %mech.network
       write %mechconfig nick %i %mech.nick
@@ -96,7 +105,7 @@ alias makemech3 {
       write %mechconfig set cmdchar -
       write %mechconfig set modes 6
       write %mechconfig set cc 1
-      write %mechconfig join $iif(%mech.randomchan = false,%mech.chan,$+(%mech.chan,-,$random(1,N)))
+      write %mechconfig join $iif(%mech.randomchan = false,%mech.chan,$+(%mech.chan,-,$nx.random(1,N)))
       write %mechconfig set pub 1
       write %mechconfig set aop 1
       write %mechconfig set avoice 1
@@ -120,11 +129,11 @@ alias makemech3 {
   ;write %serverconf echo ./energymech -f $remove(%mechconfig,mech\)
   echo @mech Time: 7 $duration($calc($ctime - %mech.ctime)) ( %i \ %mech.numbots bots ) - 14 %mech.sum.nicks
   echo 13 @mech Makemech DONE with %i \ %mech.numbots bots in $duration($calc($ctime - %mech.ctime.start))
-  unset %mechconfig %mechm.* %mech.chan %mech.interface %mech.numbots %mech.gnamesfile %mech.bnamesfile %mech.usenamesfile %mech.randomip %mech.randomchan %mech.startip %mech.nextsubnet %mech.endip %mech.prefix %mech.db %mech.pause %mech.servers %mech.ports %mech.network %mech.ctime.start %mech.ctime %mech.sum.nicks %mech.nick %mech.ip %mechconfig %mech.mechpick
+  unset %mechconfig %mechm.* %mech.chan %mech.interface %mech.numbots %mech.gnamesfile %mech.bnamesfile %mech.usenamesfile %mech.randomip %mech.randomchan %mech.startip %mech.prefix %mech.db %mech.pause %mech.servers %mech.ircservers %mech.ports %mech.network %mech.ctime.start %mech.ctime %mech.sum.nicks %mech.nick %mech.ip %mechconfig %mech.mechpick
 }
 alias mechpick {
   var %mn 100, %mi 100
-  if ( %mech.randomnick = true ) { set %mech.nick $+($remove(%mech.chan,$chr(35)),-,$random(12,R,R)) | set %mech.snick true }
+  if ( %mech.randomnick = true ) { set %mech.nick $+($remove(%mech.chan,$chr(35)),-,$nx.random(12,R,R)) | set %mech.snick true }
   else { 
     var %mech.gnamesfile girlnames.txt | set %mech.bnamesfile boynames.txt
     while (%mn) {
@@ -132,16 +141,16 @@ alias mechpick {
       if (%mech.usenamesfile = names123) { set %mech.nick $read($+(NAMES,$r(1,3),.txt)) }
       if ($readini(%mech.db,usednicks,%mech.nick) = true) { echo 4 @mechdebug Nick used %mech.nick | dec %mn }
       elseif ($regex(%mech.nick,/[^a-zA-Z0-9-]/) = 0) { unset %mn | set %mech.snick true | haltdef }
-      else { echo 4 @mechdebug Nick invalid $+($remove(%mech.chan,$chr(35)),-,%mech.nick,$random(2,N)) | dec %mn }
+      else { echo 4 @mechdebug Nick invalid $+($remove(%mech.chan,$chr(35)),-,%mech.nick,$nx.random(2,N)) | dec %mn }
     }
   }
-  if ( %mech.randomip = no ) { 
-    set %mech.ip $+(%mech.startip,%mech.nextsubnet,.,%mech.endip)
-    if ( %mech.endip = 255 ) { set %mech.endip 0 | inc %mech.nextsubnet }
+  if ( %mech.randomip = false ) { 
+    set %mech.ip $+(%mech.startip,%mech.subnet,.,%mech.endip)
+    if ( %mech.endip = 255 ) { set %mech.endip 0 | inc %mech.subnet }
     else { inc %mech.endip }
     unset %mi | set %mech.sip true | haltdef
   }
-  if ( %mech.randomip = yes ) { 
+  if ( %mech.randomip = true ) { 
     while (%mi) {
       var %mech.i2 $r(18,19)
       set %mech.ip $+(172,.,%mech.i2,.,$iif(%mech.i2 = 18,$r(1,255),$r(0,255)),.,$r(1,254))

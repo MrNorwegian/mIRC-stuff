@@ -262,7 +262,7 @@ alias nx.cc {
 alias nx.cc.getbans {
   ; echo -a Get bans 
   did -ra %nx.cc.dname $nx.cc.chk.id(Banlist) Refreshing bans ...
-  did -ra %nx.cc.dname $nx.cc.chk.id(numbans) unknown/ $+ $iif(%nx.maxbans. [ $+ [ $cid ] ],$v1,unknown)
+  ; did -ra %nx.cc.dname $nx.cc.chk.id(numbans) unknown/ $+ $iif(%nx.maxbans. [ $+ [ $cid ] ],$v1,unknown)
   set -u100 %nx.cc.getbans %nx.cc.chan
   nx.mode %nx.cc.chan +b
 }

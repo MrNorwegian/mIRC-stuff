@@ -1,25 +1,59 @@
 ; connectall is just a bunch of /server -m
-on *:start:{ 
+on *:start:{
   if ( %nx.autoconnect = yes ) { connectall } 
   .timer_nx.announce.newday 00:00:00 1 1 scid -a nx.announce.newday
+
+  nx.ht.load znc znc.ini znc
 }
 
-on 1:connect:{ 
+on 1:connect:{
   set %nx.flood.query. $+ $cid 0
   .timer_ialupdate_ $+ $cid 0 $calc($calc(60*15) + $r(1,30)) nx.ialupdate $cid 
 }
 
-on 1:disconnect:{ 
-  unset %nx.maxbans. [ $+ [ $cid ] ]
-  unset %nx.silencenum. [ $+ [ $cid ] ]
-  unset %nx.topiclen. [ $+ [ $cid ] ]
-  unset %nx.anex_ [ $+ [ $cid ] ]
-  unset %nx.anex_lastcmd_ [ $+ [ $cid ] ]
+on 1:disconnect:{
+  unset %anexid_ [ $+ [ $cid ] ]
   unset %nx.flood.query. [ $+ [ $cid ] ]
 }
 
-on 1:exit:{ unset %mi %mech.* %nx.maxbans.* %nx.silencenum.* %nx.topiclen.* %nx.anex_* %nx.anex_lastcmd_.* %nx.flood.query.* }
+on 1:exit:{
+  unset %anexid_* %mi %nx.joined.* %mech.* %nx.ialupdate.* %nx.ialchanusers.* %nx.znc.* %nx.flood.query.*
 
+  nx.ht.save znc znc.ini znc
+}
+; save hashtable to .ini file 
+alias nx.ht.save {
+  if ($1) && ($2) {
+    if ($hget($1)) {
+      hsave -i $1 $2 $1 
+    }
+  }
+  else { echo 4 -a nx.ht.save: Missing parameters. - Usage: nx.ht.save <hashtable> <filename> }
+}
+alias nx.ht.load {
+  if ($1) && ($2) {
+    if ($isfile($2)) {
+      if ($hget($1)) { hfree $1 }
+      hload -m100i $1 $2 $1
+    }
+    else { echo 4 -a nx.ht.load: File $2 does not exist. }
+  }
+  else { echo 4 -a nx.ht.load: Missing parameters. - Usage: nx.ht.load <hashtable> <filename> }
+}
+
+on 1:tabcomp:*:{
+  if ( $1 == /nick ) { echo -a Syntax: /nick <newnick> }
+  elseif ( $1 == /mode ) {
+    echo -a Syntax: /mode <#channel|nick> <modes> [params]
+    ; Get modes from ISUPPORT i have to make later in raw.mrc
+    ; echo -a Modes:
+  }
+  ; Provide syntax help for /who command, flags is from ircv3
+  if ( $1 == /who ) {
+    echo -a Syntax: /who <#channel|mask> <%flags>
+    echo -a Flags: nuhsrdlqcxogvt
+  }
+}
 on ^1:notice:*:?:{
   var %nx.notice.cid $cid
   if ($istok(%nx.services.bots,$nick,32)) {
@@ -50,6 +84,21 @@ on ^1:notice:*:?:{
         halt
       }
     }
+    elseif ( $nick == X ) { 
+
+      ; Saving channels we have access to, this is used to check if we can msg x instead of mode in chans
+      if ( $1 = Channels: ) {
+        unset %nx.X.chans. [ $+ [ $network ] ]
+        var %i 1
+        while ( $gettok($strip($1-),%i,32) ) {
+          if ( $left($gettok($strip($1-),%i,32),1) == $chr(35) ) { 
+            set %nx.X.chans. [ $+ [ $network ] ] $addtok(%nx.X.chans. [ $+ [ $network ] ],$remove($gettok($strip($1-),%i,32),$chr(44)),32)
+          }
+          inc %i
+        }
+      }
+      nx.echo.notice $1- | halt
+    }
     else { nx.echo.notice $1- | halt }
   }
   ; Ignore emech when excecuted a command
@@ -71,26 +120,84 @@ on ^1:notice:*:?:{
     halt
   }
   ; ignore znc attached from notices
-  ; TODO, later make a own znc notice window
-  elseif ( $nick == *status ) && (( $3 == attached ) || ( $3 == detached )) { halt }
+  ; [12:56:32] *** naka detached from 1.2.3.4
+  elseif ( $nick == *status ) && (( $3 == attached ) || ( $3 == detached )) { 
+    if ( $3 == attached ) && ($network == UnderNet) {
+      ; Ensure hash exists
+      if (!$hget(znc)) { hmake znc 900 }
+      var %ip $5
+      var %user $2
+
+      ; If there is no entry for this IP, store and just echo the original notice
+      if ( $hget(znc,%ip) == $null ) {
+        hadd znc %ip %user
+        echo 8 -st New account attached from this ip: %ip -> %user
+      }
+      else {
+        var %users $hget(znc,%ip)
+        ; Check for multiple accounts
+        if ( $istok(%users,%user,32) ) {
+          if ( $numtok(%users,32) > 1 ) {
+            echo 4 -st There is multiple accounts connected to %ip -> %users
+          }
+        }
+        else {
+          ; Add the new user to the IP entry
+          hadd znc %ip $addtok(%users,%user,32)
+          var %users $hget(znc,%ip)
+          echo 8 -st New account attached from this ip: %ip -> %users
+          ; Notify that a new user has attached to this IP (now multiple accounts)
+          if ( $numtok(%users,32) > 1 ) {
+            echo 4 -st There is multiple accounts connected to %ip -> %users
+          }
+        }
+      }
+      echo 3 -st $nick $1-
+    }
+    elseif ( $3 == detached ) && ($network == UnderNet) { echo 3 -st $nick $1- }
+    halt
+  }
   ; Check if nick is eg idlerpg and echo only to status window 
   elseif ( $istok(%nx.echo.status.nicks,$nick,32) ) { set -u1 %nx.notice.status true | nx.echo.notice $1- | halt }
   else { nx.echo.notice $1- | halt }
 }
 
 ; Script from genthic, might modify this later
-on 1:NOTICE:*:#:{
+on *:NOTICE:*:#:{
   if ( $istok(%nx.genethic.channels,$chan,32) ) {
     if ( $me $+ ?requested?DCC??code?is iswm $2-6 ) {
       .timerDCC1 4 1 .echo = $+ $nick mIRC Script: Please wait, your password will be sent to the session in a few seconds
       .timerDCC2 1 5 .msg = $+ $nick $7
     }
   }
+  if ( $istok(#Toronto,$chan,32) ) && ( $nick !isop $chan ) { 
+    if (!$istok(%nx.spammode.rm,$chan,44)) {
+      if ( $me isop $chan ) { mode $chan +rm }
+      else { .!msg x mode $chan +rm }
+      set -u30 %nx.spammode.rm $addtok(%nx.spammode.rm,$chan,44)
+    }
+    spamkickban $chan $nick Spam
+    .timer.tor.unmode 1 $calc(60*30) msg x mode $chan -rm
+  }
 }
 on ^1:SNOTICE:*:{ nx.echo.snotice $1- | halt }
+on ^1:WALLOPS:*:{ nx.echo.wallops $1- | halt }
 
 ; When on znc i need this to make sure snotice windows is up 
-on 1:usermode:{ if ( o isincs $1 ) && ( $left($1,1) == $chr(43) ) { window -De $+(@,$network,_,$cid,_,status) | echo 3 -st You are now an IRC Operator on $network } }
+on 1:usermode:{
+  if ( o isincs $1 ) && ( $left($1,1) == $chr(43) ) { 
+    if (!$window($window($+(@,$network,_,$cid,_,status)))) {
+      window -De $+(@,$network,_,$cid,_,status)
+    }
+    echo 3 -st You are now an IRC Operator on $network 
+  }
+  if ( w isincs $1 ) && ( $left($1,1) == $chr(43) ) { 
+    if (!$window($window($+(@,$network,_,$cid,_,status)))) {
+      window -De $+(@,$network,_,$cid,_,status)
+    }
+    echo 3 -st You are now reading Wallops on $network 
+  }
+}
 
 ; Just some placeholders
 on 1:nick:{ return }
@@ -188,10 +295,6 @@ on ^*:join:#:{
     if ( .users. !isin $gettok($address($nick,5),2,64) ) && ( ~ isin $gettok($gettok($address($nick,5),1,64),2,33) ) && ( $remove($gettok($gettok($address($nick,5),1,64),2,33),~) isin $nick ) {
       set -u900 %nx.mcz $addtok(%nx.mcz,$nick,32) 
     }
-    ; This is catching spambots with ~ in ident, saving for 15 mins 
-    elseif ( ~ isin $gettok($gettok($address($nick,5),1,64),2,33) ) && ( users !isin $gettok($address($nick,5),2,64) ) { 
-      set -u900 %nx.njspam $addtok(%nx.njspam,$nick,32)
-    }
     nx.echo.joinpart join $chan $nick %nx.clonereport
   }
   halt
@@ -200,6 +303,7 @@ on ^*:join:#:{
 on ^*:part:#:{ 
   if ( $nick == $me ) { 
     nx.echo.joinpart part $chan $me
+    unset %nx.joined. $+ $cid $+ $chan
   }
   else {
     ; echo -st $nick($chan,$nick).pnick $nick
@@ -213,21 +317,27 @@ on ^*:part:#:{
       if ( $nick($chan,$nick,$gettok(%nx.onpart.modes,%nx.onpart.i,44)) ) { var %nx.onpart.m $addtok(%nx.onpart.m,$gettok(%nx.onpart.modes,%nx.onpart.i,44),32) }
       dec %nx.onpart.i
     }
-    nx.echo.joinpart part $chan $nick $iif(%nx.onpart.m,$remove(%nx.onpart.m,$chr(32)),$null)
+    nx.echo.joinpart part $chan $nick($chan,$nick).pnick $1-
   }
   ; Reop if i'm thelast one without op in the channel
   if ( $me !isop $chan ) && ( $nick($chan,0) <= 2 ) {
-    ; .hop $chan
+    !hop $chan
   }
   halt
 }
 
-on ^*:kick:#lol:{
-  echo 12 -t $chan * $nick and $1-
+on ^*:kick:#:{
+  if ( $knick == $me ) { 
+    nx.echo.kick $ctime $chan $knick $nick $1-
+    unset %nx.joined. $+ $cid $+ $chan
+  }
+  else {
+    nx.echo.kick $ctime $chan $knick $nick $1-
+  }
   halt
 }
 on ^*:rawmode:#:{
-  echo 3 -t $chan * $nick sets mode: $1-
+  nx.echo.mode $ctime $chan $nick $1-
   halt
 }
 
@@ -237,7 +347,7 @@ on ^*:quit:{
   var %c = $comchan($nick,0)
   while (%c) {
     echo 12 -t $comchan($nick,%c) * $nick ( $+ $address $+ ) Quit $iif($1,$+($chr(40),$1-,$chr(41)),$null)
-    if ($nick($comchan($nick,%c),0) <= 2) && (!$comchan($nick,%c).op) { hop $comchan($nick,%c) }
+    if ($nick($comchan($nick,%c),0) <= 2) && (!$comchan($nick,%c).op) { !hop $comchan($nick,%c) }
     dec %c
   }
   halt
@@ -247,14 +357,16 @@ on *:invite:*:{ if ( $istok($nx.db(read,settings,operchans,$network),$chan,32) )
 
 on ^1:text:*:?:{ 
   if ( $nick === *status ) { 
+    ;Disconnected from IRC. Reconnecting...
     ; second IF $3 has no . but first has, restof second $4- (No route to host). Reconnecting...
-    ; BU, when disconnected and reconnect does not work this loops
     if ( $1-3 == Disconnected from IRC. ) || ( $1-3 == Disconnected from IRC ) { 
       var %c $chan(0) 
       while (%c) { 
         ; if channel key is set, save it!
-        ; set %nx.znc.chans. $+ $cid $addtok(%nx.znc.chans. [ $+ [ $cid ] ],$chan(%c),44)
-        .!msg *status detach $chan(%c)
+        echo 12 -t $chan(%c) ZNC Disconnected from IRC
+        ;set %nx.znc.chans. $+ $cid $addtok(%nx.znc.chans. [ $+ [ $cid ] ],$chan(%c),44)
+        hadd -m znc.chans $cid $addtok($hget(znc.chans,$cid),$chan(%c),44)
+        ; !.msg *status detach $chan(%c)
         dec %c
       }
       set %nx.znc.connected $remtok(%nx.znc.connected,$cid,32)
@@ -263,34 +375,30 @@ on ^1:text:*:?:{
     elseif ( $1 = Connected! ) {
       set %nx.znc.connected $addtok(%nx.znc.connected,$cid,32)
       set %nx.znc.rejoining $addtok(%nx.znc.rejoining,$cid,32)
-      .!msg *status listchans
+      .timer_ $+ $cid 1 10 !.msg *status listchans
     }
     elseif ( $istok(%nx.znc.rejoining,$cid,32) ) { 
-      if ( $6 == Detached ) {
-        set %nx.znc.rejoinginginprogress $cid
-        .!msg *status attach $remove($4,@,+,$chr(32))
-      }
-      if ( $4 == Detached ) {
-        set %nx.znc.rejoinginginprogress $cid
-        .!msg *status attach $remove($2,@,+,$chr(32))
-      }
-      elseif ( ------------- isin $1 ) {
-        if ( %nx.znc.rejoinginginprogress ) { 
-          set %nx.znc.rejoining $remtok(%nx.znc.rejoining,$cid,32)
-          unset %nx.znc.rejoinginginprogress
-        }
+      if ( $6 == Detached ) { !.msg *status attach $remove($4,@,+,$chr(32)) }
+      if ( $4 == Detached ) { !.msg *status attach $remove($2,@,+,$chr(32)) }
+      ; try to rejoin channels that were detached after reconnect, keep trying every 10 seconds until rejoined
+      ; TODO maby make a max retry count
+      elseif ( *Total*Joined*Detached*Disabled* iswm $1- ) {
+        if ( $remove($6,$chr(44)) > 0 ) { .timer_rejoin $+ $cid 1 10 !.msg *status listchans }
+        else { set %nx.znc.rejoining $remtok(%nx.znc.rejoining,$cid,32) }
       }
     }
     ; echo text from *status in active window, %nx.znc.popupcmd is a variable set when using znc commands from Popups.mrc
     elseif ( %nx.znc.popupcmd = true ) { echo 11 -at $1- }
   }
+
+  ; TODO move this echo to echo alias? for theme
   echo -t $nick < $+ $nick $+ > $1-
   halt
 }
 
-
 on ^*:TEXT:*:#: {
-  var %nx.highlight.ignore_chans #idlerpg #multirpg #werewolf
+  ; TODO rebuild this 
+  var %nx.highlight.ignore_chans #idlerpg #multirpg
   var %t $1-
   var %h $numtok(%t,32)
   while (%h) {
@@ -314,93 +422,43 @@ on ^*:TEXT:*:#: {
     elseif ($2 == JOINED) { nx.echo.joinpart bejoin $chan %nx.bex.nick %nx.bex.address %nx.bex.timestamp }
     elseif ($2 == PARTED:) { nx.echo.joinpart bepart $chan %nx.bex.nick %nx.bex.address %nx.bex.timestamp }
     elseif (($2 == IS) && ($3 == NOW)) { nx.echo.nick $msgstamp $chan %nx.bex.nick $6 }
-
-    elseif ($2 == KICKED) { nx.echo.kick $msgstamp $chan %nx.bex.nick $3 $6- }
+    ; nx.echo.kick $ctime $chan $knick $nick $1-
+    elseif ($2 == KICKED) { nx.echo.kick $msgstamp $chan $3 %nx.bex.nick $6- }
     elseif ($2 == CHANGED) { nx.echo.topic $msgstamp $chan %nx.bex.nick $6- }
     else { echo 4 -t $+ $msgstamp $chan *** UNHANDLED LINE < $+ $1- $+ > }
     halt
   }
 
-  ; #ranks "cheat"???? script ^^
-  if ( $istok(DeepNet QuakeNet,$network,32) ) && ( $chan == #ranks ) && ( $nick == MACHINE[] ) && ( $nick isop #ranks ) {
-    if (IT IS SCORING TIME isin $1-) || (BONUS TIME isin $1-) || (MEGA 10K BINUS isin $1-) || (500 pts QUICK-ROUND isin $1-) { 
-      set %ranks.active true
-      if ( %ranks.jump.channel == on ) && ( %nx.anex_lastcmd_ [ $+ [ $cid ] ] < 1000 ) { window -a #ranks }
-    }
-    if ( Please /MSG me the answer isin $3-9 ) && ( %ranks.active ) {
-      var %ranks.t $numtok($1-,32)
-      var %ranks.x 1
-      while ( %ranks.x <= %ranks.t ) {
-        var %ranks.tmp $gettok($1-,%ranks.x,32)
-        var %ranks.tmpnextword $strip($gettok($1-,$calc(%ranks.x +1),32))
-        if ( $+($chr(3),04) == %ranks.tmp ) && ( $regex(%ranks.tmpnextword,/\d+[\+\-\*\\]\d+/g) ) { 
-          set %ranks.answer $calc(%ranks.tmpnextword)
-          set %ranks.math %ranks.tmpnextword
-          echo 4 -t $chan <RANKS ANSWER> %ranks.math == %ranks.answer
-          echo 4 -t $chan <RANKS ANSWER> /msg $nick %ranks.answer
-        }
-        inc %ranks.x
-      }
-    }
-    if (Scoring over isin $1-) {
-      if ( $9 == $me ) { echo 4 -t $chan <RANKS SCORES> Score earned: $strip($20) (fastest) }
-      if ( $25 == $me $+ , ) { echo 4 -t $chan <RANKS SCORES> Score earned: $strip($29) (average) }
-      unset %ranks.active %ranks.answer %ranks.math
-    }
-    if (HAHA! isin $1-) && (FOOL? isin $1-) && ($me isin $1-) { echo 4 -t $chan <RANKS FOOL> Get yourself together punk! | unset %ranks.active %ranks.answer %ranks.math }
-  }
-  ; end of #ranks "cheat" script
-
   ; Some spam stuff
   elseif ( irc.supernets.org isin $1- ) && ( $istok(%nx.njspam,$nick,32) ) {
-    if ( $nick !isvoice $chan ) || ( $nick !isop $chan ) {
-      if ( $me !isop $chan ) { .msg X ban $chan $nick Spam }
-      elseif ( $me isop $chan ) { 
-        mode $chan +b $address($nick,3)
-        kick $chan $nick Spam
-      }
-    }
+    spamkickban $chan $nick Spam
   }
   ; This is a spam bot that joins and spams 
-  elseif ( $istok(%nx.mcz,$nick,32) ) && ( $nick !isop $chan ) { 
+  elseif ( $istok(%nx.mcz,$nick,32) ) { 
     if ( Hi Guys! It's Madeleine Czura! Just thought I'd leave my number here in case you're lonely isin $1- ) { 
-      if ( $me !isop $chan ) { .msg X ban $chan $nick Spam }
-      elseif ( $me isop $chan ) { 
-        mode $chan +b $address($nick,3)
-        kick $chan $nick Spam
-      }
+      spamkickban $chan $nick Spam
     }
   }
-  ; pedo spambots
-  elseif ( %nx.pedospam.1 isin $1- ) && ( %nx.pedospam.2 isin $1- ) && ( %nx.pedospam.3 isin $1- ) {
-    if ( $me !isop $chan ) { .msg X ban $chan $nick Spam }
-    elseif ( $me isop $chan ) { 
-      mode $chan +b $address($nick,3)
-      kick $chan $nick Spam
+  ; New antispam 
+  var %i = 1
+  while ( %nx.spamtext. [ $+ [ %i ] ] ) {
+    if ( %nx.spamtext. [ $+ [ %i ] ] iswm $1- ) {
+      spamkickban $chan $nick Spam
     }
+    inc %i
   }
 
-  ; Todo echo chanmsg (own theme)
-  ; nx.echo.chanmsg $chan $nick $1-
-  ; halt
+  ; This takes nicks repeating and also botnet repeating same message
+  if ( $istok(#naka #mibotech #toronto,$chan,32) ) { antiflood_check_nickrepeat $chan $nick $1- }
+
+  ; TODO fix nick coloring of @+modes
+  nx.echo.chanmsg $ctime $chan $nick $1-
+  halt
 }
 
 ; TODO: add this to anex check (anti excess)
 on 1:input:#:{
-  if ( $istok(DeepNet QuakeNet,$network,32) ) && ( $chan == #ranks ) && ( $nick == $me ) && ( %ranks.active ) && (!$2) { 
-    if ( $regex($1,/\d+[\+\-\*\\]\d+/g) ) {
-      if ( $1 != %ranks.math ) { echo 4 -t $chan <RANKS MATH> $1 is not the correct math question you fool!! }
-      nx.msg MACHINE[] $calc($1)
-      unset %ranks.active %ranks.answer %ranks.math
-      halt
-    }
-    if ( $1 isnum ) {
-      if ( $1 != %ranks.answer ) { echo 4 -t $chan <RANKS ANSWER> $1 is not the correct answer you fool!! }
-      nx.msg MACHINE[] $1
-      unset %ranks.active %ranks.answer %ranks.math
-      halt
-    }
-  }
+  ; empty for now
 }
 
 on *:open:?:{

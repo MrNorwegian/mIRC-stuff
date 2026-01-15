@@ -12,10 +12,14 @@ raw *:*:{
   elseif ($event = away) { return }
 
   ; Welcome to the SERVER DESC, NICK
-  elseif ($event = 001) { return }
-
+  elseif ($event = 001) { 
+    if ( $hget(settings_,$+ $cid) = $null ) {
+      hmake settings_ $+ $cid 100  
+    }
+  }
   ; Your host is SERVERNAME, running version SERVERVERSION
   elseif ($event = 002) { 
+    hadd -m settings_ $+ $cid serverversion $8
     if ( $6-7 = running version ) { 
       if ( UnrealIRCd isin $8 ) { 
         if ( $istok($nx.db(read,settings,ircd,unreal),$network,32) ) && ( $istok($nx.db(read,settings,ircd,samode),$network,32) ) { return }
@@ -29,9 +33,15 @@ raw *:*:{
         if ( $istok($nx.db(read,settings,ircd,nefarious),$network,32) ) && ( $istok($nx.db(read,settings,ircd,opmode),$network,32) ) { return }
         else { nx.db write settings ircd nefarious $addtok($nx.db(read,settings,ircd,nefarious),$network,32) | nx.db write settings ircd opmode $addtok($nx.db(read,settings,ircd,opmode),$network,32) | return }
       }
-      elseif ( u2.10.12 isin $8 ) && ( snircd isin $8 )  { 
+      elseif ( u2.10.12.10 isin $8 ) && ( snircd isin $8 )  { 
+        hadd settings_ $+ $cid ircd u2.10.12.10 snircd
+        hadd settings_ $+ $cid opmode true
         if ( $istok($nx.db(read,settings,ircd,snircd),$network,32) ) && ( $istok($nx.db(read,settings,ircd,opmode),$network,32) ) { return }
         else { nx.db write settings ircd snircd $addtok($nx.db(read,settings,ircd,snircd),$network,32) | nx.db write settings ircd opmode $addtok($nx.db(read,settings,ircd,opmode),$network,32) | return }
+      }
+      elseif ( $8 == u2.10.12.19 ) { 
+        hadd settings_ $+ $cid ircd u2.10.12.19
+        hadd settings_ $+ $cid opmode true
       }
       elseif ( u2.10.12 isin $8 ) { 
         if ( $istok($nx.db(read,settings,ircd,ircu2),$network,32) ) && ( $istok($nx.db(read,settings,ircd,opmode),$network,32) ) { return }
@@ -55,28 +65,48 @@ raw *:*:{
   ; Server created - Server info - modes supported
   elseif ($event = 003) { return }
   elseif ($event = 004) { return }
+  ; disabled this, need to save this in hashtabls instead of variables
   elseif ($event = 005) { 
     ; ircu2:
+    ; WHOX WALLCHOPS WALLVOICES USERIP CPRIVMSG CNOTICE SILENCE=25 MODES=6 MAXCHANNELS=50 MAXBANS=100 NICKLEN=12 are supported by this server
     ; MAXNICKLEN=15 TOPICLEN=160 AWAYLEN=160 KICKLEN=160 CHANNELLEN=200 MAXCHANNELLEN=200 CHANTYPES=#& PREFIX=(ov)@+ STATUSMSG=@+ CHANMODES=b,k,l,imnpstrDdRcCPM CASEMAPPING=rfc1459 NETWORK=MyNetwork are supported by this server
-    if ($gettok($wildtok($1-,TOPICLEN=?*,1,32),2,61)) { set %nx.topiclen. $+ $cid $v1 }
-    if ($gettok($wildtok($1-,SILENCE=?*,1,32),2,61)) { set %nx.silencenum. $+ $cid $v1 }
-    if ($gettok($wildtok($1-,MAXBANS=?*,1,32),2,61)) { set %nx.maxbans. $+ $cid $v1 }
+    if ($gettok($wildtok($1-,WHOX,1,32),2,61)) { hadd settings_ $+ $cid whox $gettok($wildtok($1-,WHOX,1,32),2,61) }
+    if ($gettok($wildtok($1-,MAXNICKLEN=?*,1,32),2,61)) { hadd settings_ $+ $cid nicklen $gettok($wildtok($1-,MAXNICKLEN=?*,1,32),2,61) }
+    if ($gettok($wildtok($1-,TOPICLEN=?*,1,32),2,61)) { hadd settings_ $+ $cid topiclen $gettok($wildtok($1-,TOPICLEN=?*,1,32),2,61) }
+    if ($gettok($wildtok($1-,AWAYLEN=?*,1,32),2,61)) { hadd settings_ $+ $cid awaylen $gettok($wildtok($1-,AWAYLEN=?*,1,32),2,61) }
+    if ($gettok($wildtok($1-,KICKLEN=?*,1,32),2,61)) { hadd settings_ $+ $cid kicklen $gettok($wildtok($1-,KICKLEN=?*,1,32),2,61) }
+    if ($gettok($wildtok($1-,CHANNELLEN=?*,1,32),2,61)) { hadd settings_ $+ $cid channellen $gettok($wildtok($1-,CHANNELLEN=?*,1,32),2,61) }
+    if ($gettok($wildtok($1-,MAXCHANNELLEN=?*,1,32),2,61)) { hadd settings_ $+ $cid maxchannellen $gettok($wildtok($1-,MAXCHANNELLEN=?*,1,32),2,61) }
+    if ($gettok($wildtok($1-,CHANTYPES=?*,1,32),2,61)) { hadd settings_ $+ $cid chantypes $gettok($wildtok($1-,CHANTYPES=?*,1,32),2,61) }
+    if ($gettok($wildtok($1-,PREFIX=?*,1,32),2,61)) { hadd settings_ $+ $cid prefix $gettok($wildtok($1-,PREFIX=?*,1,32),2,61) }
+    if ($gettok($wildtok($1-,STATUSMSG=?*,1,32),2,61)) { hadd settings_ $+ $cid statusmsg $gettok($wildtok($1-,STATUSMSG=?*,1,32),2,61) }
+    if ($gettok($wildtok($1-,CHANMODES=?*,1,32),2,61)) { hadd settings_ $+ $cid chanmodes $gettok($wildtok($1-,CHANMODES=?*,1,32),2,61) }
+    if ($gettok($wildtok($1-,SILENCE=?*,1,32),2,61)) { hadd settings_ $+ $cid silencelen $gettok($wildtok($1-,SILENCE=?*,1,32),2,61 ) }
+    if ($gettok($wildtok($1-,MAXBANS=?*,1,32),2,61)) { hadd settings_ $+ $cid maxbans $gettok($wildtok($1-,MAXBANS=?*,1,32),2,61) }
+
     ; Unreal = MAXLIST=b:60,e:60,I:60
-    elseif ($gettok($gettok($gettok($wildtok($1-,MAXLIST=?*,1,32),2,61),1,44),2,58)) { set %nx.maxbans. $+ $cid $v1 }
+    ; Solanum =  MAXLIST=bqeI:300
+    ;elseif ($gettok($gettok($gettok($wildtok($1-,MAXLIST=?*,1,32),2,61),1,44),2,58)) { set %nx.maxbans. $+ $cid $v1 ;}
     return
   }
 
   ; /map return (unrealircd)
   ; /map sumary (last line in /map) (unrealircd)
   ; End of /map (unrealircd)
-  elseif ($event = 006) { halt }
-  elseif ($event = 018) { halt } 
-  elseif ($event = 007) { halt } 
+  elseif ($event = 006) { nx.echo.snotice $2- | halt }
+  elseif ($event = 018) { nx.echo.snotice $2- | halt }
+  elseif ($event = 007) { nx.echo.snotice $2- | halt }
+
+  ; naka^ +bcdfkoqsBOS Server notice mask
+  elseif ($event = 8) { nx.echo.snotice $1- | halt }
 
   ; /map return (ircu)
   ; End of /map (ircu)
   elseif ($event = 015) { nx.echo.snotice $2- | halt } 
   elseif ($event = 017) { nx.echo.snotice $2- | halt } 
+
+  ; Please wait while we process your connection.
+  elseif ($event = 020) { return }
 
   ; nick IDnumber your unique ID
   elseif ($event = 042) { return }
@@ -101,9 +131,15 @@ raw *:*:{
   ; Stats c (ircu)
   elseif ($event = 213) { nx.echo.snotice $2- | halt }
 
+  ; stats c (ircnet) (Remember this returns C and N lines)
+  elseif ($event = 214) { nx.echo.snotice $2- | halt }
+
   ; stats i
   elseif ($event = 215) { nx.echo.snotice $2- | halt }
 
+  ; Stats K
+  elseif ($event = 216) { nx.echo.snotice $2- | halt }
+  
   ; stats p
   elseif ($event = 217) { nx.echo.snotice $2- | halt }
 
@@ -142,6 +178,9 @@ raw *:*:{
 
   ; Stats h
   elseif ($event = 244) { nx.echo.snotice $2- | halt }
+
+  ; stats p (ircnet)
+  elseif ($event = 246) { nx.echo.snotice $2- | halt }
 
   ; stats t
   elseif ($event = 249) { nx.echo.snotice $2- | halt }
@@ -268,13 +307,33 @@ raw *:*:{
   ; invited to channel ( 341 $me invited-nick #channel )
   elseif ($event = 341) { echo -at $2 has been invited to $3 | halt }
 
+  ; End of channel reop list (part of +R mode on ircnet)
+  elseif ($event = 345) { return }
+
+  ; invex list
+  elseif ($event = 346) { return }
+
   ; server info (OS etc)
   ; RAW 351 <nick> <Server version 1.2.3>. <Servername> Fhn6OoErmM [uname -a ??]
   elseif ($event = 351) { return }
 
   ; /who $chan
   elseif ($event = 352) {
-    if ( %checkforircop ) && ( $iif($chr(42) isin $7,true,false) = true ) { echo 3 -at %checkforircop Ircop found: nick ( $6 ) | return }
+    if ( %checkforircop ) && ( $iif($chr(42) isin $7,true,false) = true ) { 
+      echo 3 -at %checkforircop Ircop found: nick ( $6 )
+      return
+    }
+    ; Event: 352 Text: mynick #channel ~ident host.no *.undernet.org nick H< 3 Realname
+    ; check for delayed joins 
+    if ( %checkfordelayed == $2 ) {
+      if ( $iif($chr(60) isin $7,true,false) = true ) {
+        ; echo 8 -at Delayed clinets in $2: $7 $6 $+($3,@,$4) 
+        set %nx.delayed. [ $+ [ $cid ] ] [ $+ [ $2 ] ] $addtok(%nx.delayed. [ $+ [ $cid ] ] [ $+ [ $2 ] ],$6,32)
+        halt
+      }
+      else { halt }
+    }
+
     elseif ( %nx.joined. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) || ( %nx.ialupdate. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) { 
       inc -u10 %nx.ialchanusers. $+ $cid $+ $2
       ; Check if nick is ircop and color it (for nicklist)
@@ -283,6 +342,7 @@ raw *:*:{
         while (%c <= %t) {
           ; Here, echo "Nick just opered ???"
           cline -m 13 $comchan($6,%c) $6
+          ; cnick $6 13
           inc %c    
         }
       }
@@ -292,7 +352,15 @@ raw *:*:{
   }
 
   ; End of /who
-  elseif ($event = 315) { 
+  elseif ($event = 315) {
+    if ( %checkfordelayed == $2 ) {
+      unset %checkfordelayed
+      if ( %nx.delayed. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) {
+        echo 8 -at Delayed clients: %nx.delayed. [ $+ [ $cid ] ] [ $+ [ $2 ] ] 
+        unset %nx.delayed. [ $+ [ $cid ] ] [ $+ [ $2 ] ] 
+      }
+      halt
+    }
     if ( %nx.ialupdate. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) { 
       unset %nx.ialupdate. $+ $cid $+ $2
       halt
@@ -334,6 +402,7 @@ raw *:*:{
     if ($dialog(%nx.cc.dname)) && (%nx.cc.getbans == $2) {
       if ($did(%nx.cc.dname,$nx.cc.chk.id(Banlist)).lines == 1) && (Refreshing bans ... iswm $did(%nx.cc.dname,$nx.cc.chk.id(Banlist),1)) {
         did -ra %nx.cc.dname $nx.cc.chk.id(Banlist) No bans set.
+        ; not using %nx.maxbans anymore, never worked right
         did -ra %nx.cc.dname $nx.cc.chk.id(numbans) 0/ $+ $iif(%nx.maxbans. [ $+ [ $cid ] ],$v1,unknown)
       }
       else { did -ra %nx.cc.dname $nx.cc.chk.id(numbans) $calc($did(%nx.cc.dname,$nx.cc.chk.id(Banlist)).lines -1) $+ / $+ $iif(%nx.maxbans. [ $+ [ $cid ] ],$v1,unknown) }
@@ -365,9 +434,6 @@ raw *:*:{
 
   ; ircd.conf Rehashing
   elseif ($event = 382) { nx.echo.snotice $1- | halt }
-
-  ; naka^ +bcdfkoqsBOS Server notice mask
-  elseif ($event = 8) { nx.echo.snotice $1- | halt }
 
   ; is now your displayed host
   elseif ($event = 396) { return }
