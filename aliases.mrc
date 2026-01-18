@@ -7,16 +7,20 @@ alias nx.masmode.deall {
 }
 
 alias nx.massmode {
+  ; Supported modes: owner,admin,op,halfop,voice,invex,reop,except
   ; /nx.massmode op\deop\voice\devoice #chan nick nick1 nick2
   ; /nx.massmode botnet_op\botnet_deop\oper_op\oper_deop #chan nick nick1 nick2
   ; - botnet_ checks for %nx.botnet_NetWork botnick1 botnick2 and required active dcc chat with bot.
   ; TODO: Check if user is +k then skip it ( Use cached info from /who channel ? )
   ; TODO: Idea, use X, Q, ChanServ ?
   ; TODO: Idea, when ircop use uworld or opmode\samode ? - Check if $me has +go usermode
+  var %massdebug false
   if ( $3 ) {
     if ( $2 ) {
+      if ( %massdebug == true ) { echo -at Massmode: Processing $p($1) on $p($2) with $p($3-) }
       var %nx.mass.tmpmode $remove($1,botnet_,oper_)
-      if ( $istok(owner deowner admin deadmin op deop halfop dehalfop voice devoice,%nx.mass.tmpmode,32) ) {
+      if ( $istok(owner deowner admin deadmin op deop halfop dehalfop voice devoice deexcept except invex deinvex reop dereop,%nx.mass.tmpmode,32) ) {
+        if ( %massdebug == true ) { echo -at Massmode: Mode to process $p(%nx.mass.tmpmode) }
         if ( $left($1,7) = botnet_ ) { var %nx.mass.usebotnet 1 }
         if ( $left($1,5) = oper_ ) { var %nx.mass.useopermode 1 }
         var %nx.mass.action $iif($left(%nx.mass.tmpmode,2) = de,take,give)
@@ -25,37 +29,57 @@ alias nx.massmode {
         elseif (%nx.mass.tmpmode = deop) || (%nx.mass.tmpmode = op) { var %nx.mass.mode o }
         elseif (%nx.mass.tmpmode = dehalfop) || (%nx.mass.tmpmode = halfop) { var %nx.mass.mode h }
         elseif (%nx.mass.tmpmode = devoice) || (%nx.mass.tmpmode = voice) { var %nx.mass.mode v }
-        else { echo -at Invalid mode %nx.mass.tmpmode | return }
-        if ( %nx.mass.mode !isin $nickmode ) { echo -at Unsupported mode: %nx.mass.tmpmode | return } 
+        elseif (%nx.mass.tmpmode = deinvex ) || (%nx.mass.tmpmode = invex) { var %nx.mass.mode I }
+        elseif (%nx.mass.tmpmode = dereop ) || (%nx.mass.tmpmode = reop) { var %nx.mass.mode R }
+        elseif (%nx.mass.tmpmode = deexcept ) || (%nx.mass.tmpmode = except) { var %nx.mass.mode e }
+        else { echo -at Invalid or unsupported mode %nx.mass.tmpmode | return }
+        ; Removed check for $nickmode (aohqv) and want to check $chanmodes (IRe,*) but i didnt bother this time 
       }
       var %nx.mass.num $numtok($3-,32)
+      if ( %massdebug == true ) { echo -at Massmode: Total nicks to process: $p(%nx.mass.num) with mode $p(%nx.mass.mode) and action $p(%nx.mass.action) } 
       while (%nx.mass.num) { 
         ; Fallback test IF this is not working on all networks (modenum returns ~&@%+)
         ; alias modenum return 0 $+ $replace($left($nick($1,$2).pnick,1),+,1,%,2,@,3,&,4,!,4,~,5,.,5)
-        if ( %nx.mass.action = take ) && ($nick($2,$gettok($3-,%nx.mass.num,32),$replace(%nx.mass.mode,a,&))) { var %nx.mass.nicks $addtok(%nx.mass.nicks,$gettok($3-,%nx.mass.num,32),32) }
-        if ( %nx.mass.action = give ) && (!$nick($2,$gettok($3-,%nx.mass.num,32),$replace(%nx.mass.mode,a,&))) { var %nx.mass.nicks $addtok(%nx.mass.nicks,$gettok($3-,%nx.mass.num,32),32) }
-        ; Finished gather nicks for this round
+        if ( $istok(q a o h v,%nx.mass.mode,32) ) {
+          ; Gather nicks for this round
+          var %nx.mass.nextnick $gettok($3-,%nx.mass.num,32)
+          if ( %nx.mass.action = take ) && ($nick($2,%nx.mass.nextnick,$replace(%nx.mass.mode,a,&))) { var %nx.mass.nicks $addtok(%nx.mass.nicks,%nx.mass.nextnick,32) }
+          if ( %nx.mass.action = give ) && (!$nick($2,%nx.mass.nextnick,$replace(%nx.mass.mode,a,&))) { var %nx.mass.nicks $addtok(%nx.mass.nicks,%nx.mass.nextnick,32) }
+          if ( %massdebug == true ) { echo -at Massmode: Gathering nick $p(%nx.mass.nextnick) for mode $p(%nx.mass.mode) total: $p(%nx.mass.nick) }
+        }
+        elseif ( $istok(I R e, %nx.mass.mode,32) ) {
+          ; Gather nicks for this round
+          var %nx.mass.nextnick $address($gettok($3-,%nx.mass.num,32),%nx.massmode.addr)
+          if ( %nx.mass.action = take ) && (%nx.mass.nextnick) { var %nx.mass.nicks $addtok(%nx.mass.nicks,%nx.mass.nextnick,32) }
+          if ( %nx.mass.action = give ) && (%nx.mass.nextnick) { var %nx.mass.nicks $addtok(%nx.mass.nicks,%nx.mass.nextnick,32) }
+          if ( %massdebug == true ) { echo -at Massmode: Gathering nick $p(%nx.mass.nextnick) for mode $p(%nx.mass.mode) total: $p(%nx.mass.nicks) }
+        }
+        ; Check if we are over modespl number of nicks to process
         if ( $numtok(%nx.mass.nicks,32) = $modespl ) { 
+          var %tmpmodes $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks
+          if ( %massdebug == true ) { echo -at Massmode: Processing batch of $p($modespl) nicks for mode $p(%nx.mass.mode) }
           if ( %nx.mass.usebotnet = 1 ) { 
             var %nx.mass.bot $nx.mass.pickbot
-            if ( %nx.mass.bot ) { msg %nx.mass.bot .tcl putquick "mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks " | unset %nx.mass.nicks }
+            if ( %nx.mass.bot ) { msg %nx.mass.bot .tcl putquick "mode $2 %tmpmodes " | unset %nx.mass.nicks }
             else { echo -at No bots active or is channel operator }
           }
-          elseif ( %nx.mass.useopermode = 1 ) { nx.opmode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks | unset %nx.mass.nicks } 
-          elseif ( $me isop $chan ) { nx.mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks | unset %nx.mass.nicks } 
+          elseif ( %nx.mass.useopermode = 1 ) { nx.opmode $2 %tmpmodes | unset %nx.mass.nicks } 
+          elseif ( $me isop $chan ) { nx.mode $2 %tmpmodes | unset %nx.mass.nicks } 
           else { echo -at $me - You're not channel operator }
         }
         dec %nx.mass.num
       }
-      ; Finish off
+      ; Finish off the rest if any
       if ( %nx.mass.nicks ) {
+        var %tmpmodes $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks
+        if ( %massdebug == true ) { echo -at Massmode: Processing final batch of nicks for mode $p(%nx.mass.mode) }
         if ( %nx.mass.usebotnet = 1 ) {
           var %nx.mass.bot $nx.mass.pickbot
           if ( %nx.mass.bot ) { msg %nx.mass.bot .tcl putquick "mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$numtok(%nx.mass.nicks,32))) %nx.mass.nicks " | unset %nx.mass.nicks %nx.mass.usebotnet }
           else { echo -at No bots active or is channel operator }
         }
-        elseif ( %nx.mass.useopermode = 1 ) { nx.opmode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$modespl)) %nx.mass.nicks | unset %nx.mass.nicks } 
-        elseif ( $me isop $chan ) { nx.mode $2 $+($iif(%nx.mass.action = take,-,+),$str(%nx.mass.mode,$numtok(%nx.mass.nicks,32))) %nx.mass.nicks | unset %nx.mass.nicks }
+        elseif ( %nx.mass.useopermode = 1 ) { nx.opmode $2 %tmpmodes | unset %nx.mass.nicks } 
+        elseif ( $me isop $chan ) { nx.mode $2 %tmpmodes | unset %nx.mass.nicks }
         else { echo -at $me - You're not channel operator }
       }
     }

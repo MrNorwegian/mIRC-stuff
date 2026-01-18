@@ -44,13 +44,18 @@ alias nx.kick { nx.anti.excess !kick $1- }
 
 alias nx.ctcp { nx.anti.excess !ctcp $1- }
 alias nx.topic { nx.anti.excess !topic $1- }
-alias nx.whois { nx.anti.excess !whois $1- }
+alias nx.whois { 
+  nx.anti.excess !whois $1-
+  if (!%nx.whois.active) { set -u10 %nx.whois.active manual }
+}
 alias nx.who { nx.anti.excess !who $1- }
 alias nx.stats { nx.anti.excess !stats $1- }
 
 ; Nah trusting my ZNC :D
-alias nx.anti.excess { $1- }
-
+alias nx.anti.excess { 
+  if ( $2 ) { $1- }
+  else { echo -a Flood protection: Command $1 requires at least one argument. | halt }
+}
 ; No way this works right ? Trying to limit commands to 2 per second max and made this a little to fast but i think its ok
 ; My znc also limits my commands to it might help me so i didnt get to test this much
 ; Also might need to tweak the timers a bit more later or redo everything...

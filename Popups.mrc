@@ -162,7 +162,7 @@ menu Status {
 
 menu Nicklist {
   Info:/uwho $1
-  Whois:{ set %nx.echoactive.whois true | .timer_echoactive.whois 1 $numtok($1-,32) unset %nx.echoactive.whois | var %i $numtok($$1-,32) | while (%i) { nx.whois $gettok($$1-,%i,32) $gettok($$1-,%i,32) | dec %i } }
+  Whois:{ var %i $numtok($$1-,32) | while (%i) { nx.whois $gettok($$1-,%i,32) $gettok($$1-,%i,32) | dec %i } }
   Query:{ var %i $numtok($$1-,32) | while (%i) { query $gettok($$1-,%i,32) | dec %i } }
   -
   Control
@@ -180,12 +180,22 @@ menu Nicklist {
   .$iif(v isin $nickmode,Voice):{ nx.massmode voice $chan $$1- }
   .$iif(v isin $nickmode,Devoice):{ nx.massmode devoice $chan $$1- }
   .-
+  .$iif(I isincs $gettok($chanmodes,1,44),Add InvEx):{ set -u10 %nx.massmode.addr $$?" Mask number, 1=*!*i@h 2=*!*@h 3=*!*i@h.* 4=*!*@h.* " | nx.massmode invex $chan $$1- }
+  .$iif(I isincs $gettok($chanmodes,1,44),Rem InvEx):{ set -u10 %nx.massmode.addr $$?" Mask number, 1=*!*i@h 2=*!*@h 3=*!*i@h.* 4=*!*@h.* " | nx.massmode deinvex $chan $$1- }
+  .$iif(R isincs $gettok($chanmodes,1,44),Add ReOp):{ set -u10 %nx.massmode.addr $$?" Mask number, 1=*!*i@h 2=*!*@h 3=*!*i@h.* 4=*!*@h.* " | nx.massmode reop $chan $$1- }
+  .$iif(R isincs $gettok($chanmodes,1,44),Rem ReOp):{ set -u10 %nx.massmode.addr $$?" Mask number, 1=*!*i@h 2=*!*@h 3=*!*i@h.* 4=*!*@h.* " | nx.massmode dereop $chan $$1- }
+  .$iif(e isincs $gettok($chanmodes,1,44),Add Except):{ set -u10 %nx.massmode.addr $$?" Mask number, 1=*!*i@h 2=*!*@h 3=*!*i@h.* 4=*!*@h.* " | nx.massmode except $chan $$1- }
+  .$iif(e isincs $gettok($chanmodes,1,44),Rem Except):{ set -u10 %nx.massmode.addr $$?" Mask number, 1=*!*i@h 2=*!*@h 3=*!*i@h.* 4=*!*@h.* " | nx.massmode deexcept $chan $$1- }
+  .-
   .Remove all modes: { nx.masmode.deall user $chan $$1- }
+  -
   ; TODO Kick + ban
-  .Kick:{ set %nx.masskick.reason $?"Reason or emtpy for default" | nx.masskick kick $chan $$1- }
-  .Ban:{ nx.massban ban $chan $$1- }
-  .Unban:{ nx.massban unban $chan $$1- }
-  .KickBan:{ set %nx.masskick.reason $?"Reason or emtpy for default" | nx.massban ban $chan $$1- | nx.masskick kick $chan $$1- }
+  .KickBan
+  ..Kick:{ set %nx.masskick.reason $$?"Reason or emtpy for default" | nx.masskick kick $chan $$1- }
+  ..Ban:{ nx.massban ban $chan $$1- }
+  ..Unban:{ nx.massban unban $chan $$1- }
+  ..KickBan:{ set %nx.masskick.reason $?"Reason or emtpy for default" | nx.massban ban $chan $$1- | nx.masskick kick $chan $$1- }
+  -
   $iif(o isin $usermode,IrcOP Control)
   .$iif(q isin $nickmode,Owner):{ nx.massmode oper_owner $chan $$1- }
   .$iif(q isin $nickmode,DeOwner):{ nx.massmode oper_deowner $chan $$1- }

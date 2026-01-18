@@ -85,7 +85,6 @@ on ^1:notice:*:?:{
       }
     }
     elseif ( $nick == X ) { 
-
       ; Saving channels we have access to, this is used to check if we can msg x instead of mode in chans
       if ( $1 = Channels: ) {
         unset %nx.X.chans. [ $+ [ $network ] ]
@@ -295,6 +294,23 @@ on ^*:join:#:{
     if ( .users. !isin $gettok($address($nick,5),2,64) ) && ( ~ isin $gettok($gettok($address($nick,5),1,64),2,33) ) && ( $remove($gettok($gettok($address($nick,5),1,64),2,33),~) isin $nick ) {
       set -u900 %nx.mcz $addtok(%nx.mcz,$nick,32) 
     }
+
+    ; joinflood detection, count number joins in last 10 seconds in join variable and another for join\part
+    ; 4 joins in 10 sec or 2 join\part in 10 sec
+    if ( $istok(%nx.prot.jpflood,$chan,32) ) && ( $network == Dev ) && (!%nx.joinflood.protect. [ $+ [ $cid ] $+ [ $chan ] ] ) {
+      inc -u10 %nx.joinflood. $+ $cid $+ $chan
+     ; echo -a Debug Join flood count: %nx.joinflood. [ $+ [ $cid ] $+ [ $chan ] ] joins and %nx.partflood. [ $+ [ $cid ] $+ [ $chan ] ] join/parts in last 10 seconds.
+      if ( %nx.joinflood. [ $+ [ $cid ] $+ [ $chan ] ] >= 4 ) || ( %nx.partflood. [ $+ [ $cid ] $+ [ $chan ] ] >= 4 ) {
+        ; spamkickban $chan $nick Join flood
+        ; echo -a Debug Join flood detected: %nx.joinflood. [ $+ [ $cid ] $+ [ $chan ] ] joins and %nx.partflood. [ $+ [ $cid ] $+ [ $chan ] ] join/parts in last 10 seconds.
+        !mode $chan +Dm
+        ; set -u3600 %nx.joinflood.protect. $+ $cid $+ $chan 1
+        set %nx.jpflood.protect. $+ $cid $+ $chan 1
+        timer.jpflood.check.D. $+ $cid $+ $chan 0 10 who $chan d
+        echo -a Debug Join flood protection enabled on $chan
+      }
+    }
+
     nx.echo.joinpart join $chan $nick %nx.clonereport
   }
   halt
@@ -306,22 +322,34 @@ on ^*:part:#:{
     unset %nx.joined. $+ $cid $+ $chan
   }
   else {
-    ; echo -st $nick($chan,$nick).pnick $nick
-    ; TODO test if  pnick is a good replacement for the while loop, just need a unrealircd server to test +q+a+h
-    ; This setup is not checking % (helpop)
     ; IDEA, make a join\part flood protection
-    ; Not showing partmessage
+    ; Not showing partmessage <--- did i fix this ? 
     var %nx.onpart.modes ~,&,@,+
     var %nx.onpart.i $numtok(%nx.onpart.modes,44)
     while (%nx.onpart.i) { 
       if ( $nick($chan,$nick,$gettok(%nx.onpart.modes,%nx.onpart.i,44)) ) { var %nx.onpart.m $addtok(%nx.onpart.m,$gettok(%nx.onpart.modes,%nx.onpart.i,44),32) }
       dec %nx.onpart.i
     }
+
+    ; join\part flood detection
+    if ( $istok(%nx.prot.jpflood,$chan,32) ) && ( $network == Dev ) && (!%nx.partflood.protect. [ $+ [ $cid ] $+ [ $chan ] ] ) {
+      inc -u10 %nx.partflood. $+ $cid $+ $chan
+      ;echo -a Debug Join/Part flood count: %nx.partflood. [ $+ [ $cid ] $+ [ $chan ] ] join/parts in last 10 seconds.
+      if ( %nx.partflood. [ $+ [ $cid ] $+ [ $chan ] ] >= 2 ) {
+        ; spamkickban $chan $nick Join/Part flood
+        ; echo -a Debug Join/Part flood detected: %nx.partflood. [ $+ [ $cid ] $+ [ $chan ] ] join/parts in last 10 seconds.
+        !mode $chan +Dm
+        ; set -u3600 %nx.partflood.protect. $+ $cid $+ $chan 1
+        set %nx.jpflood.protect. $+ $cid $+ $chan 1
+        timer.jpflood.check.D. $+ $cid $+ $chan 0 10 who $chan d
+      }
+    }
+
     nx.echo.joinpart part $chan $nick($chan,$nick).pnick $1-
-  }
-  ; Reop if i'm thelast one without op in the channel
-  if ( $me !isop $chan ) && ( $nick($chan,0) <= 2 ) {
-    !hop $chan
+    ; Reop if i'm thelast one without op in the channel
+    if ( $me !isop $chan ) && ( $nick($chan,0) <= 2 ) {
+      !hop $chan
+    }
   }
   halt
 }
@@ -392,6 +420,7 @@ on ^1:text:*:?:{
   }
 
   ; TODO move this echo to echo alias? for theme
+  if ( $istok(%nx.whois.active,$nick,32) ) {  echo -t $nick Query opened at $date(ddd ddoo mmm yyyy hh:mmt) }
   echo -t $nick < $+ $nick $+ > $1-
   halt
 }
@@ -461,14 +490,14 @@ on 1:input:#:{
   ; empty for now
 }
 
-on *:open:?:{
+on ^1:open:?:{
   ; IDEA, echo time and date on open
   ; TODO, check if pr server $cid is working right
 
   ; check for own botnet or znc
   if ( $istok(%nx.botnet_ [ $+ [ $network ] ],$nick,32)) || ($left($nick,1) = $chr(42) ) { return }
   else {
-    var %nx.flood.query.ugh 3
+    var %nx.flood.query.ugh 2
     var %nx.flood.query.max 5
     var %nx.flood.query.godhelpme 10
     var %nx.flood.query.time 10
@@ -483,7 +512,7 @@ on *:open:?:{
     }
     elseif (%nx.flood.query. [ $+ [ $cid ] ] >= %nx.flood.query.max) {
       echo 4 -st Anti Query flood has blocked %nx.flood.query. $+ $cid query's, this time $nick
-      ignore -u60 $address($nick,2)
+      ignore -u120 $address($nick,2)
       .timer_nx.flood.query. $+ $cid 1 %nx.flood.query.time dec %nx.flood.query. $+ $cid
       close -m $nick
       ; Check for an usermode and see if i can set mode $me +something to prevent unauthed users to query me, it has to be pr server, ircu does not support this
@@ -495,11 +524,13 @@ on *:open:?:{
       close -m $nick
     }
     else {
-      set -u2 %nx.echoquery.whois. $+ $cid $+ . $+ $nick true
-      whois $nick $nick
+      set -u10 %nx.whois.active query $nick
+      echo -st Received query from $nick
+      nx.whois $nick $nick
       .timer_nx.flood.query. $+ $cid 1 %nx.flood.query.time dec %nx.flood.query. $+ $cid
     }
   }
+  return
 }
 
 ;ctcp 1:time:?:/ctcpreply $nick TIME $date(ddd ddoo mmm yyyy hh:mmt) ;| halt

@@ -139,7 +139,7 @@ raw *:*:{
 
   ; Stats K
   elseif ($event = 216) { nx.echo.snotice $2- | halt }
-  
+
   ; stats p
   elseif ($event = 217) { nx.echo.snotice $2- | halt }
 
@@ -215,8 +215,7 @@ raw *:*:{
   ; End of /gline list
   elseif ($event = 281) { return }
 
-  ; auto away
-  elseif ($event = 301) { return }
+
 
   ; external host
   elseif ($event = 302) { return }
@@ -238,43 +237,61 @@ raw *:*:{
   ; nick ident host * realname
   ; TODO, use %nx.echoquery.whois. $+ $cid $+ . $+ $nick
   ; replace -at with $window or something ? or a whole new echo line with elseif 
-  elseif ($event = 311) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $chr(45) | echo %nx.echo.color -at $2 is $+($3,@,$4-) | halt } | else { return } }
-  ; is identified for this nick
-  elseif ($event = 307) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 on $3- | halt } | else { return } }
-  ; nick is using modes
-  elseif ($event = 379) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt } | else { return } }
-  ; nick is connecting from
-  elseif ($event = 378) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt } | else { return } }
-  ; whois nick is on channel
-  elseif ($event = 319) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 on $3- | halt } | else { return } }
-  ; whois nick using server
-  elseif ($event = 312) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 using $3- | halt } | else { return } }
-  ; Is connected via the webircgateway
-  elseif ($event = 350) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $1 $5- | halt } | else { return } }
-  ; nick is an IRC opetator
-  elseif ($event = 313) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt } | else { return } }
-  ; nick is using Secure Connection
-  elseif ($event = 671) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt } | else { return } }
-  ; logged in as
-  elseif ($event = 330) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 is logged in as $3 | halt } | else { return } }
-  ; is a bot on "network"
-  elseif ($event = 335) { return }
-  ; is aviaible for help
-  elseif ($event = 310) { return }
-  ; nick "landcode" is connecting from "land"
-  elseif ($event = 344) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 $4- | halt } | else { return } }
-  ; nick is using ip with a reputation 
-  elseif ($event = 320) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt } | else { return } }
-  ; nick is using a secure connection
-  elseif ($event = 275) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt } | else { return } }
-  ; nick has client certificate
-  elseif ($event = 276) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt } | else { return } }
-  ; using host
-  elseif ($event = 338) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 is actually $3 $+($chr(91),$4,$chr(93)) | halt } | else { return } }
-  ; idle time
-  elseif ($event = 317) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2 has been idle for $duration($3) and signed on $duration($calc($ctime - $4)) ago ( $date($4,HH:mm:ss dd-mmm yyyy) ) | halt } }
-  ; End of whois
-  elseif ($event = 318) { if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | echo %nx.echo.color -at $chr(45) | halt } | else { return } }
+  if ( %nx.whois.active ) {
+
+    ; Start of whois
+    if ( $gettok(%nx.whois.active,1,32) == manual ) { set -u10 %whois.window -at }
+    elseif ( $gettok(%nx.whois.active,1,32) == query ) { set -u10 %whois.window -t $gettok(%nx.whois.active,2,32) }
+    else { set -u10 %whois.window -st }
+
+    ; nick ident host * realname
+    if ($event = 311) { echo %nx.echo.color %whois.window $chr(45) | echo %nx.echo.color %whois.window $2 is $+($3,@,$4-) }
+    ; is identified for this nick
+    elseif ($event = 307) { echo %nx.echo.color %whois.window $2 on $3- }
+    ; away
+    elseif ($event = 301) { echo %nx.echo.color %whois.window $2 is away: $3- }
+    ; nick is using modes
+    elseif ($event = 379) { echo %nx.echo.color %whois.window $2- }
+    ; nick is connecting from
+    elseif ($event = 378) { echo %nx.echo.color %whois.window $2- }
+    ; whois nick is on channel
+    elseif ($event = 319) { echo %nx.echo.color %whois.window $2 on $3- }
+    ; whois nick using server
+    elseif ($event = 312) { echo %nx.echo.color %whois.window $2 using $3- }
+    ; Is connected via the webircgateway
+    elseif ($event = 350) { echo %nx.echo.color %whois.window $1 $5- }
+    ; nick is an IRC opetator
+    elseif ($event = 313) { echo %nx.echo.color %whois.window $2- }
+    ; nick is using Secure Connection
+    elseif ($event = 671) { echo %nx.echo.color %whois.window $2- }
+    ; logged in as
+    elseif ($event = 330) { echo %nx.echo.color %whois.window $2 is logged in as $3 }
+    ; is a bot on "network"
+    elseif ($event = 335) { echo %nx.echo.color %whois.window $2- }
+    ; is aviaible for help
+    elseif ($event = 310) { echo %nx.echo.color %whois.window $2- }
+    ; nick "landcode" is connecting from "land"
+    elseif ($event = 344) { echo %nx.echo.color %whois.window $2- }
+    ; nick is using ip with a reputation 
+    elseif ($event = 320) { echo %nx.echo.color %whois.window $2- }
+    ; nick is using a secure connection
+    elseif ($event = 275) {  echo %nx.echo.color %whois.window $2- }
+    ; nick has client certificate
+    elseif ($event = 276) { echo %nx.echo.color %whois.window $2- }
+    ; using host
+    elseif ($event = 338) { echo %nx.echo.color %whois.window $2 is actually $3 $+($chr(91),$4,$chr(93)) }
+    ; idle time
+    elseif ($event = 317) { echo %nx.echo.color %whois.window $2 has been idle for $duration($3) and signed on $duration($calc($ctime - $4)) ago ( $date($4,HH:mm:ss dd-mmm yyyy) ) }
+    ; End of whois
+    elseif ($event = 318) {
+      echo %nx.echo.color %whois.window $2-
+      echo %nx.echo.color %whois.window $chr(45)
+      unset %nx.whois.active
+    }
+    halt
+  }
+  ;  away ; This is also innside whois above
+  elseif ($event = 301) { return }
 
   ; topline of /list "Channel Users Name"
   elseif ($event = 321) { return }
@@ -312,6 +329,13 @@ raw *:*:{
 
   ; invex list
   elseif ($event = 346) { return }
+  ; end of invex list
+  elseif ($event = 347) { return }
+
+  ; except list
+  elseif ($event = 348) { return }
+  ; end of except list
+  elseif ($event = 349) { return }
 
   ; server info (OS etc)
   ; RAW 351 <nick> <Server version 1.2.3>. <Servername> Fhn6OoErmM [uname -a ??]
@@ -334,6 +358,7 @@ raw *:*:{
       else { halt }
     }
 
+    ; ial update stuff to be finished later
     elseif ( %nx.joined. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) || ( %nx.ialupdate. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) { 
       inc -u10 %nx.ialchanusers. $+ $cid $+ $2
       ; Check if nick is ircop and color it (for nicklist)
@@ -381,6 +406,9 @@ raw *:*:{
   ; end of /names
   elseif ($event = 354) { return }
 
+  ; /names -d list ( ircu )
+  elseif ($event = 355) { return }
+
   ; #chan End of /NAMES list
   elseif ($event = 366) { return }
 
@@ -414,7 +442,7 @@ raw *:*:{
   ; /links list
   elseif ($event = 364) { 
     write links $+ $network $+ .db $2 $3
-    
+
     return 
   }
   ; end of /links list
@@ -438,11 +466,8 @@ raw *:*:{
   ; is now your displayed host
   elseif ($event = 396) { return }
 
-  ; no souch nick ( $2 )
-  elseif ($event = 401) { 
-    if ( %nx.echoactive.whois = true ) { echo %nx.echo.color -at $2- | halt }
-    else { return }
-  }
+  ; no such nick ( $2 )
+  elseif ($event = 401) { return }
 
   ; No such channel
   elseif ($event = 403) { return }
@@ -487,7 +512,7 @@ raw *:*:{
 
   ; Nick #channel They aren't on that channel
   elseif ($event = 441) { return }
- 
+
   ; You're not on that channel
   elseif ($event = 442) { return }
 
