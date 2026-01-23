@@ -64,7 +64,7 @@ alias nx.massmode {
             else { echo -at No bots active or is channel operator }
           }
           elseif ( %nx.mass.useopermode = 1 ) { nx.opmode $2 %tmpmodes | unset %nx.mass.nicks } 
-          elseif ( $me isop $chan ) { nx.mode $2 %tmpmodes | unset %nx.mass.nicks } 
+          elseif ( $me isop $2 ) { nx.mode $2 %tmpmodes | unset %nx.mass.nicks } 
           else { echo -at $me - You're not channel operator }
         }
         dec %nx.mass.num
@@ -79,7 +79,7 @@ alias nx.massmode {
           else { echo -at No bots active or is channel operator }
         }
         elseif ( %nx.mass.useopermode = 1 ) { nx.opmode $2 %tmpmodes | unset %nx.mass.nicks } 
-        elseif ( $me isop $chan ) { nx.mode $2 %tmpmodes | unset %nx.mass.nicks }
+        elseif ( $me isop $2 ) { nx.mode $2 %tmpmodes | unset %nx.mass.nicks }
         else { echo -at $me - You're not channel operator }
       }
     }

@@ -22,13 +22,14 @@ Menu Channel {
   Channel Modes:/channel
   NX Channel Central:/nx.cc $chan
   -
-  Mass
-  .voice:{ massv2 $chan voice $iif($?"Enter a number nothing for all" > 0,$v1,$nick($chan,0)) }
-  .devoice:{ massv2 $chan devoice $iif($?"Enter a number nothing for all" > 0,$v1,$nick($chan,0)) }
+  Modes
+  .Voice ALL:{ massv2 $chan voice $iif($?"Enter a number nothing for all" > 0,$v1,$nick($chan,0)) }
+  .DeVoice ALL:{ massv2 $chan devoice $iif($?"Enter a number nothing for all" > 0,$v1,$nick($chan,0)) }
+  .List Delayed users:{ set -u10 %checkfordelayed $chan | nx.who $chan d }
+  .Voice Delayed users: { set -u10 %checkforvoicedelayed $chan | nx.who $chan d }
+  ; Todo:
+  ;.Clearmode ALL,chanmodes,chanop\voice,banlist,exceptlist,reoplist,invexlist
   -
-  ; TODO clearmode (with botnet or ircop + uworld\operserv?)
-  -
-
   DuckHunt
   .1 Extra bullet(7xp):{ say !shop 1 }
   .2 Extra clip (20 xp):{ say !shop 2 }
@@ -78,7 +79,6 @@ Menu Channel {
   Rejoin:/hop $1
   Part:/part $chan
   -
-  List Delayed users:{ set -u5 %checkfordelayed $chan | nx.who $chan d }
 }
 menu Status {
   Lusers:/lusers

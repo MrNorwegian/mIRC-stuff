@@ -16,6 +16,7 @@ raw *:*:{
     if ( $hget(settings_,$+ $cid) = $null ) {
       hmake settings_ $+ $cid 100  
     }
+    return
   }
   ; Your host is SERVERNAME, running version SERVERVERSION
   elseif ($event = 002) { 
@@ -55,22 +56,40 @@ raw *:*:{
         if ( $istok($nx.db(read,settings,ircd,solanum),$network,32) ) { return }
         else { nx.db write settings ircd solanum $addtok($nx.db(read,settings,ircd,solanum),$network,32) | return }
       }
-      else { return }
       ; TODO add bircd,InspIRCd-3,and others
       ; solanum (libera)
-      else { return }
     }
+    return
   }
 
-  ; Server created - Server info - modes supported
+  ; Server created - Server info 
   elseif ($event = 003) { return }
-  elseif ($event = 004) { return }
+  ; name, version, usermodes, chanmodes
+  elseif ($event = 004) { 
+    ;hadd settings_ $+ $cid servername $2
+    hadd settings_ $+ $cid usermodes $4
+    ;hadd settings_ $+ $cid chanmodes $5
+    return
+  }
   ; disabled this, need to save this in hashtabls instead of variables
   elseif ($event = 005) { 
     ; ircu2:
     ; WHOX WALLCHOPS WALLVOICES USERIP CPRIVMSG CNOTICE SILENCE=25 MODES=6 MAXCHANNELS=50 MAXBANS=100 NICKLEN=12 are supported by this server
     ; MAXNICKLEN=15 TOPICLEN=160 AWAYLEN=160 KICKLEN=160 CHANNELLEN=200 MAXCHANNELLEN=200 CHANTYPES=#& PREFIX=(ov)@+ STATUSMSG=@+ CHANMODES=b,k,l,imnpstrDdRcCPM CASEMAPPING=rfc1459 NETWORK=MyNetwork are supported by this server
+
+    ; solanum
+    ; ACCOUNTEXTBAN=a FNC MONITOR=100 KNOCK ETRACE SAFELIST ELIST=CMNTU CALLERID=g WHOX CHANTYPES=# EXCEPTS INVEX are supported by this server
+    ; CHANMODES=eIbq,k,flj,ACFLOPQTcgimnprstz CHANLIMIT=#:30 PREFIX=(ov)@+ MAXLIST=bqeI:300 MODES=4 NETWORK=EvilNET STATUSMSG=@+ CASEMAPPING=rfc1459 NICKLEN=15 MAXNICKLEN=31 CHANNELLEN=50 TOPICLEN=390 are supported by this server
+
+    ; unrealircd
+    ;ACCOUNTEXTBAN=account,a AWAYLEN=307 BOT=B CASEMAPPING=ascii CHANLIMIT=#:100 CHANMODES=beI,fkL,lFH,cdimnprstzCDGKMNOPQRSTVZ CHANNELLEN=32 CHANTYPES=# CHATHISTORY=50 CLIENTTAGDENY=*,-draft/typing,-typing,-draft/channel-context,-draft/reply DEAF=d ELIST=MNUCT are supported by this server
+    ;EXCEPTS EXTBAN=~,acfijmnpqrtACFGOST INVEX KICKLEN=307 KNOCK MAP MAXLIST=b:60,e:60,I:60 MAXNICKLEN=30 MINNICKLEN=0 MODES=12 MONITOR=128 MSGREFTYPES=msgid,timestamp are supported by this server
+    ;NAMELEN=50 NAMESX NETWORK=TundraIRC NICKLEN=30 PREFIX=(qaohv)~&@%+ QUITLEN=307 SAFELIST SILENCE=15 STATUSMSG=~&@%+ TARGMAX=DCCALLOW:,ISON:,JOIN:,KICK:4,KILL:,LIST:,NAMES:1,NOTICE:1,PART:,PRIVMSG:4,SAJOIN:,SAPART:,TAGMSG:1,USERHOST:,USERIP:,WATCH:,WHOIS:1,WHOWAS:1 TOPICLEN=360 UHNAMES are supported by this server
+    ;USERIP WALLCHOPS WATCH=128 WATCHOPTS=A WHOX are supported by this server
+
     if ($gettok($wildtok($1-,WHOX,1,32),2,61)) { hadd settings_ $+ $cid whox $gettok($wildtok($1-,WHOX,1,32),2,61) }
+    if ($gettok($wildtok($1-,INVEX,1,32),2,61)) { hadd settings_ $+ $cid whox $gettok($wildtok($1-,INVEX,1,32),2,61) }
+
     if ($gettok($wildtok($1-,MAXNICKLEN=?*,1,32),2,61)) { hadd settings_ $+ $cid nicklen $gettok($wildtok($1-,MAXNICKLEN=?*,1,32),2,61) }
     if ($gettok($wildtok($1-,TOPICLEN=?*,1,32),2,61)) { hadd settings_ $+ $cid topiclen $gettok($wildtok($1-,TOPICLEN=?*,1,32),2,61) }
     if ($gettok($wildtok($1-,AWAYLEN=?*,1,32),2,61)) { hadd settings_ $+ $cid awaylen $gettok($wildtok($1-,AWAYLEN=?*,1,32),2,61) }
@@ -97,8 +116,8 @@ raw *:*:{
   elseif ($event = 018) { nx.echo.snotice $2- | halt }
   elseif ($event = 007) { nx.echo.snotice $2- | halt }
 
-  ; naka^ +bcdfkoqsBOS Server notice mask
-  elseif ($event = 8) { nx.echo.snotice $1- | halt }
+  ; mynick +bcdfkoqsBOS Server notice mask
+  elseif ($event = 008) { nx.echo.snotice $1- | halt }
 
   ; /map return (ircu)
   ; End of /map (ircu)
@@ -237,10 +256,12 @@ raw *:*:{
   ; nick ident host * realname
   ; TODO, use %nx.echoquery.whois. $+ $cid $+ . $+ $nick
   ; replace -at with $window or something ? or a whole new echo line with elseif 
+  ; %nx.mcz
   if ( %nx.whois.active ) {
 
     ; Start of whois
     if ( $gettok(%nx.whois.active,1,32) == manual ) { set -u10 %whois.window -at }
+    elseif ( $gettok(%nx.whois.active,1,32) == multiple ) { set -u10 %whois.window -at }
     elseif ( $gettok(%nx.whois.active,1,32) == query ) { set -u10 %whois.window -t $gettok(%nx.whois.active,2,32) }
     else { set -u10 %whois.window -st }
 
@@ -282,11 +303,18 @@ raw *:*:{
     elseif ($event = 338) { echo %nx.echo.color %whois.window $2 is actually $3 $+($chr(91),$4,$chr(93)) }
     ; idle time
     elseif ($event = 317) { echo %nx.echo.color %whois.window $2 has been idle for $duration($3) and signed on $duration($calc($ctime - $4)) ago ( $date($4,HH:mm:ss dd-mmm yyyy) ) }
-    ; End of whois
+    ; End of whois list
     elseif ($event = 318) {
       echo %nx.echo.color %whois.window $2-
       echo %nx.echo.color %whois.window $chr(45)
-      unset %nx.whois.active
+      ; %nx.whois.active manual 3 means its whoising 3 nicks and we'll dec the value 
+      if ( $gettok(%nx.whois.active,1,32) == multiple ) {
+        set -u120 %nx.whois.active $gettok(%nx.whois.active,1,32) $calc($gettok(%nx.whois.active,2,32) - 1)
+        ; is it the last one ?
+        if ($gettok(%nx.whois.active,2,32) <= 0) {
+          unset %nx.whois.active %whois.window
+        }
+      }
     }
     halt
   }
@@ -349,7 +377,7 @@ raw *:*:{
     }
     ; Event: 352 Text: mynick #channel ~ident host.no *.undernet.org nick H< 3 Realname
     ; check for delayed joins 
-    if ( %checkfordelayed == $2 ) {
+    if ( %checkfordelayed == $2 ) || ( %checkforvoicedelayed == $2) {
       if ( $iif($chr(60) isin $7,true,false) = true ) {
         ; echo 8 -at Delayed clinets in $2: $7 $6 $+($3,@,$4) 
         set %nx.delayed. [ $+ [ $cid ] ] [ $+ [ $2 ] ] $addtok(%nx.delayed. [ $+ [ $cid ] ] [ $+ [ $2 ] ],$6,32)
@@ -363,6 +391,11 @@ raw *:*:{
       inc -u10 %nx.ialchanusers. $+ $cid $+ $2
       ; Check if nick is ircop and color it (for nicklist)
       if (* isin $7) {
+        if (!$istok($hget(settings_,$+ $cid opers),$6,32)) {
+          hadd settings_ $+ $cid opers $addtok($hget(settings_,$+ $cid opers),$6,32)
+        }
+
+        ; Loop all channels and mark the client as ircop in nicklist
         var %t = $comchan($6,0), %c = 1
         while (%c <= %t) {
           ; Here, echo "Nick just opered ???"
@@ -371,6 +404,11 @@ raw *:*:{
           inc %c    
         }
       }
+      ; mynick #chanenel ~ident host server nick modes hop realname
+      ; Checking for onjoin spammers
+      if ( $left($3,1) == ~ ) && ( $remove($3,~) == $nick ) && ( *.users.undernet.org !iswm $4 ) && ( $9 == ... ) {
+        echo 4 -st Possible spamuser detected in $2 - nick: $6 is $+($3,@,$4) realname: $10-
+      }
       halt
     }
     else { return }
@@ -378,25 +416,23 @@ raw *:*:{
 
   ; End of /who
   elseif ($event = 315) {
-    if ( %checkfordelayed == $2 ) {
-      unset %checkfordelayed
-      if ( %nx.delayed. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) {
-        echo 8 -at Delayed clients: %nx.delayed. [ $+ [ $cid ] ] [ $+ [ $2 ] ] 
-        unset %nx.delayed. [ $+ [ $cid ] ] [ $+ [ $2 ] ] 
-      }
+    if ( %nx.delayed. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) {
+      if ( %checkfordelayed == $2 ) { echo 8 -at Delayed clients: %nx.delayed. [ $+ [ $cid ] ] [ $+ [ $2 ] ] }
+      if ( %checkforvoicedelayed == $2 ) { nx.massmode voice $2 %nx.delayed. [ $+ [ $cid ] ] [ $+ [ $2 ] ] }
+      unset %nx.delayed. [ $+ [ $cid ] ] [ $+ [ $2 ] ]
+      unset %checkfordelayed %checkforvoicedelayed
       halt
     }
     if ( %nx.ialupdate. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) { 
       unset %nx.ialupdate. $+ $cid $+ $2
       halt
-    } 
+    }
     elseif ( %nx.joined. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) {
       echo 12 -st Updated IAL for $2 with %nx.ialchanusers. [ $+ [ $cid ] ] [ $+ [ $2 ] ] users.
       unset %nx.joined. $+ $cid $+ $2 | unset %nx.ialchanusers. $+ $cid $+ $2 
       halt
     }
     ; Manual /who request, do nothing for now
-    else { return }
     return
   }
 

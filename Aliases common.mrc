@@ -1,5 +1,8 @@
 ; Starting with theme stuff, this is going to be moved to own file later
 alias p { return $+($chr(40),$1-,$chr(41)) }
+; alias for -
+alias dash { return $+($chr(45),$1-,$chr(45)) }
+alias p1 { return $+($chr(60),$1-,$chr(62)) }
 
 ; Common aliases for echoing stuff
 alias nx.echo.info { echo 5 -at $1- }
@@ -26,17 +29,39 @@ alias nx.echo.joinpart {
 }
 
 ; This is not finshed yet, need to figure out how to color ircops and op\voice + add unrealircd modes
-alias nx.echo.chanmsg {
-  var %pnick $nick($2,$3).pnick
+; TODO make new name for this alias later
+alias dev.chkmodes {
   if ( ~ isin %pnick ) { var %modecolor $cnick(~).color }
   elseif ( & isin %pnick ) { var %modecolor $cnick(&).color }
   elseif ( @ isin %pnick ) { var %modecolor $cnick(@).color }
   elseif ( + isin %pnick ) { var %modecolor $cnick(+).color }
   else { var %modecolor $null }
-  echo -t $+ $1 $2 $+(<,,%modecolor,,$cnick(%pnick).color,%pnick,,>) $4-
-  window -g1 $2
+  return %modecolor
+}
+; ctime chan nick message
+alias nx.echo.chanmsg {
+  var %pnick $iif($3 == $server, $server, $nick($2,$3).pnick)
+  var %modecolor $dev.chkmodes($2,$3)
+  if ( %nx.highlight.active ) { var %c 4 | unset %nx.highlight.active | window -g2 $2 }
+  else { window -g1 $2 }
+  echo %c -t $+ $1 $2 $+(<,,%modecolor,,$cnick(%pnick).color,%pnick,,>) $4-
+  
+}
+alias nx.echo.chanaction {
+  var %pnick $iif($3 == $server, $server, $nick($2,$3).pnick)
+  var %modecolor $dev.chkmodes($2,$3)
+  if ( %nx.highlight.active ) { var %c 4 | unset %nx.highlight.active | window -g2 $2 }
+  else { var %c 6 | window -g1 $2 }
+  echo %c -t $+ $1 $2 * %pnick $4- 
 }
 
+alias nx.echo.channotice {
+  var %pnick $iif($3 == $server, $server, $nick($2,$3).pnick)
+  var %modecolor $dev.chkmodes($2,$3)
+  if ( %nx.highlight.active ) { var %c 4 | unset %nx.highlight.active | window -g2 $2 }
+  else { var %c %nx.thm.nc | window -g1 $2 }
+  echo %c -t $+ $1 $2 $dash(Chan notice %pnick) $4-
+}
 ; ZNC *buffextras stuff
 alias nx.echo.mode { echo 3 -t $+ $1 $2 * $3 sets mode: $4- }
 alias nx.echo.nick { echo 3 -t $+ $1 $2 * $3 is now known as $4 }
@@ -52,11 +77,11 @@ alias nx.echo.quit {
 
 ; Flood limit this incase of flood attack, also consider echo to a own "notice window" or to a status window in addition to echo to active window
 alias nx.echo.notice { 
-  if ( %nx.notice.status ) { echo 40 -st $+(-,$nick,-) $1- | unset %nx.notice.status }
-  elseif ( %nx.notice.active ) { echo 40 -at $+(-,$nick,-) $1- }
-  elseif ( $active = Status Window ) { echo 40 -st $+(-,$nick,-) $1- }
+  if ( %nx.notice.status ) { echo %nx.thm.nc -st $p(Priv Notice) - $nick $+ : $1- | unset %nx.notice.status }
+  elseif ( %nx.notice.active ) { echo %nx.thm.nc -at $p(Priv Notice) - $nick $+ : $1- | unset %nx.notice.active }
+  elseif ( $active = Status Window ) { echo %nx.thm.nc -st $p(Priv Notice) - $nick $+ : $1- }
   ; TODO, need to check if notice is not in active network or something, now if echo is on same network it goes to else
-  else { echo 40 -at $+(-,$nick @ $network,-) $1- | echo 40 -st $+(-,$nick,-) $1- }
+  else { echo %nx.thm.nc -at $p(Priv Notice) - $nick @ $network $+ : $1- | echo %nx.thm.nc -st $p(Priv Notice) - $nick $+ : $1- }
 }
 
 alias nx.echo.snotice {
@@ -80,6 +105,25 @@ alias nx.echo.wallops {
   elseif ( $window($+(@,$network,_,$cid,_,status)) ) { echo 10 -t $+(@,$network,_,$cid,_,status) WALLOPS: $1- }
   else { echo 10 -st WALLOPS: $1- }
 }
+
+; $1 = chan, $2 = nick, $3- = message
+alias nx.handle.highlight {
+  if ($istok(%nx.highlight.ignore_chans,$1,32)) { return }
+  var %n $numtok(%nx.highlight.nicks,32)
+  while (%n) {
+    var %tn $gettok(%nx.highlight.nicks,%n,32)
+    if ( $istok($remove($3-,:),%tn,32) ) {
+      if ( $1 != $active ) { 
+        window -g2 $1
+        echo 4 -at *** Highlight from $p($address($2,5) @ $network) in $1 $+ : $3-
+      }
+      set -u1 %nx.highlight.active true
+    }
+    dec %n
+  }
+}
+
+
 alias nx.specialday {
   var %d = $asctime(ddmm)
   if (%d == 0101) { return Happy new year! }
@@ -204,12 +248,30 @@ alias nx.ialupdate {
   var %c $chan(0), %i 1, %t 2
   while ( $chan(%i) ) {
     set -u60 %nx.ialupdate. $+ %cid $+ $chan(%i) 1
-    .timer_ial_update_ $+ %cid $+ $chan(%i) 1 $iiF($2,$2,%t) .who $chan(%i) 
+    .timer_ial_update_ $+ %cid $+ $chan(%i) 1 $iiF($2,$2,%t) .nx.who $chan(%i) 
     inc %i
     if (!$2) { inc %t 2 }
   }
 }
-
+; save hashtable to .ini file 
+alias nx.ht.save {
+  if ($1) && ($2) {
+    if ($hget($1)) {
+      hsave -i $1 $2 $1 
+    }
+  }
+  else { echo 4 -a nx.ht.save: Missing parameters. - Usage: nx.ht.save <hashtable> <filename> }
+}
+alias nx.ht.load {
+  if ($1) && ($2) {
+    if ($isfile($2)) {
+      if ($hget($1)) { hfree $1 }
+      hload -m100i $1 $2 $1
+    }
+    else { echo 4 -a nx.ht.load: File $2 does not exist. }
+  }
+  else { echo 4 -a nx.ht.load: Missing parameters. - Usage: nx.ht.load <hashtable> <filename> }
+}
 alias nx.db {
   ; $nx.db(read,settings,operchans,$network)
   ; /nx.db write settings operchans $network #chan1 #chan2 #chan3
@@ -238,14 +300,7 @@ alias nx.db {
     else { remini $+($2,.ini) $iif($3,$3) $iif($4,$4) }
   }
 }
-alias w { set -u2 %nx.echoactive.whois true | nx.whois $1- }
-alias j { nx.join $1- }
-alias p { nx.part $1- }
-alias n { names $$1 }
-alias q { query $$1 }
-alias k { kick $chan $$1 $2- }
-alias s { server $$1- }
-alias c { close -t $$1 }
+
 alias chat { dcc chat $$1 }
 alias ping { ctcp $$1 ping }
 

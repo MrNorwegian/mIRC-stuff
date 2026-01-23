@@ -26,6 +26,7 @@ alias kick { nx.kick $1- }
 
 alias ctcp { nx.ctcp $1- }
 alias topic { nx.topic $1- }
+alias w { nx.whois $1- }
 alias whois { nx.whois $1- }
 alias who { nx.who $1- }
 alias stats { nx.stats $1- }
@@ -45,8 +46,22 @@ alias nx.kick { nx.anti.excess !kick $1- }
 alias nx.ctcp { nx.anti.excess !ctcp $1- }
 alias nx.topic { nx.anti.excess !topic $1- }
 alias nx.whois { 
-  nx.anti.excess !whois $1-
-  if (!%nx.whois.active) { set -u10 %nx.whois.active manual }
+  ;if (!%nx.whois.active) { set -u10 %nx.whois.active manual ;}
+  if ( $1 ) {
+    var %numnicks $numtok($1-,44), %i 1
+    set -u120 %nx.whois.active multiple %numnicks
+    ; Check for multiple nicks separated by ,
+    while ( %i <= %numnicks ) {
+      var %tmpnick $gettok($1-,%i,44)
+      ; Check if we want to check idletime (dubble nick)
+      if ( $gettok(%tmpnick,1,32) == $gettok(%tmpnick,2,32) ) {
+        nx.anti.excess !whois %tmpnick
+      }
+      else { nx.anti.excess !whois %tmpnick }
+      inc %i
+    }
+  }
+  ; nx.anti.excess !whois $1-
 }
 alias nx.who { nx.anti.excess !who $1- }
 alias nx.stats { nx.anti.excess !stats $1- }

@@ -14,6 +14,8 @@ on 1:connect:{
 on 1:disconnect:{
   unset %anexid_ [ $+ [ $cid ] ]
   unset %nx.flood.query. [ $+ [ $cid ] ]
+  hfree settings_ $+ $cid 
+  .timer_ialupdate_ $+ $cid off
 }
 
 on 1:exit:{
@@ -21,41 +23,27 @@ on 1:exit:{
 
   nx.ht.save znc znc.ini znc
 }
-; save hashtable to .ini file 
-alias nx.ht.save {
-  if ($1) && ($2) {
-    if ($hget($1)) {
-      hsave -i $1 $2 $1 
-    }
-  }
-  else { echo 4 -a nx.ht.save: Missing parameters. - Usage: nx.ht.save <hashtable> <filename> }
-}
-alias nx.ht.load {
-  if ($1) && ($2) {
-    if ($isfile($2)) {
-      if ($hget($1)) { hfree $1 }
-      hload -m100i $1 $2 $1
-    }
-    else { echo 4 -a nx.ht.load: File $2 does not exist. }
-  }
-  else { echo 4 -a nx.ht.load: Missing parameters. - Usage: nx.ht.load <hashtable> <filename> }
-}
 
+; Work in progress
 on 1:tabcomp:*:{
-  if ( $1 == /nick ) { echo -a Syntax: /nick <newnick> }
-  elseif ( $1 == /mode ) {
-    echo -a Syntax: /mode <#channel|nick> <modes> [params]
-    ; Get modes from ISUPPORT i have to make later in raw.mrc
-    ; echo -a Modes:
+  var %cmds+args = $left($editbox($active),$editbox($active).selstart)
+  var %numargs = $count(%cmds+args,$chr(32)) + 1
+  var %lastarg = $gettok($editbox($active),%numargs,32)
+
+  var %arg $+(/,$remove($1,/))
+
+  if ( %arg == /nick ) { echo -at Syntax: %arg <newnick> - max $hget(settings_ [ $+ [ $cid ] ],nicklen) characters. }
+  elseif ( %arg == /mode ) {
+    if ( %lastarg == + ) { 
+      if ( $2 == $me ) { echo -at Syntax: %arg <nick> <umodes> [params] - Available user modes $hget(settings_ [ $+ [ $cid ] ],usermodes) }
+      elseif ( $2 ischan ) { echo -at Syntax: %arg <#channel> <modes> [params] - Available channel modes $hget(settings_ [ $+ [ $cid ] ],chanmodes) }
+    }
   }
-  ; Provide syntax help for /who command, flags is from ircv3
-  if ( $1 == /who ) {
-    echo -a Syntax: /who <#channel|mask> <%flags>
-    echo -a Flags: nuhsrdlqcxogvt
-  }
+
+  ; whox 
+  elseif ( %arg == /who ) { return }
 }
 on ^1:notice:*:?:{
-  var %nx.notice.cid $cid
   if ($istok(%nx.services.bots,$nick,32)) {
     ; TODO Check if it's really nickserv (hostname)
     if ($nick = NickServ) {
@@ -114,12 +102,12 @@ on ^1:notice:*:?:{
   } 
   ; Set a temporary password to new eggdrops
   elseif ( $1-9 = As master you really need to set a password: ) && ( $istok(%nx.botnet_ [ $+ [ $network ] ],$nick,32) ) { 
-    .timer_autosetpass_ $+ $nick 1 2 msg $nick pass %nx.botnet_password 
+    .timer_autosetpass_ $+ $nick 1 2 .msg $nick pass %nx.botnet_password 
     nx.echo.notice $1-
     halt
   }
   ; ignore znc attached from notices
-  ; [12:56:32] *** naka detached from 1.2.3.4
+  ; [12:56:32] *** zncuser detached from 1.2.3.4
   elseif ( $nick == *status ) && (( $3 == attached ) || ( $3 == detached )) { 
     if ( $3 == attached ) && ($network == UnderNet) {
       ; Ensure hash exists
@@ -157,19 +145,23 @@ on ^1:notice:*:?:{
     halt
   }
   ; Check if nick is eg idlerpg and echo only to status window 
-  elseif ( $istok(%nx.echo.status.nicks,$nick,32) ) { set -u1 %nx.notice.status true | nx.echo.notice $1- | halt }
-  else { nx.echo.notice $1- | halt }
+  if ( $istok(%nx.echo.status.nicks,$nick,32) ) { set -u1 %nx.notice.status true | nx.echo.notice $1- | halt }
+
+  ; check if nick is on the active channel
+  if ( $nick ison $active ) { set -u1 %nx.notice.active true | nx.echo.notice $1- }
+  else { nx.echo.notice $1- }
+  halt
 }
 
 ; Script from genthic, might modify this later
-on *:NOTICE:*:#:{
+on ^1:NOTICE:*:#:{
   if ( $istok(%nx.genethic.channels,$chan,32) ) {
     if ( $me $+ ?requested?DCC??code?is iswm $2-6 ) {
       .timerDCC1 4 1 .echo = $+ $nick mIRC Script: Please wait, your password will be sent to the session in a few seconds
       .timerDCC2 1 5 .msg = $+ $nick $7
     }
   }
-  if ( $istok(#Toronto,$chan,32) ) && ( $nick !isop $chan ) { 
+  if ( $istok(%nx.flood.protected.channels,$chan,32) ) && ( $nick !isop $chan ) { 
     if (!$istok(%nx.spammode.rm,$chan,44)) {
       if ( $me isop $chan ) { mode $chan +rm }
       else { .!msg x mode $chan +rm }
@@ -178,6 +170,8 @@ on *:NOTICE:*:#:{
     spamkickban $chan $nick Spam
     .timer.tor.unmode 1 $calc(60*30) msg x mode $chan -rm
   }
+  nx.echo.channotice $ctime $chan $iif($nick,$nick,$iif($server,$server,Unknown)) $1-
+  halt
 }
 on ^1:SNOTICE:*:{ nx.echo.snotice $1- | halt }
 on ^1:WALLOPS:*:{ nx.echo.wallops $1- | halt }
@@ -269,14 +263,14 @@ on ^*:join:#:{
       }
       inc %c
     }
+    var %nx.tmp.ident $gettok($gettok($address($nick,5),1,64),2,33)
     ; auto gline on baitchannel 
     if ( $nx.db(read,settings,opernet,$network) ) && ( $chan == #bait-channel.do.not.join.you.will.be.glined ) {
       ; Check if nick is not me and not in first operchan in settings
       if ( $nick != $me ) && ( $nick !ison $gettok($nx.db(read,settings,operchans,$network),1,32) ) {
         ; Check if ~ isin ident and user is not authed and ident is not nick
-        var %nx.ag.ident $gettok($gettok($address($nick,5),1,64),2,33)
         var %nx.ag.host $gettok($address($nick,5),2,64)
-        if ( ~ isin %nx.ag.ident ) && ( .users. !isin %nx.ag.host) && ( $nick !isin %nx.ag.ident ) {
+        if ( ~ isin %nx.tmp.ident ) && ( .users. !isin %nx.ag.host) && ( $nick !isin %nx.tmp.ident ) {
           ; Check if host is ip, else do userip and msg uworld in raws.mrc
           if ( $iptype(%nx.ag.host) == ipv4 ) { echo -st <Auto Gline> $address($nick,5) - User joined bait-channel | .msg uworld forcegline $+(*@,%nx.ag.host) 8d Auto glined, bye bye! }
           else { set -u10 %nx.ag. $+ $nick 1 | userip $nick }
@@ -285,21 +279,21 @@ on ^*:join:#:{
     }
     ; This is part of antispam (bot joining and spamming about a girl with a phone number and stuff)
     ; First a anoying dude....
-    if ( ariciu isin $nick ) || ( ariciu isin $gettok($gettok($address($nick,5),1,64),2,33) ) {
+    if ( ariciu isin $nick ) || ( ariciu isin %nx.tmp.ident ) {
       if ( $me isop $chan ) { mode $chan +b $address($nick,3) | .kick $chan $nick You need to work on your social skills. }
       else { .msg X ban $chan $nick You need to work on your social skills. }
     }
 
     ; This catches spambots with _ in nick and ident and spamming personal info
-    if ( .users. !isin $gettok($address($nick,5),2,64) ) && ( ~ isin $gettok($gettok($address($nick,5),1,64),2,33) ) && ( $remove($gettok($gettok($address($nick,5),1,64),2,33),~) isin $nick ) {
-      set -u900 %nx.mcz $addtok(%nx.mcz,$nick,32) 
+    if ( .users. !isin $gettok($address($nick,5),2,64) ) && ( ~ isin %nx.tmp.ident ) && ( $remove(%nx.tmp.ident,~) isin $nick ) {
+      set -u120 %nx.mcz $addtok(%nx.mcz,$nick,32)
     }
 
     ; joinflood detection, count number joins in last 10 seconds in join variable and another for join\part
     ; 4 joins in 10 sec or 2 join\part in 10 sec
     if ( $istok(%nx.prot.jpflood,$chan,32) ) && ( $network == Dev ) && (!%nx.joinflood.protect. [ $+ [ $cid ] $+ [ $chan ] ] ) {
       inc -u10 %nx.joinflood. $+ $cid $+ $chan
-     ; echo -a Debug Join flood count: %nx.joinflood. [ $+ [ $cid ] $+ [ $chan ] ] joins and %nx.partflood. [ $+ [ $cid ] $+ [ $chan ] ] join/parts in last 10 seconds.
+      ; echo -a Debug Join flood count: %nx.joinflood. [ $+ [ $cid ] $+ [ $chan ] ] joins and %nx.partflood. [ $+ [ $cid ] $+ [ $chan ] ] join/parts in last 10 seconds.
       if ( %nx.joinflood. [ $+ [ $cid ] $+ [ $chan ] ] >= 4 ) || ( %nx.partflood. [ $+ [ $cid ] $+ [ $chan ] ] >= 4 ) {
         ; spamkickban $chan $nick Join flood
         ; echo -a Debug Join flood detected: %nx.joinflood. [ $+ [ $cid ] $+ [ $chan ] ] joins and %nx.partflood. [ $+ [ $cid ] $+ [ $chan ] ] join/parts in last 10 seconds.
@@ -426,18 +420,6 @@ on ^1:text:*:?:{
 }
 
 on ^*:TEXT:*:#: {
-  ; TODO rebuild this 
-  var %nx.highlight.ignore_chans #idlerpg #multirpg
-  var %t $1-
-  var %h $numtok(%t,32)
-  while (%h) {
-    if ($findtok(%nx.highlight.nicks,$remove($gettok($1-,%h,32),$chr(44)),1,32)) && (!$findtok(%nx.highlight.ignore_chans,$chan,1,32)) { 
-      echo 4 -t $chan $+(<,$nick($chan,$nick).pnick,>) $1-
-      window -g2 $chan
-      halt
-    }
-    dec %h
-  }
 
   ; Stolen from https://wiki.znc.in/Buffextras/mIRC
   ; Modified to work with my script
@@ -477,11 +459,18 @@ on ^*:TEXT:*:#: {
     inc %i
   }
 
-  ; This takes nicks repeating and also botnet repeating same message
-  if ( $istok(#naka #mibotech #toronto,$chan,32) ) { antiflood_check_nickrepeat $chan $nick $1- }
+  ; Nick repeat flood protection in defined channels, ignores botnet nicks
+  if ( $istok(%nx.flood.protected.channels,$chan,32) ) && (!$istok(%nx.botnet_ [ $+ [ $network ] ],$nick,32)) { antiflood_check_nickrepeat $chan $nick $1- }
 
   ; TODO fix nick coloring of @+modes
+  nx.handle.highlight $chan $nick $1-
   nx.echo.chanmsg $ctime $chan $nick $1-
+  halt
+}
+
+on ^*:ACTION:*:#:{
+  nx.handle.highlight $chan $nick $1-
+  nx.echo.chanaction $ctime $chan $nick $1-
   halt
 }
 
@@ -495,7 +484,7 @@ on ^1:open:?:{
   ; TODO, check if pr server $cid is working right
 
   ; check for own botnet or znc
-  if ( $istok(%nx.botnet_ [ $+ [ $network ] ],$nick,32)) || ($left($nick,1) = $chr(42) ) { return }
+  if ( $istok(%nx.botnet_ [ $+ [ $network ] ],$nick,32) ) || ($left($nick,1) = $chr(42) ) { return }
   else {
     var %nx.flood.query.ugh 2
     var %nx.flood.query.max 5
