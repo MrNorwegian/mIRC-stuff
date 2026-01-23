@@ -60,7 +60,7 @@ alias makemech3 {
       set %mech.endip 0
       set %mech.prefix /15
     }
- 
+
     var %mechconfig $+(mech\mech,-,$remove(%mech.chan,$chr(35)),.conf)
     var %serverconf $+(mech\server,-,$left($remove(%mech.chan,$chr(35)),2),.sh)
 
@@ -122,6 +122,7 @@ alias makemech3 {
     }
     else { echo 3 -at Syntax /makemech 128 }
   }
+  ;^ user was written on }, no worries ? :/ 
   ;write %serverconf cd /home/naka
   ;write %serverconf mv $remove(%mechconfig,mech\) mech/
   ;write %serverconf cd mech
@@ -214,4 +215,3 @@ alias mech {
     dec %n
   }
 }
-

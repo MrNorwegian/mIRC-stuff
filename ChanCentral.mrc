@@ -324,7 +324,7 @@ alias nx.cc.chk.id {
   ; Solanum 
   if ( $1 === A ) { return 1631 }
   if ( $1 == 1631 ) { return A }
-  
+
   if ( $1 === z ) { return 164 }
   if ( $1 == 164 ) { return z }
   if ( $1 === R ) { return 165 }

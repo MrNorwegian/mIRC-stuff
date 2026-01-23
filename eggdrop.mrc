@@ -107,7 +107,7 @@ alias egg {
     if ( $2 = leaf ) {
       if ( $3 ) {
         ; TODO, if host doesnt include IP or you want to use custom ip
-        if ( $regex($gettok($address($3,2),2,64), (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})) ) {
+        if ( $iptype($gettok($address($3,2),2,64) == ipv4) ) {
           .say .+bot $3 $gettok($address($3,2),2,64) 3333
           .say .+host $3 $address($3,6)
           .timer_addleafb1_ $+ $3 1 1 .say .botattr $3 s|s %nx.eggdropchan
@@ -120,7 +120,7 @@ alias egg {
     }
     if ( $2 = hub ) {
       if ( $3 ) {
-        if ( $regex($gettok($address($3,2),2,64), (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})) ) {
+        if ( $iptype($gettok($address($3,2),2,64) == ipv4)) {
           .say .+bot $3 $gettok($address($3,2),2,64) 3333
           .say .+host $3 $address($3,6)
           .timer_addhubb_ $+ $3 1 1 .say .botattr $3 +hp
