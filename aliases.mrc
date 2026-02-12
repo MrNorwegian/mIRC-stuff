@@ -322,3 +322,17 @@ alias power {
   } 
   unset %totalchans %totalusers %opchans %peons %chan %cids %laenge %wertaktiv %wertgesamt %bar %aktiv %i %sumoper %sumchannels %sumpower %totalnetworks %opernets
 }
+
+; /grepwho <irc.server.net|*|#chan> <string> [-c for count]
+alias grepwho {
+  if ($2) {
+    if ( $3 == -c ) { set %nx.grepsetting count }
+    if ( $3 == -vc ) || ( $3 == -cv ) { set %nx.grepsetting vcount }
+    else { set %nx.grepsetting normal }
+    set %nx.grepwho $1 $2
+    nx.who $1 $2
+    echo 14 -at [GREPWHO] Searching for $2 in $1
+
+  } 
+  else { echo -at Usage: /grepwho <irc.server.net|*|#chan> <string> [-c for count] }
+}

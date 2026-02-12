@@ -163,7 +163,26 @@ raw *:*:{
   elseif ($event = 217) { nx.echo.snotice $2- | halt }
 
   ; stats y
-  elseif ($event = 218) { nx.echo.snotice $2- | halt }
+  elseif ($event = 218) { 
+    
+    ; [21:01:27] Event: 218 Text: naka Y 6003064 120 0 1000 800000.0 0.3 0.3 15 3/64
+    if ( $hget(settings_ $+ $cid,serverversion) iswm 2.11.2p3+0PNv1.06 ) {
+      if ( $2 == Y ) {
+        var %class $+(Class:,$3)
+        var %pingfreq $+(Ping:,$4)
+        var %connfreq $+(Conn:,$5)
+        var %maxlinks $+(MaxLink:,$6)
+        var %maxsendq $+(MaxSendQ:,$7)
+        var %lglimits $+(Limits:,$8,/,$9)
+        var %currcon $+(Clients:,$10)
+        var %maxcidr $iif($11,$+(CIDR:,$11),No CIDR)
+        nx.echo.snotice %class %pingfreq %connfreq %maxlinks %maxsendq %lglimits %currcon %maxcidr
+      }
+    }
+    else { nx.echo.snotice $2- }
+  
+    halt
+  }
 
   ; End of /stats
   elseif ($event = 219) { nx.echo.snotice $2- | halt }
@@ -276,6 +295,7 @@ raw *:*:{
     ; nick is connecting from
     elseif ($event = 378) { echo %nx.echo.color %whois.window $2- }
     ; whois nick is on channel
+    ; TODO coloriing channels from good to bad
     elseif ($event = 319) { echo %nx.echo.color %whois.window $2 on $3- }
     ; whois nick using server
     elseif ($event = 312) { echo %nx.echo.color %whois.window $2 using $3- }
@@ -373,11 +393,11 @@ raw *:*:{
   elseif ($event = 352) {
     if ( %checkforircop ) && ( $iif($chr(42) isin $7,true,false) = true ) { 
       echo 3 -at %checkforircop Ircop found: nick ( $6 )
-      return
+      halt
     }
-    ; Event: 352 Text: mynick #channel ~ident host.no *.undernet.org nick H< 3 Realname
+    ; mynick #channel ~ident host.no *.undernet.org nick H< 3 Realname
     ; check for delayed joins 
-    if ( %checkfordelayed == $2 ) || ( %checkforvoicedelayed == $2) {
+    if ( %checkfordelayed == $2 ) || ( %checkforvoicedelayed == $2 ) {
       if ( $iif($chr(60) isin $7,true,false) = true ) {
         ; echo 8 -at Delayed clinets in $2: $7 $6 $+($3,@,$4) 
         set %nx.delayed. [ $+ [ $cid ] ] [ $+ [ $2 ] ] $addtok(%nx.delayed. [ $+ [ $cid ] ] [ $+ [ $2 ] ],$6,32)
@@ -386,13 +406,43 @@ raw *:*:{
       else { halt }
     }
 
+    ; grepwho functionality
+    if ( %nx.grepwho ) {
+      ; server\chan
+      var %arg1 $gettok(%nx.grepwho,1,32)
+      ; searchstring
+      var %arg2 $gettok(%nx.grepwho,2,32)
+      
+      if (( %arg1 == $server ) && ( $2 == $chr(42) ) || ( %arg1 == $2 )) {
+        if ( %arg2 isin $2- ) {
+          set %nx.grep.count $calc(%nx.grep.count + 1)
+          if ( %nx.grepsetting == vcount ) || ( %nx.grepsetting == normal ) {
+            ; color the matched word
+            var %l $numtok($1-,32), %i 1
+            var %t
+            while (%i <= %l) {
+              var %w $gettok($1-,%i,32)
+              if ( %arg2 isin %w ) {
+                var %t $addtok(%t,$+(43,$chr(32),%w,),32)
+              }
+              else { var %t $addtok(%t,%w,32) }
+              inc %i
+            }
+            echo 14 -at [GREPWHO] %t
+          }
+          ; Dont color or output ( client asked with -c )
+        }
+      }
+      halt
+    }
+
     ; ial update stuff to be finished later
-    elseif ( %nx.joined. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) || ( %nx.ialupdate. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) { 
+    if ( %nx.joined. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) || ( %nx.ialupdate. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) { 
       inc -u10 %nx.ialchanusers. $+ $cid $+ $2
       ; Check if nick is ircop and color it (for nicklist)
       if (* isin $7) {
-        if (!$istok($hget(settings_,$+ $cid opers),$6,32)) {
-          hadd settings_ $+ $cid opers $addtok($hget(settings_,$+ $cid opers),$6,32)
+        if (!$istok($hget(settings_ $+ $cid,opers),$6,32)) {
+          hadd settings_ $+ $cid opers $addtok($hget(settings_ $+ $cid,opers),$6,32)
         }
 
         ; Loop all channels and mark the client as ircop in nicklist
@@ -425,6 +475,12 @@ raw *:*:{
     }
     if ( %nx.ialupdate. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) { 
       unset %nx.ialupdate. $+ $cid $+ $2
+      halt
+    }
+    if ( %nx.grepwho ) {
+      if ( %nx.grep.count ) { echo 14 -at [GREPWHO] Found %nx.grep.count matching client(s) from $gettok(%nx.grepwho,2,32) on $gettok(%nx.grepwho,1,32) $+ . }
+      else { echo 14 -at [GREPWHO] No matching clients found from $gettok(%nx.grepwho,2,32) on $gettok(%nx.grepwho,1,32) $+ . }
+      unset %nx.grepwho %nx.grep.count %nx.grepsetting
       halt
     }
     elseif ( %nx.joined. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) {

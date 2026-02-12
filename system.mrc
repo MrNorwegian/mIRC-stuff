@@ -14,8 +14,17 @@ on 1:connect:{
 on 1:disconnect:{
   unset %anexid_ [ $+ [ $cid ] ]
   unset %nx.flood.query. [ $+ [ $cid ] ]
-  hfree settings_ $+ $cid 
+  if ( $hget(settings_ $+ $cid) ) { hfree settings_ $+ $cid }
   .timer_ialupdate_ $+ $cid off
+}
+
+;ERROR All client connections are temporarily refused.
+on ^1:ERROR:*ERROR All client connections are temporarily refused.*:{
+  echo 14 -st ERROR All client connections are temporarily refused. Try later.
+  ; timer is removed after .quit, need to fix a permanent timer that runs a alias to reconnect (and maby do other stuff also ?)
+  ; .timer_nx.reconnect. $+ $cid 1 60 server $server
+  .quit
+  halt
 }
 
 on 1:exit:{
@@ -262,14 +271,8 @@ on ^*:join:#:{
     ; First a anoying dude....
     if ( ariciu isin $nick ) || ( ariciu isin %nx.tmp.ident ) {
       if ( $me isop $chan ) { mode $chan +b $address($nick,3) | .kick $chan $nick You need to work on your social skills. }
-      else { .msg X ban $chan $nick You need to work on your social skills. }
+      elseif ( $istok(%nx.X.chans. [ $+ [ $network ] ],$chan,32) ) { .msg X ban $chan $nick You need to work on your social skills. }
     }
-
-    ; This catches spambots with _ in nick and ident and spamming personal info
-    if ( .users. !isin $gettok($address($nick,5),2,64) ) && ( ~ isin %nx.tmp.ident ) && ( $remove(%nx.tmp.ident,~) isin $nick ) {
-      set -u120 %nx.mcz $addtok(%nx.mcz,$nick,32)
-    }
-
     ; joinflood detection, count number joins in last 10 seconds in join variable and another for join\part
     ; 4 joins in 10 sec or 2 join\part in 10 sec
     if ( $istok(%nx.prot.jpflood,$chan,32) ) && ( $network == Dev ) && (!%nx.joinflood.protect. [ $+ [ $cid ] $+ [ $chan ] ] ) {
@@ -281,7 +284,7 @@ on ^*:join:#:{
         !mode $chan +Dm
         ; set -u3600 %nx.joinflood.protect. $+ $cid $+ $chan 1
         set %nx.jpflood.protect. $+ $cid $+ $chan 1
-        timer.jpflood.check.D. $+ $cid $+ $chan 0 10 who $chan d
+        ; timer.jpflood.check.D. $+ $cid $+ $chan 0 10 who $chan d
         echo -a Debug Join flood protection enabled on $chan
       }
     }
@@ -401,7 +404,6 @@ on ^1:text:*:?:{
 }
 
 on ^*:TEXT:*:#: {
-
   ; Stolen from https://wiki.znc.in/Buffextras/mIRC
   ; Modified to work with my script
   if ($nick == *buffextras) {
@@ -421,28 +423,7 @@ on ^*:TEXT:*:#: {
     halt
   }
 
-  ; Some spam stuff
-  elseif ( irc.supernets.org isin $1- ) && ( $istok(%nx.njspam,$nick,32) ) {
-    spamkickban $chan $nick Spam
-  }
-  ; This is a spam bot that joins and spams 
-  elseif ( $istok(%nx.mcz,$nick,32) ) { 
-    if ( Hi Guys! It's Madeleine Czura! Just thought I'd leave my number here in case you're lonely isin $1- ) { 
-      spamkickban $chan $nick Spam
-    }
-  }
-  ; New antispam 
-  var %i = 1
-  while ( %nx.spamtext. [ $+ [ %i ] ] ) {
-    if ( %nx.spamtext. [ $+ [ %i ] ] iswm $1- ) {
-      spamkickban $chan $nick Spam
-    }
-    inc %i
-  }
-
-  ; Nick repeat flood protection in defined channels, ignores botnet nicks
-  if ( $istok(%nx.flood.protected.channels,$chan,32) ) && (!$istok(%nx.botnet_ [ $+ [ $network ] ],$nick,32)) { antiflood_check_nickrepeat $chan $nick $1- }
-
+  nx.antispam $chan $nick $1-
   ; TODO fix nick coloring of @+modes
   nx.handle.highlight $chan $nick $1-
   nx.echo.chanmsg $ctime $chan $nick $1-
@@ -450,6 +431,7 @@ on ^*:TEXT:*:#: {
 }
 
 on ^*:ACTION:*:#:{
+  nx.antispam $chan $nick $1-
   nx.handle.highlight $chan $nick $1-
   nx.echo.chanaction $ctime $chan $nick $1-
   halt

@@ -86,10 +86,7 @@ alias nx.echo.notice {
 
 alias nx.echo.snotice {
   if ( $active = Status Window ) { 
-    if ( $strip($1) = connect.LOCAL_CLIENT_CONNECT ) {  echo 10 -t $+(@,$network,_,$cid,_,status) $1- }
-    elseif ( $strip($1) = connect.LOCAL_CLIENT_DISCONNECT ) { echo 10 -t $+(@,$network,_,$cid,_,status) $1- }
-    elseif ( $strip($1) = nick.NICK_COLLISION ) { echo 10 -t $+(@,$network,_,$cid,_,status) $1- }
-    elseif ( $strip($1) = flood.FLOOD_BLOCKED ) { echo 10 -t $+(@,$network,_,$cid,_,status) $1- }
+    ; if ircd is unrealircd, custom formatting for snotices
 
     if ( $window($+(@,$network,_,$cid,_,status)) ) { echo 10 -st $1- | echo 10 -t $+(@,$network,_,$cid,_,status) $1- }
     else { echo 10 -st $1- }
@@ -144,6 +141,36 @@ alias nx.announce.newday {
   .timer_nx_restart_newday 1 300 .timer_nx.announce.newday 00:00 1 0 scid -a nx.announce.newday
 }
 
+alias nx.antispam {
+  ; $2 = nick, $1 = chan, $3- = message
+  if ( $2 isreg $1 ) {
+    var %nx.tmp.ident $gettok($gettok($address($2,5),1,64),2,33)
+    var %nx.tmp.host $gettok($address($2,5),2,64)
+    ; ignore *.users. "network" .* hosts
+    if ( $+(.,users.,$lower($network),.) !isin %nx.tmp.host ) {
+      ; Does not have ident
+      if ( ~ isin %nx.tmp.ident ) {
+        ; Check for spamtext in message
+        var %i = 1
+        while ( %nx.spamtext. [ $+ [ %i ] ] ) {
+          if ( %nx.spamtext. [ $+ [ %i ] ] iswm $3- ) { spamkickban $1 $2 Spamming is not allowed in this channel. $p(%i) }
+          inc %i
+        }
+        ; Nick repeat flood protection in defined channels, ignores botnet nicks
+        if ( $istok(%nx.flood.protected.channels,$1,32) ) && (!$istok(%nx.botnet_ [ $+ [ $network ] ],$2,32)) { antiflood_check_nickrepeat $1 $2 $3- }
+      }
+      ; Has ident
+      elseif ( %nx.tmp.ident == webchat ) {
+        var %nx.troll.regex ^\(\s*(?:\._\.|-__-|\-\.\-)\s*\)$
+        if ( $regex($1-,%nx.troll.regex) ) && ( $iptype(%nx.tmp.host) == ipv6 ) { 
+          spamkickban $1 $2 Troll
+          if (!$istok(%nx.trollnicks,$2,32)) { set %nx.trollnicks $addtok(%nx.trollnicks,$2,32) | whois $2 } 
+        }
+      }
+    }
+  }
+}
+
 alias antiflood_check_nickrepeat {
   ; antiflood_check_nickrepeat $chan $nick $1-
   ; Check repeated messages from same nick in same chan on same network
@@ -154,7 +181,7 @@ alias antiflood_check_nickrepeat {
     hinc -u5 af_chk_nr %txt 1
     var %cnt $hget(af_chk_nr,%txt)
     if ( %cnt > 2 ) {
-      spamkickban $1 $2 You repeated %cnt times.
+      spamkickban $1 $2 No repeating in this channel $p(%cnt)
       echo -st Detected repeat num %cnt from $2 in $1 @ $network $+ : $3-
     }
   }
@@ -172,9 +199,9 @@ alias antiflood_check_nickrepeat {
     ; add nick to list of nicks that sent this message
     hadd -mu5 af_chk_nr2 %txt2 $addtok($hget(af_chk_nr2,%txt2),$2,44)
     var %cnt2 $hget(af_chk_nr2_count,%txt2)
-    if ( %cnt2 > 4 ) {
+    if ( %cnt2 > 3 ) {
       ; Check if there is more than x nicks repeating the same message, if so, mode +rm
-      if ( %nickscount > 6 ) {
+      if ( %nickscount > 4 ) {
         ; no nx.mode here, bypassing delay
         if ( $me isop $1 ) && (!$istok(%nx.spammode.rm,$1,44)) {
           set -u30 %nx.spammode.rm $addtok(%nx.spammode.rm,$1,44) 
