@@ -470,6 +470,71 @@ alias pride {
   }
 }
 
+alias nx.asciitext {
+  ; Idea ?
+  ; /nx.asciitext <font> <colors> <sentence>
+  if (!$2) { echo -at Usage: /nx.asciitext <random|vertical|horizontal|none> <sentence> }
+  else {
+    if ( $istok(random vertical horizontal,$1,32) ) { var %colors $1 }
+    else { var %colors none }
+    
+    ; mini or big
+    var %asciifont mini
+    var %asciifile $+($mircdir/scripts/mIRC-stuff/ascii-,%asciifont,.ini)
+    var %alphabet A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z,Æ,Ø,Å,:
+    var %colortable 3,4,5,6,7,8,9,10,11,12,13
+    var %c 1
+    ; loop 6 times for each line of ascii art starting on top of the letters
+    var %r $readini(%asciifile,setting,h), %rn 1
+    while (%rn <= %r) {
+      var %text $upper($2-)
+      var %w $numtok(%text,32), %wn 1
+
+      ; Loop through each word in the sentence
+      while (%wn <= %w) {
+        var %word $gettok(%text,%wn,32)
+
+        ; Loop through each letter in the word
+        var %l $len(%word), %ln 1
+        while (%ln <= %l) {
+          var %letter $mid(%word,%ln,1)
+          if ( $istok(%alphabet,%letter,44) ) {
+            ; Replace letter with ascii art
+            ; Some norwegian letters
+            var %letter $replace(%letter,$chr($asc(:)),DC)
+            var %tmpresult $replace($readini(%asciifile,%letter,$+(n,%rn)),.,$chr(160))
+            if ( %colors == random ) {
+              var %cc $gettok(%colortable,%c,44)
+              var %result $+(%result,,%cc,%tmpresult)
+              inc %c
+              if (%c > $numtok(%colortable,44)) { var %c 1 }
+            }
+            elseif ( %colors == horizontal ) {
+              var %cc $gettok(%colortable,%rn,44)
+              var %result $+(%result,,%cc,%tmpresult)
+            }
+            elseif ( %colors == vertical ) {
+              var %cc $gettok(%colortable,%ln,44)
+              var %result $+(%result,,%cc,%tmpresult)
+            }
+            else { var %result $+(%result,%tmpresult) }
+          }
+          inc %ln
+        }
+        var %result $+(%result,$chr(160),$chr(160),$chr(160),$chr(160),$chr(160))
+        if ( %colors == vertical ) { inc %c }
+        inc %wn
+      }
+      say %result
+      ;echo -a RESULT: %result
+      inc %rn
+      if ( %colors == horizontal ) { inc %c }
+      elseif ( %colors == vertical ) { var %c 1 }
+      unset %result
+    }
+  }
+}
+
 ; Thanks wikichip (https://en.wikichip.org/wiki/mirc/thread)
 alias pause {
   if ($1 !isnum 1-) return
