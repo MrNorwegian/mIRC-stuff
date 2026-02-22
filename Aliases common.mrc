@@ -201,22 +201,22 @@ alias antiflood_check_nickrepeat {
     var %cnt2 $hget(af_chk_nr2_count,%txt2)
     if ( %cnt2 > 3 ) {
       ; Check if there is more than x nicks repeating the same message, if so, mode +rm
-      if ( %nickscount > 4 ) {
+      if ( mr !isin $chan($1).mode ) {
         ; no nx.mode here, bypassing delay
-        if ( $me isop $1 ) && (!$istok(%nx.spammode.rm,$1,44)) {
-          set -u30 %nx.spammode.rm $addtok(%nx.spammode.rm,$1,44) 
-          !mode $1 +rm
-          .timer_unmode_rm_ $+ $1 1 $calc(60*15) nx.mode $1 -rm
+        if ( $me isop $1 ) && (!$istok(%nx.spammode.mr,$1,44)) {
+          set -u30 %nx.spammode.mr $addtok(%nx.spammode.mr,$1,44) 
+          !mode $1 +mr
+          .timer_unmode_mr_ $+ $1 1 $calc(60*15) nx.mode $1 -mr
         }
-        elseif ( X ison $1 ) && (!$istok(%nx.spammode.rm,$1,44)) && ( $istok(%nx.X.chans. [ $+ [ $network ] ],$chan,32) ) {
-          set -u30 %nx.spammode.rm $addtok(%nx.spammode.rm,$1,44)
-          .!msg X mode $1 +rm
-          .timer_unmode_rm_ $+ $1 1 $calc(60*15) .nx.msg X mode $1 -rm
+        elseif ( X ison $1 ) && (!$istok(%nx.spammode.mr,$1,44)) && ( $istok(%nx.X.chans. [ $+ [ $network ] ],$chan,32) ) {
+          set -u30 %nx.spammode.mr $addtok(%nx.spammode.mr,$1,44)
+          .!msg X mode $1 +mr
+          .timer_unmode_mr_ $+ $1 1 $calc(60*15) .nx.msg X mode $1 -mr
         }
         else {
           return
           ; Not going to echo this yet.
-          echo 4 -t $chan Unable to enable +rm in $1, insufficient rights.
+          echo 4 -t $chan Unable to enable +mr in $1, insufficient rights.
           echo 4 -t $chan Multi-repeat flood num %cnt2 from nicks $hget(af_chk_nr2,%txt2) : $3-
         }
       }
@@ -241,23 +241,77 @@ alias antiflood_check_nickrepeat {
   }
 }
 
+alias antiflood_check_chanflood {
+  ; Anti flood works when a setence is over 5 words long
+  ; and is repeated 3 times per 5 seconds
+  if ( $numtok($3-,32) < 20 ) { return }
+
+  ; Per nick flood check
+  var %data $+($network,.,$1,.,$2)
+  if ( $hget(af_chk_cf,%data) == $null ) { hadd -mu5 af_chk_cf %data 1 }
+  else {
+    hinc -u5 af_chk_cf %data 1
+    var %num $hget(af_chk_cf,%data)
+    if ( %num > 2 ) {
+      spamkickban $1 $2 No flooding in this channel $p(%num)
+      echo -st Detected flood num %num from $2 in $1 $+ : $3-
+      halt
+    }
+  }
+
+  ; Total flood check
+  var %data2 $+($cid,.,$1,.total)
+  if ( $hget(af_chk_cf,%data2) == $null ) { hadd -mu5 af_chk_cf %data2 1 }
+  else {
+    hinc -u5 af_chk_cf %data2 1
+    var %num2 $hget(af_chk_cf,%data2)
+    if ( %num2 > 3 ) {
+      if ( rm !isin $chan($1).mode) {
+        if ( $me isop $1 ) && (!$istok(%nx.spammode.rm,$1,44)) {
+          set -u30 %nx.spammode.rm $addtok(%nx.spammode.rm,$1,44) 
+          !mode $1 +rm
+          .timer_unmode_rm_ $+ $1 1 $calc(60*30) nx.mode $1 -rm
+        }
+        elseif ( X ison $1 ) && (!$istok(%nx.spammode.rm,$1,44)) && ( $istok(%nx.X.chans. [ $+ [ $network ] ],$chan,32) ) {
+          set -u30 %nx.spammode.rm $addtok(%nx.spammode.rm,$1,44)
+          .!msg X mode $1 +rm
+          .timer_unmode_rm_ $+ $1 1 $calc(60*30) .nx.msg X mode $1 -rm
+        }
+        else {
+          return
+          ; Not going to echo this yet.
+          ; echo 4 -t $chan Unable to enable +rm in $1, insufficient rights.
+          ; echo 4 -t $chan Channel flood num %num2 from nicks in $1 @ $network : $3-
+        }
+        echo -st Detected channel flood num %num2 from nicks in $1 $+ : $3-
+      }
+      var %data2 $hget(af_chk_cf,%data2)
+      var %i 1
+      while ( %i <= $numtok(%data2,44) ) {
+        var %nick $gettok(%data2,%i,44)
+        spamkickban $1 %nick No flooding in this channel $p(%num2)
+        inc %i
+      }
+      halt
+    }
+  }
+}
 alias spamkickban { 
   ; spamkickban <chan> <nick> <reason>
-  if ( $2 !isop $1 ) && ( $2 !isvoice $1 ) {
+  if ( $2 isreg $1 ) {
     if ( $2 ison $1 ) {
+      var %unbantimer $calc(60*60*3)
       if ( $me isop $1 ) {
         ; Later, need to fix nx.ban to deal with anti excess flood
-        ; ban -uk3600 $1 $address($2,2) Spam
-        nx.kick $1 $2 $3-
-        nx.mode $1 +b $address($2,2)
+        ban -ku $+ %unbantimer $1 $2 2 $3-
+        ; nx.kick $1 $2 $3-
+        ; nx.mode $1 +b $address($2,2)
         ; unban after 3 hours
-        .timer_unban_ $+ $1 $+ _ $+ $2 1 $calc(60*60*3) nx.mode $1 -b $address($2,2)
+        .timer_unban_ $+ $1 $+ _ $+ $2 1 %unbantimer nx.mode $1 -b $address($2,2)
       }
-      elseif ( X ison $1 ) && ( $istok(%nx.X.chans. [ $+ [ $network ] ],$chan,32) ) { .nx.msg X ban $1 $address($2,2) $calc(60*60*3) $3- }
+      elseif ( X ison $1 ) && ( $istok(%nx.X.chans. [ $+ [ $network ] ],$chan,32) ) { .nx.msg X ban $1 $address($2,2) %unbantimer $3- }
       ; Here elseif botnet is in the channel and dcc chat is active with botnet, send ban thru botnet
       else { echo 4 -t $chan Unable to ban/kick $2 in $1, insufficient rights. }
-      echo 4 -st Detected spam num %i from $2 in $1 $+ : $3-
-      echo 4 -at Detected spam num %i from $2 in $1 @ $+ $network $+ : $3-
     }
     else { echo 4 -t $chan Unable to kick $2 from $1, user not present. }
   }
@@ -440,51 +494,60 @@ alias prideread {
   unset %prideread %pridecolors.i.read
 }
 
-alias pride {
-  if (!$1) { echo -at Usage: //say $pride(<sentence>) | halt }
-  else {
-    var %pridecolors.r 3 4 5 6 7 8 9 10 11 12 13
-    if (%pridecolors.i.read) { var %pridecolors.i $v1 }
-    else { var %pridecolors.i 1 }
-    var %pridecolors.sentence $1-
-    var %pridecolors.words $numtok(%pridecolors.sentence,32)
-    var %pridecolors.wordi 1
-    while (%pridecolors.wordi <= %pridecolors.words) {
-      var %pridecolors.word $gettok(%pridecolors.sentence,%pridecolors.wordi,32)
-      var %pridecolors.letters $len(%pridecolors.word)
-      var %pridecolors.letteri 1
-      while (%pridecolors.letteri <= %pridecolors.letters) {
-        var %pridecolors.letter $mid(%pridecolors.word,%pridecolors.letteri,1)
-        var %pridecolors.color $gettok(%pridecolors.r,%pridecolors.i,32)
-        var %pridecolors.newword $+(%pridecolors.newword,,%pridecolors.color,%pridecolors.letter)
-        inc %pridecolors.i
-        if (%pridecolors.i > $numtok(%pridecolors.r,32)) { var %pridecolors.i 1 }
-        inc %pridecolors.letteri
-      }
-      var %pridecolors.NewSetence $addtok(%pridecolors.NewSetence,%pridecolors.newword,32)
-      unset %pridecolors.newword
-      inc %pridecolors.wordi
+; Tnx deep3d for sharing a simplified rainbow alias :D
+alias rb { rainbow $1- }
+alias pride { rainbow $1- }
+alias rainbow {
+  if (!$1) { echo -at Usage: /rb <text> | halt }
+  ; Persistent variable to track color rotation
+  if (!%rainbow.colorstart) { set %rainbow.colorstart 1 }
+ 
+  var %text = $1-
+  var %i = 1
+  var %output = ""
+  var %colors = 04 07 08 09 11 13
+  var %colorcount = $numtok(%colors, 32)
+  var %colorindex = %rainbow.colorstart
+  var %c
+ 
+  while (%i <= $len(%text)) {
+    %c = $mid(%text, %i, 1)
+    if (%c == $chr(32)) {
+      %output = %output $chr(32)
     }
-    if ( %prideread ) { set -u10 %pridecolors.i.read %pridecolors.i }
-    return %pridecolors.NewSetence
+    else {
+      var %thiscolor = $gettok(%colors, %colorindex, 32)
+      %output = %output $+ $chr(3) $+ %thiscolor $+ %c
+      inc %colorindex
+      if (%colorindex > %colorcount) { %colorindex = 1 }
+    }
+    inc %i
   }
+ 
+  say %output
+ 
+  ; Increment starting color for next time
+  inc %rainbow.colorstart
+  if (%rainbow.colorstart > %colorcount) { set %rainbow.colorstart 1 }
 }
 
+; https://asciiart.website/figlet.php
 alias nx.asciitext {
   ; Idea ?
   ; /nx.asciitext <font> <colors> <sentence>
   if (!$2) { echo -at Usage: /nx.asciitext <random|vertical|horizontal|none> <sentence> }
+  elseif ( $len($2-) > 29 ) { echo -at Sentence must not be more than 29 characters long }
   else {
     if ( $istok(random vertical horizontal,$1,32) ) { var %colors $1 }
     else { var %colors none }
     
     ; mini or big
-    var %asciifont mini
+    var %asciifont big
     var %asciifile $+($mircdir/scripts/mIRC-stuff/ascii-,%asciifont,.ini)
     var %alphabet A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z,Æ,Ø,Å,:
     var %colortable 3,4,5,6,7,8,9,10,11,12,13
     var %c 1
-    ; loop 6 times for each line of ascii art starting on top of the letters
+    ; loop x times for each line of ascii art starting on top of the letters
     var %r $readini(%asciifile,setting,h), %rn 1
     while (%rn <= %r) {
       var %text $upper($2-)
@@ -500,7 +563,7 @@ alias nx.asciitext {
           var %letter $mid(%word,%ln,1)
           if ( $istok(%alphabet,%letter,44) ) {
             ; Replace letter with ascii art
-            ; Some norwegian letters
+            ; special handling for : (DC)
             var %letter $replace(%letter,$chr($asc(:)),DC)
             var %tmpresult $replace($readini(%asciifile,%letter,$+(n,%rn)),.,$chr(160))
             if ( %colors == random ) {
@@ -525,8 +588,7 @@ alias nx.asciitext {
         if ( %colors == vertical ) { inc %c }
         inc %wn
       }
-      say %result
-      ;echo -a RESULT: %result
+      nx.say %result
       inc %rn
       if ( %colors == horizontal ) { inc %c }
       elseif ( %colors == vertical ) { var %c 1 }

@@ -423,17 +423,18 @@ on ^*:TEXT:*:#: {
     halt
   }
 
-  nx.antispam $chan $nick $1-
+  
   ; TODO fix nick coloring of @+modes
   nx.handle.highlight $chan $nick $1-
   nx.echo.chanmsg $ctime $chan $nick $1-
+  nx.antispam $chan $nick $1-
   halt
 }
 
 on ^*:ACTION:*:#:{
-  nx.antispam $chan $nick $1-
   nx.handle.highlight $chan $nick $1-
   nx.echo.chanaction $ctime $chan $nick $1-
+  nx.antispam $chan $nick $1-
   halt
 }
 

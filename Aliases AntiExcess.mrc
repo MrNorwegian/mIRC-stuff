@@ -66,11 +66,48 @@ alias nx.whois {
 alias nx.who { nx.anti.excess !who $1- }
 alias nx.stats { nx.anti.excess !stats $1- }
 
+alias nx.anti.excess.new {
+  echo -a ANti $1-
+  if ( $2 ) {
+    var %tmpsendq $nx.bytecount($1,$2,$3-)
+
+    if (!%sendq) { set %sendq %tmpsendq }
+    else { inc %sendq %tmpsendq }
+    .timer_antiexcess_ $+ %sendq 1 2 dec %sendq %tmpsendq
+    echo -a Sendq: %tmpsendq  of %sendq bytes
+
+    if (!%totcmds) { set %totcmds 1 }
+    else { inc %totcmds }
+
+    
+    if ( %sendq > = 1024 ) { .timer_antiexcess_ $+ %totcmds $+ %sendq 1 2 $1- }
+    else { $1- }
+  }
+  else { echo -a Flood protection: Command $1 requires at least one argument. | halt }
+}
+
 ; Nah trusting my ZNC :D
 alias nx.anti.excess { 
   if ( $2 ) { $1- }
   else { echo -a Flood protection: Command $1 requires at least one argument. | halt }
 }
+
+; $nx.bytecount(command,target,text) returns bytes
+alias nx.bytecount {
+  ; Fow now cound text as privmsg and other commands as mode
+  if ($istok(action me say msg notice privmsg,$1,32)) {
+    var %cmd PRIVMSG
+    var %bytes $calc($len(%cmd) + 1 + $len(%target) + 2 + $len($utfencode(%payload)) + 2)
+  }
+  elseif ($istok(mode,$1,32))  {
+    var %cmd MODE
+  }
+  else { var %cmd $1 }
+  
+  return %bytes
+}
+
+; Some ols shit below
 ; No way this works right ? Trying to limit commands to 2 per second max and made this a little to fast but i think its ok
 ; My znc also limits my commands to it might help me so i didnt get to test this much
 ; Also might need to tweak the timers a bit more later or redo everything...
