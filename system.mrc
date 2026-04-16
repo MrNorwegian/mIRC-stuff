@@ -37,7 +37,7 @@ on ^1:notice:*:?:{
   if ($istok(%nx.services.bots,$nick,32)) {
     ; TODO Check if it's really nickserv (hostname)
     if ($nick = NickServ) {
-      if (This nickname is registered. isin $1-4) && ( $istok($nx.db(read,settings,services,Atheme),$network,32) ) {
+      if (This nickname is registered isin $1-4) && ( $istok($nx.db(read,settings,services,Atheme),$network,32) ) {
         if ( $gettok($nx.db(read,settings,nickserv,$network),1,32) = $me ) {
           .msg nickserv identify $me $gettok($nx.db(read,settings,nickserv,$network),2,32)
           nx.echo.notice $1-
@@ -84,6 +84,7 @@ on ^1:notice:*:?:{
     elseif ( $3 = already ) { halt }
     elseif ( $1 = already ) { halt }
     elseif ( $1 = Message ) { halt }
+    elseif ( $1 = Topic ) { halt }
     elseif ( $1 = Attempting ) { halt }
     elseif ( $1 = Parting) { halt }
     elseif ( $1 = Cycling) { halt }
@@ -137,9 +138,7 @@ on ^1:notice:*:?:{
   ; Check if nick is eg idlerpg and echo only to status window 
   if ( $istok(%nx.echo.status.nicks,$nick,32) ) { set -u1 %nx.notice.status true | nx.echo.notice $1- | halt }
 
-  ; check if nick is on the active channel
-  if ( $nick ison $active ) { set -u1 %nx.notice.active true | nx.echo.notice $1- }
-  else { nx.echo.notice $1- }
+  nx.echo.notice $1-
   halt
 }
 
@@ -151,14 +150,14 @@ on ^1:NOTICE:*:#:{
       .timerDCC2 1 5 .msg = $+ $nick $7
     }
   }
-  if ( $istok(%nx.flood.protected.channels,$chan,32) ) && ( $nick !isop $chan ) { 
+  if ( $istok(%nx.flood.protected.channels,$chan,32) ) && ( $nick isreg $chan ) { 
     if (!$istok(%nx.spammode.rm,$chan,44)) {
-      if ( $me isop $chan ) { mode $chan +rm }
-      else { .!msg x mode $chan +rm }
+      if ( $me isop $chan ) { mode $chan +rm | .timer.tor.unmode 1 $calc(60*30) nx.mode $chan -rm }
+      elseif ( $istok(%nx.X.chans. [ $+ [ $network ] ],$chan,32) ) { .!msg x mode $chan +rm | .timer.tor.unmode 1 $calc(60*30) nx.msg x mode $chan -rm }
+      else { return }
       set -u30 %nx.spammode.rm $addtok(%nx.spammode.rm,$chan,44)
     }
     spamkickban $chan $nick Spam
-    .timer.tor.unmode 1 $calc(60*30) msg x mode $chan -rm
   }
   nx.echo.channotice $ctime $chan $iif($nick,$nick,$iif($server,$server,Unknown)) $1-
   halt
@@ -183,7 +182,7 @@ on 1:usermode:{
 }
 
 ; Just some placeholders
-on 1:nick:{ return }
+on ^1:nick:{ return }
 
 on ^*:join:#:{
   if ( $nick == $me ) { 
@@ -191,6 +190,7 @@ on ^*:join:#:{
     set %nx.joined. $+ $cid $+ $chan 1
     .timer_nx_ialfill_ $+ $cid $+ _ $+ $chan 1 $r(120,240) nx.who $chan 
   }
+  if ( %mechfloodprotect == $chan ) { halt }
   else {
     if ( $me !isvoice $chan ) && ( $chan = #IdleRPG ) {
       ; TODO, make a list of all IdleRPG bots in settings.ini file, and check if idlerpg is oped, (has to be another check)
@@ -269,8 +269,9 @@ on ^*:join:#:{
     }
     ; This is part of antispam (bot joining and spamming about a girl with a phone number and stuff)
     ; First a anoying dude....
-    if ( ariciu isin $nick ) || ( ariciu isin %nx.tmp.ident ) {
-      if ( $me isop $chan ) { mode $chan +b $address($nick,3) | .kick $chan $nick You need to work on your social skills. }
+    if ( ariciu1 isin $nick ) || ( ariciu1 isin %nx.tmp.ident ) {
+      if ( notariciu == %nx.tmp.ident ) { return }
+      elseif ( $me isop $chan ) { mode $chan +b $address($nick,3) | .kick $chan $nick You need to work on your social skills. }
       elseif ( $istok(%nx.X.chans. [ $+ [ $network ] ],$chan,32) ) { .msg X ban $chan $nick You need to work on your social skills. }
     }
     ; joinflood detection, count number joins in last 10 seconds in join variable and another for join\part
@@ -299,6 +300,7 @@ on ^*:part:#:{
     nx.echo.joinpart part $chan $me
     unset %nx.joined. $+ $cid $+ $chan
   }
+  if ( %mechfloodprotect == $chan ) { halt }
   else {
     ; IDEA, make a join\part flood protection
     ; Not showing partmessage <--- did i fix this ? 
@@ -361,11 +363,15 @@ on ^*:quit:{
 
 on *:invite:*:{ if ( $istok($nx.db(read,settings,operchans,$network),$chan,32) ) { join $chan } }
 
+on 1:chat:*:{
+  return
+}
 on ^1:text:*:?:{ 
   if ( $nick === *status ) { 
     ;Disconnected from IRC. Reconnecting...
     ; second IF $3 has no . but first has, restof second $4- (No route to host). Reconnecting...
-    if ( $1-3 == Disconnected from IRC. ) || ( $1-3 == Disconnected from IRC ) { 
+    ; Bug,  Disconnected from IRC (Can't resolve server hostname). Reconnecting... needs to be ignored
+    if ( $1-3 == Disconnected from IRC. ) || ( $1-3 == Disconnected from IRC ) {
       var %c $chan(0) 
       while (%c) { 
         ; if channel key is set, save it!
@@ -422,7 +428,6 @@ on ^*:TEXT:*:#: {
     else { echo 4 -t $+ $msgstamp $chan *** UNHANDLED LINE < $+ $1- $+ > }
     halt
   }
-
   
   ; TODO fix nick coloring of @+modes
   nx.handle.highlight $chan $nick $1-

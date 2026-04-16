@@ -15,7 +15,7 @@ alias nx.echo.joinpart {
       if ( $istok(%nx.znc.chans. [ $+ [ $cid ] ],$2,44) ) { echo 12 -t $2 * Disconnected }
       else { echo 3 -t $2 * You have left $2 | echo 3 -st You parted: $2 }
     }
-    else { echo 3 -t $2 * $3 $p($ial($remove($3,~,&,@,%,+),1).addr) has left $2 } 
+    else { echo 3 -t $2 * $3 $p($ial($remove($3,~,&,@,%,+),1).addr) has left $2 $iif($4,$p($4-),$null) } 
   }
   elseif ( $1 = join ) {
     if ( $3 == $me ) { echo 3 -t $2 * Now talking in $2 | echo 3 -st You joined: $2 }
@@ -44,8 +44,8 @@ alias nx.echo.chanmsg {
   var %modecolor $dev.chkmodes($2,$3)
   if ( %nx.highlight.active ) { var %c 4 | unset %nx.highlight.active | window -g2 $2 }
   else { window -g1 $2 }
-  echo %c -t $+ $1 $2 $+(<,,%modecolor,,$cnick(%pnick).color,%pnick,,>) $4-
-  
+  echo %c -t $+ $1 $2 $p1($+(,%modecolor,,$cnick(%pnick).color,%pnick,)) $4-
+
 }
 alias nx.echo.chanaction {
   var %pnick $iif($3 == $server, $server, $nick($2,$3).pnick)
@@ -60,7 +60,7 @@ alias nx.echo.channotice {
   var %modecolor $dev.chkmodes($2,$3)
   if ( %nx.highlight.active ) { var %c 4 | unset %nx.highlight.active | window -g2 $2 }
   else { var %c %nx.thm.nc | window -g1 $2 }
-  echo %c -t $+ $1 $2 $dash(Chan notice %pnick) $4-
+  echo %c -t $+ $1 $2 $dash(%pnick) $4-
 }
 ; ZNC *buffextras stuff
 alias nx.echo.mode { echo 3 -t $+ $1 $2 * $3 sets mode: $4- }
@@ -85,7 +85,8 @@ alias nx.echo.notice {
 }
 
 alias nx.echo.snotice {
-  if ( $active = Status Window ) { 
+  ; disable for now, need to change this.
+  if ( $active = Status Window1 ) { 
     ; if ircd is unrealircd, custom formatting for snotices
 
     if ( $window($+(@,$network,_,$cid,_,status)) ) { echo 10 -st $1- | echo 10 -t $+(@,$network,_,$cid,_,status) $1- }
@@ -147,7 +148,7 @@ alias nx.antispam {
     var %nx.tmp.ident $gettok($gettok($address($2,5),1,64),2,33)
     var %nx.tmp.host $gettok($address($2,5),2,64)
     ; ignore *.users. "network" .* hosts
-    if ( $+(.,users.,$lower($network),.) !isin %nx.tmp.host ) {
+    if ( $+(.,users.,$lower($network),.) !isin %nx.tmp.host ) && (!$istok(%nx.botnet_ [ $+ [ $network ] ],$2,32)) {
       ; Does not have ident
       if ( ~ isin %nx.tmp.ident ) {
         ; Check for spamtext in message
@@ -156,11 +157,23 @@ alias nx.antispam {
           if ( %nx.spamtext. [ $+ [ %i ] ] iswm $3- ) { spamkickban $1 $2 Spamming is not allowed in this channel. $p(%i) }
           inc %i
         }
-        ; Nick repeat flood protection in defined channels, ignores botnet nicks
-        if ( $istok(%nx.flood.protected.channels,$1,32) ) && (!$istok(%nx.botnet_ [ $+ [ $network ] ],$2,32)) { antiflood_check_nickrepeat $1 $2 $3- }
+
+        ; Check for #chan #chan1 #chan2 etc, #chan need to be repeated atleast 4 times
+        var %wordcount $numtok($2-,32)
+        var %chancount
+        while (%wordcount) {
+          if ( $left($gettok($3-,1,32),1) == $chr(35) ) {
+            inc %chancount
+            if ( %chancount > 4 ) { spamkickban $1 $2 Spamming channels is not allowed. | return }
+          }
+          dec %wordcount
+        }
+        ; Nick repeat flood protection in defined channels
+        if ( $istok(%nx.flood.protected.channels,$1,32) ) { antiflood_check_nickrepeat $1 $2 $3- }
       }
       ; Has ident
       elseif ( %nx.tmp.ident == webchat ) {
+        ; TODO Need to fix this regex
         var %nx.troll.regex ^\(\s*(?:\._\.|-__-|\-\.\-)\s*\)$
         if ( $regex($1-,%nx.troll.regex) ) && ( $iptype(%nx.tmp.host) == ipv6 ) { 
           spamkickban $1 $2 Troll
@@ -501,7 +514,7 @@ alias rainbow {
   if (!$1) { echo -at Usage: /rb <text> | halt }
   ; Persistent variable to track color rotation
   if (!%rainbow.colorstart) { set %rainbow.colorstart 1 }
- 
+
   var %text = $1-
   var %i = 1
   var %output = ""
@@ -509,7 +522,7 @@ alias rainbow {
   var %colorcount = $numtok(%colors, 32)
   var %colorindex = %rainbow.colorstart
   var %c
- 
+
   while (%i <= $len(%text)) {
     %c = $mid(%text, %i, 1)
     if (%c == $chr(32)) {
@@ -523,9 +536,9 @@ alias rainbow {
     }
     inc %i
   }
- 
+
   say %output
- 
+
   ; Increment starting color for next time
   inc %rainbow.colorstart
   if (%rainbow.colorstart > %colorcount) { set %rainbow.colorstart 1 }
@@ -540,9 +553,9 @@ alias nx.asciitext {
   else {
     if ( $istok(random vertical horizontal,$1,32) ) { var %colors $1 }
     else { var %colors none }
-    
+
     ; mini or big
-    var %asciifont big
+    var %asciifont mini
     var %asciifile $+($mircdir/scripts/mIRC-stuff/ascii-,%asciifont,.ini)
     var %alphabet A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z,Æ,Ø,Å,:
     var %colortable 3,4,5,6,7,8,9,10,11,12,13

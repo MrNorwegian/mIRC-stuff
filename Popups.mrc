@@ -162,8 +162,23 @@ menu Status {
 
 menu Nicklist {
   Info:/uwho $1
-  Whois:{ var %i $numtok($$1-,32) | while (%i) { nx.whois $gettok($$1-,%i,32) $gettok($$1-,%i,32) | dec %i } }
-  Query:{ var %i $numtok($$1-,32) | while (%i) { query $gettok($$1-,%i,32) | dec %i } }
+  Whois:{
+    var %i $numtok($1-,32)
+    while (%i) {
+      var %w $addtok(%w,$gettok($$1-,%i,32),44)
+      dec %i
+    }
+    nx.whois %w
+  }
+  WhoisEx:{
+    var %i $numtok($1-,32)
+    while (%i) {
+      var %w $addtok(%w,$gettok($$1-,%i,32) $gettok($$1-,%i,32),44)
+      dec %i
+    }
+    nx.whois %w
+  }
+  Query:{ var %i $numtok($1-,32) | while (%i) { query $gettok($1-,%i,32) | dec %i } }
   -
   Control
   .Ignore:/ignore $$1 1

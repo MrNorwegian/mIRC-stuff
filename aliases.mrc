@@ -133,7 +133,7 @@ alias nx.botnet.control {
     }
   }
   elseif ( $istok(chanset,$1,32) ) && ( $3 ) {
-    echo -a $1-
+    ; echo -a $1-
     var %i $numtok($5-,32)
     while (%i) { 
       if ( $chat($gettok($5-,%i,32)).status = active ) && ( $istok(%nx.botnet_ [ $+ [ $network ] ],$gettok($5-,%i,32),32) ) {
@@ -144,7 +144,7 @@ alias nx.botnet.control {
     }
   }
   elseif ( $istok(say,$1,32) ) && ( $3 ) {
-    var %nx.botnet.say $?="What to say" 
+    ; var %nx.botnet.say $?="What to say" 
     if ( %nx.botnet.say ) { 
       var %i $numtok($3-,32)
       while (%i) { 
