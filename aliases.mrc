@@ -322,6 +322,60 @@ alias power {
   } 
   unset %totalchans %totalusers %opchans %peons %chan %cids %laenge %wertaktiv %wertgesamt %bar %aktiv %i %sumoper %sumchannels %sumpower %totalnetworks %opernets
 }
+alias age { bursdag $1- }
+alias bursdag {
+  ; 3008 1986
+  if (!%bday) { set %bday $?="mm dd åååå hh:mm:ss (Jan 01 1990 10:15:00)" | halt }
+  if ( $1 == short ) { var %format short }
+  elseif ( $1 == long ) { var %format long }
+  elseif ( $1 == divs ) { var %format divs }
+  else { echo -a Usage: /age short|long|divs en|no | halt }
+  if ( $2 == en ) { var %oldtxt Iam, %yearname year, %monthname months, %weekname weeks, %dayname days, %hourname hours, %minutename minutes and, %secondname seconds, %oldname old }
+  if ( $2 == no ) { var %oldtxt Jeg er, %yearname år, %monthname måneder, %weekname ukeer, %dayname dager, %hourname timer, %minutename minutter og, %secondname sekunder, %oldname gammel }
+  var %age $ctime - $ctime(%bday)
+  var %lys $round($calc(%age /60 /60 /24 /365.242199 /10000),10)
+  var %mil $round($calc(%age /60 /60 /24 /365.242199 /1000),4)
+  var %cen $round($calc(%age /60 /60 /24 /365.242199 /100),4)
+  var %dec $round($calc(%age /60 /60 /24 /365.242199 /10),2)
+  var %yea $round($calc(%age /60 /60 /24 /365.242199),2)
+  var %mon $round($calc(%age /60 /60 /24 /365.242199 *12),2)
+  var %wee $round($calc(%age /60 /60 /24 /7),2)
+  var %day $round($calc(%age /60 /60 /24),2)
+  var %hou $round($calc(%age /60 /60),2)
+  var %min $round($calc(%age /60),2)
+  var %sec %age
+  if ( %format == short ) { say Min alder er: %yea %yearname, %mon %monthname, %wee %weekname, %day %dayname, %hou %hourname, %min %minutename %sec %secondname %oldname }
+  elseif ( %format == long ) { say Min alder er: %lys lysår, %mil millenium, %cen century, %dec decade, %yea %yearname, %mon %monthname, %wee %weekname, %day %dayname, %hou %hourname, %min %minutename %sec %secondname %oldname }
+  elseif ( %format == divs ) {
+    var %secyear $calc(365.242199 *24 *60 *60)
+    var %secmonth $calc(%secyear /12)
+    var %secweek 604800
+    var %secday 86400
+    var %sechour 3600
+    var %secminute 60
+    var %remain %age
+
+    var %years $int($calc(%remain / %secyear))
+    var %remain $calc(%remain - (%years * %secyear))
+
+    var %months $int($calc(%remain / %secmonth))
+    var %remain $calc(%remain - (%months * %secmonth))
+
+    var %weeks $int($calc(%remain / %secweek))
+    var %remain $calc(%remain - (%weeks * %secweek))
+
+    var %days $int($calc(%remain / %secday))
+    var %remain $calc(%remain - (%days * %secday))
+
+    var %hours $int($calc(%remain / %sechour))
+    var %remain $calc(%remain - (%hours * %sechour))
+
+    var %minutes $int($calc(%remain / %secminute))
+    var %seconds $int($calc(%remain - (%minutes * %secminute)))
+
+    say %oldtxt %years %yearname $+ , %months %monthname $+ , %weeks %weekname $+ , %days %dayname $+ , %hours %hourname $+ , %minutes %minutename %seconds %secondname %oldname
+  }
+}
 
 ; /grepwho <irc.server.net|*|#chan> <string> [-c for count]
 alias grepwho {
