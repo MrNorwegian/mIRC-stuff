@@ -36,14 +36,14 @@ Menu Channel {
   .3 AP ammo (15 xp):{ say !shop 3 }
   .4 Explosive ammo (25 xp):{ say !shop 4 }
   .5 Repurchase confiscated gun (40 xp) :{ say !shop 5 }
-  .6 Grease (8 xp) :{ say !shop 6 }
-  .7 Sight (6 xp) :{ say !shop 7 }
+  .6 Grease (8 xp):{ say !shop 6 }
+  .7 Sight (6 xp):{ say !shop 7 }
   .8 Infrared detector (15 xp):{ say !shop 8 }
   .9 Silencer (5 xp):{ say !shop 9 }
-  .10 Four-leaf clover (13 xp) :{ say !shop 10 }
+  .10 Four-leaf clover (13 xp):{ say !shop 10 }
   .11 Sunglasses (5 xp):{ say !shop 11 }
   .12 Spare clothes (7 xp):{ say !shop 12 }
-  .13 Brush for gun (7 xp) :{ say !shop 13 }
+  .13 Brush for gun (7 xp):{ say !shop 13 }
   .14 Mirror (7 xp):{ say !shop 14 }
   .15 Handful of sand (7 xp):{ say !shop 15 }
   .16 Water bucket (10 xp):{ say !shop 16 }
@@ -51,7 +51,7 @@ Menu Channel {
   .18 Life insurance (10 xp):{ say !shop 18 }
   .19 Liability insurance (5 xp):{ say !shop 19 }
   .20 Decoy (8 xp):{ say !shop 20 }
-  .21 Piece of bread (2 xp) :{ say !shop 21 }
+  .21 Piece of bread (2 xp):{ say !shop 21 }
   .22 Ducks detector (5 xp):{ say !shop 22 }
   .23 Mechanical duck (50 xp):{ say !shop 23 }
   .ShowDucks:{ echo -a Ducks: %nx_duck_ducks }

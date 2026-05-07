@@ -10,6 +10,7 @@ raw *:*:{
   elseif ($event = account) { return }
   elseif ($event = tagmsg) { return }
   elseif ($event = away) { return }
+  elseif ($event = invite) { return }
 
   ; Welcome to the SERVER DESC, NICK
   elseif ($event = 001) { 
@@ -660,6 +661,12 @@ raw *:*:{
 
   ; You need a registered nick to join that channel.
   elseif ($event = 477) { return }
+
+  ; Banlist full
+  elseif ($event = 478) { 
+    echo -t $2 * $+($3,:) Banlist is full $p(Maxbans: $hget(settings_ [ $+ [ $cid ] ],maxbans))
+    halt
+   }
 
   ; You're not an channel operator
   elseif ($event = 482) { echo -at * $+($1,:) You're not channel operator | halt }

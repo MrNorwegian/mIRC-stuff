@@ -147,14 +147,19 @@ alias nx.antispam {
   if ( $2 isreg $1 ) {
     var %nx.tmp.ident $gettok($gettok($address($2,5),1,64),2,33)
     var %nx.tmp.host $gettok($address($2,5),2,64)
+
     ; ignore *.users. "network" .* hosts
     if ( $+(.,users.,$lower($network),.) !isin %nx.tmp.host ) && (!$istok(%nx.botnet_ [ $+ [ $network ] ],$2,32)) {
-      ; Does not have ident
-      if ( ~ isin %nx.tmp.ident ) {
+
+      ; Does not have ident and has joined in the last 300 secs
+      if ( ~ isin %nx.tmp.ident ) && ( %score_joined_ [ $+ [ $cid ] ] [ $+ [ $chan ] ] [ $+ [ $address($nick,1) ] ]) {
         ; Check for spamtext in message
         var %i = 1
         while ( %nx.spamtext. [ $+ [ %i ] ] ) {
-          if ( %nx.spamtext. [ $+ [ %i ] ] iswm $3- ) { spamkickban $1 $2 Spamming is not allowed in this channel. $p(%i) }
+          if ( %nx.spamtext. [ $+ [ %i ] ] iswm $3- ) {
+            nx.report.rbl $2
+            spamkickban $1 $2 Spamming is not allowed in this channel. $p(%i)
+          }
           inc %i
         }
 
@@ -181,6 +186,69 @@ alias nx.antispam {
         }
       }
     }
+  }
+}
+
+on *:dns:{
+  var %d $dns(0)
+  while (%d) {
+    echo -st DNS resolved $dns(%d) to $dns(%d).ip
+    if ( $hget(rbl,$dns(%d)) ) {
+      nx.report.rbl $dns(%d).ip
+      if ( %d <= 1 ) { hdel rbl $dns(%d) }
+    }
+    else { echo 6 -st * DNS resolved $dns(%d) to $dns(%d).ip }
+    dec %d
+  }
+  halt
+}
+
+; /nx.report.rbl <nick\ip\host>
+alias nx.report.rbl {
+
+  ; Check if $1 is a nick and get the hostname
+  if ( $gettok($address($1,5),2,64) ) {
+
+    ; ignore pylink nicks
+    if ($istok(unet ircn,$gettok($1,2,124),32)) { return }
+
+    var %tmphost $v1
+    ; is a ip ?
+    if ( $iptype(%tmphost) == ipv4 ) { var %host %tmphost }
+
+    ; it was not a ip but checking if its atleast host.name with 1 dot... atleast
+    elseif ( $numtok(%tmphost,46) >= 2 ) {
+      
+      ; Is a dns\host so resolving it.
+      hadd -m100 rbl %tmphost 1
+      .dns %tmphost
+      return
+    }
+    ; else no clue what it is
+    else { echo 4 -st report.rbl dont know what this is: $1- | return }
+  }
+  ; else is an ip or else host with atleast 1 dot (host.name)
+  elseif ( $iptype($1) == ipv4 ) { var %host $1 }
+  elseif ( $numtok($1,46) >= 2 ) {
+    hadd -m100 rbl $1 1
+    .dns $1
+    return
+  }
+  else { return }
+  if ( $iptype(%host) == ipv4 ) {
+
+    ; Time to find my report channel so i can add this ip to rbl.
+    var %cids = $scid(0) 
+    while (%cids > 0) {
+      scid $scon(%cids)
+      ; echo -st Looping cids %cids = $network = $usermode = $me 
+      if ( $network == %nx.rblnetwork ) && ( o isin $usermode ) && ( $me ison %nx.rblchannel ) { 
+        !msg %nx.rblchannel %nx.rblcommand %host 6
+        return
+      }
+      dec %cids
+    }
+    scid -r
   }
 }
 

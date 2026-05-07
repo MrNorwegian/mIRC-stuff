@@ -185,13 +185,14 @@ on 1:usermode:{
 on ^1:nick:{ return }
 
 on ^*:join:#:{
+  if ( %mechfloodprotect == $chan ) { halt }
   if ( $nick == $me ) { 
     nx.echo.joinpart join $chan $me
-    set %nx.joined. $+ $cid $+ $chan 1
+    set -u300 %nx.joined. $+ $cid $+ $chan 1
     .timer_nx_ialfill_ $+ $cid $+ _ $+ $chan 1 $r(120,240) nx.who $chan 
   }
-  if ( %mechfloodprotect == $chan ) { halt }
   else {
+    nx.echo.joinpart join $chan $nick %nx.clonereport
     if ( $me !isvoice $chan ) && ( $chan = #IdleRPG ) {
       ; TODO, make a list of all IdleRPG bots in settings.ini file, and check if idlerpg is oped, (has to be another check)
       ; Maby make a tmp variable and do the .msg in on mode ? 
@@ -207,7 +208,8 @@ on ^*:join:#:{
 
     ; Clonescan, 1 3 4 = $address($nick,X)
     var %nx.jck 2 3 4, %c 1
-    while ( $gettok(%nx.jck,%c,32) ) { 
+    ; DISABLED CLONE CHECKER, its slow 
+    while ( $gettok(%nx.jck,%cDISABLED,32) ) { 
       ; Is it more than 1 clone?
       var %nx.clonecheck.num $ialchan($address($nick,$gettok(%nx.jck,%c,32)),$chan,N)
 
@@ -253,44 +255,49 @@ on ^*:join:#:{
       }
       inc %c
     }
+    
     var %nx.tmp.ident $gettok($gettok($address($nick,5),1,64),2,33)
-    ; auto gline on baitchannel 
-    if ( $nx.db(read,settings,opernet,$network) ) && ( $chan == #bait-channel.do.not.join.you.will.be.glined ) {
-      ; Check if nick is not me and not in first operchan in settings
-      if ( $nick != $me ) && ( $nick !ison $gettok($nx.db(read,settings,operchans,$network),1,32) ) {
-        ; Check if ~ isin ident and user is not authed and ident is not nick
-        var %nx.ag.host $gettok($address($nick,5),2,64)
-        if ( ~ isin %nx.tmp.ident ) && ( .users. !isin %nx.ag.host) && ( $nick !isin %nx.tmp.ident ) {
+    var %nx.tmp.host $gettok($address($nick,5),2,64)
+
+    ; Check if ~ isin ident and user is not authed and not botnet (eggdrops)
+    if ( ~ isin %nx.tmp.ident ) && ( $+(.,users.,$lower($network),.) !isin %nx.tmp.host ) && (!$istok(%nx.botnet_ [ $+ [ $network ] ],$2,32)) {
+
+      ; Saving *!*ident@host in 5 mins, this is checked when :text: on eg spambots
+      set -u300 %score_joined_ $+ $cid $+ $chan $+ $address($nick,1) $ctime
+
+      ; auto gline on baitchannel
+      if ( $chan == #bait-channel.do.not.join.you.will.be.glined ) {
+        ; Check if nick is not me and not in first operchan in settings 
+        ; TODO kinda change this ? change nx.db to hadd\read and load operchans on start\connect into hashtables
+        if ( $nick != $me ) && ( $nick !ison $gettok($nx.db(read,settings,operchans,$network),1,32) ) && ( $nx.db(read,settings,opernet,$network) ) {
+          
           ; Check if host is ip, else do userip and msg uworld in raws.mrc
-          if ( $iptype(%nx.ag.host) == ipv4 ) { echo -st <Auto Gline> $address($nick,5) - User joined bait-channel | .msg uworld forcegline $+(*@,%nx.ag.host) 8d Auto glined, bye bye! }
+          if ( $iptype(%nx.tmp.host) == ipv4 ) { echo -st <Auto Gline> $address($nick,5) - User joined bait-channel | .msg uworld forcegline $+(*@,%nx.tmp.host) 8d Auto glined, bye bye! }
           else { set -u10 %nx.ag. $+ $nick 1 | userip $nick }
         }
       }
-    }
-    ; This is part of antispam (bot joining and spamming about a girl with a phone number and stuff)
-    ; First a anoying dude....
-    if ( ariciu1 isin $nick ) || ( ariciu1 isin %nx.tmp.ident ) {
-      if ( notariciu == %nx.tmp.ident ) { return }
-      elseif ( $me isop $chan ) { mode $chan +b $address($nick,3) | .kick $chan $nick You need to work on your social skills. }
-      elseif ( $istok(%nx.X.chans. [ $+ [ $network ] ],$chan,32) ) { .msg X ban $chan $nick You need to work on your social skills. }
-    }
-    ; joinflood detection, count number joins in last 10 seconds in join variable and another for join\part
-    ; 4 joins in 10 sec or 2 join\part in 10 sec
-    if ( $istok(%nx.prot.jpflood,$chan,32) ) && ( $network == Dev ) && (!%nx.joinflood.protect. [ $+ [ $cid ] $+ [ $chan ] ] ) {
-      inc -u10 %nx.joinflood. $+ $cid $+ $chan
-      ; echo -a Debug Join flood count: %nx.joinflood. [ $+ [ $cid ] $+ [ $chan ] ] joins and %nx.partflood. [ $+ [ $cid ] $+ [ $chan ] ] join/parts in last 10 seconds.
-      if ( %nx.joinflood. [ $+ [ $cid ] $+ [ $chan ] ] >= 4 ) || ( %nx.partflood. [ $+ [ $cid ] $+ [ $chan ] ] >= 4 ) {
-        ; spamkickban $chan $nick Join flood
-        ; echo -a Debug Join flood detected: %nx.joinflood. [ $+ [ $cid ] $+ [ $chan ] ] joins and %nx.partflood. [ $+ [ $cid ] $+ [ $chan ] ] join/parts in last 10 seconds.
-        !mode $chan +Dm
-        ; set -u3600 %nx.joinflood.protect. $+ $cid $+ $chan 1
-        set %nx.jpflood.protect. $+ $cid $+ $chan 1
-        ; timer.jpflood.check.D. $+ $cid $+ $chan 0 10 who $chan d
-        echo -a Debug Join flood protection enabled on $chan
+      ; This is part of antispam (bot joining and spamming about a girl with a phone number and stuff)
+      ; First a anoying dude....
+      if ( ariciu2k isin $nick ) || ( ariciu2k isin %nx.tmp.ident ) {
+        if ( $me isop $chan ) { mode $chan +b $address($nick,3) | .kick $chan $nick You need to work on your social skills. }
+        elseif ( $istok(%nx.X.chans. [ $+ [ $network ] ],$chan,32) ) { .msg X ban $chan $nick You need to work on your social skills. }
+      }
+      ; joinflood detection, count number joins in last 10 seconds in join variable and another for join\part
+      ; 4 joins in 10 sec or 2 join\part in 10 sec
+      if ( $istok(%nx.prot.jpflood,$chan,32) ) && ( $network == Dev ) && (!%nx.joinflood.protect. [ $+ [ $cid ] $+ [ $chan ] ]) {
+        inc -u10 %nx.joinflood. $+ $cid $+ $chan
+        ; echo -a Debug Join flood count: %nx.joinflood. [ $+ [ $cid ] $+ [ $chan ] ] joins and %nx.partflood. [ $+ [ $cid ] $+ [ $chan ] ] join/parts in last 10 seconds.
+        if ( %nx.joinflood. [ $+ [ $cid ] $+ [ $chan ] ] >= 4 ) || ( %nx.partflood. [ $+ [ $cid ] $+ [ $chan ] ] >= 4 ) {
+          ; spamkickban $chan $nick Join flood
+          ; echo -a Debug Join flood detected: %nx.joinflood. [ $+ [ $cid ] $+ [ $chan ] ] joins and %nx.partflood. [ $+ [ $cid ] $+ [ $chan ] ] join/parts in last 10 seconds.
+          !mode $chan +Dm
+          ; set -u3600 %nx.joinflood.protect. $+ $cid $+ $chan 1
+          set %nx.jpflood.protect. $+ $cid $+ $chan 1
+          ; timer.jpflood.check.D. $+ $cid $+ $chan 0 10 who $chan d
+          echo -a Debug Join flood protection enabled on $chan
+        }
       }
     }
-
-    nx.echo.joinpart join $chan $nick %nx.clonereport
   }
   halt
 }
@@ -299,9 +306,13 @@ on ^*:part:#:{
   if ( $nick == $me ) { 
     nx.echo.joinpart part $chan $me
     unset %nx.joined. $+ $cid $+ $chan
+    halt
   }
-  if ( %mechfloodprotect == $chan ) { halt }
-  else {
+  elseif ( %mechfloodprotect != $chan ) {
+    nx.echo.joinpart part $chan $nick($chan,$nick).pnick $1-
+
+    var %nx.tmp.ident $gettok($gettok($address($nick,5),1,64),2,33)
+    var %nx.tmp.host $gettok($address($nick,5),2,64)
     ; IDEA, make a join\part flood protection
     ; Not showing partmessage <--- did i fix this ? 
     var %nx.onpart.modes ~,&,@,+
@@ -309,6 +320,10 @@ on ^*:part:#:{
     while (%nx.onpart.i) { 
       if ( $nick($chan,$nick,$gettok(%nx.onpart.modes,%nx.onpart.i,44)) ) { var %nx.onpart.m $addtok(%nx.onpart.m,$gettok(%nx.onpart.modes,%nx.onpart.i,44),32) }
       dec %nx.onpart.i
+    }
+
+    if ( ~ isin %nx.tmp.ident ) && ( $+(.,users.,$lower($network),.) !isin %nx.tmp.host ) && (!$istok(%nx.botnet_ [ $+ [ $network ] ],$2,32)) {
+      unset %score_joined_ $+ $cid $+ $chan $+ $address($nick,1)
     }
 
     ; join\part flood detection
@@ -325,7 +340,6 @@ on ^*:part:#:{
       }
     }
 
-    nx.echo.joinpart part $chan $nick($chan,$nick).pnick $1-
     ; Reop if i'm thelast one without op in the channel
     if ( $me !isop $chan ) && ( $nick($chan,0) <= 2 ) {
       !hop $chan
@@ -340,6 +354,7 @@ on ^*:kick:#:{
     unset %nx.joined. $+ $cid $+ $chan
   }
   else {
+    unset %score_joined_ $+ $cid $+ $chan $+ $address($knick,1)
     nx.echo.kick $ctime $chan $knick $nick $1-
   }
   halt
@@ -355,6 +370,7 @@ on ^*:quit:{
   var %c = $comchan($nick,0)
   while (%c) {
     echo 12 -t $comchan($nick,%c) * $nick ( $+ $address $+ ) Quit $iif($1,$+($chr(40),$1-,$chr(41)),$null)
+    unset %score_joined_ $+ $cid $+ $comchan($nick,%c) $+ $address($nick,1)
     if ($nick($comchan($nick,%c),0) <= 2) && (!$comchan($nick,%c).op) { !hop $comchan($nick,%c) }
     dec %c
   }
@@ -363,7 +379,7 @@ on ^*:quit:{
 
 on *:invite:*:{ if ( $istok($nx.db(read,settings,operchans,$network),$chan,32) ) { join $chan } }
 
-on 1:chat:*:{
+on ^1:chat:*:{
   return
 }
 on ^1:text:*:?:{ 
@@ -445,7 +461,7 @@ on ^*:ACTION:*:#:{
 
 ; TODO: add this to anex check (anti excess)
 on 1:input:#:{
-  ; empty for now
+
 }
 
 on ^1:open:?:{

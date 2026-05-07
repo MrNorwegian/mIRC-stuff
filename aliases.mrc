@@ -330,8 +330,8 @@ alias bursdag {
   elseif ( $1 == long ) { var %format long }
   elseif ( $1 == divs ) { var %format divs }
   else { echo -a Usage: /age short|long|divs en|no | halt }
-  if ( $2 == en ) { var %oldtxt Iam, %yearname year, %monthname months, %weekname weeks, %dayname days, %hourname hours, %minutename minutes and, %secondname seconds, %oldname old }
-  if ( $2 == no ) { var %oldtxt Jeg er, %yearname år, %monthname måneder, %weekname ukeer, %dayname dager, %hourname timer, %minutename minutter og, %secondname sekunder, %oldname gammel }
+  if ( $2 == en ) { var %oldtxt Iam: %yearname year, %monthname months, %weekname weeks, %dayname days, %hourname hours, %minutename minutes and, %secondname seconds, %oldname old }
+  if ( $2 == no ) { var %oldtxt Jeg er: %yearname år, %monthname måneder, %weekname uker, %dayname dager, %hourname timer, %minutename minutter og, %secondname sekunder, %oldname gammel }
   var %age $ctime - $ctime(%bday)
   var %mil $round($calc(%age /60 /60 /24 /365.242199 /1000),4)
   var %cen $round($calc(%age /60 /60 /24 /365.242199 /100),4)
@@ -343,8 +343,8 @@ alias bursdag {
   var %hou $round($calc(%age /60 /60),2)
   var %min $round($calc(%age /60),2)
   var %sec %age
-  if ( %format == short ) { say Min alder er: %yea %yearname $+ , %mon %monthname $+ , %wee %weekname $+ , %day %dayname $+ , %hou %hourname $+ , %min %minutename $+ , %sec %secondname %oldname }
-  elseif ( %format == long ) { say Min alder er: %mil millenium, %cen century, %dec decade, %yea %yearname $+ , %mon %monthname $+ , %wee %weekname $+ , %day %dayname $+ , %hou %hourname $+ , %min %minutename $+ , %sec %secondname %oldname }
+  if ( %format == short ) { say %oldtxt %yea %yearname $+ , %mon %monthname $+ , %wee %weekname $+ , %day %dayname $+ , %hou %hourname $+ , %min %minutename $+ , %sec %secondname %oldname }
+  elseif ( %format == long ) { say %oldtxt %mil millenium, %cen century, %dec decade, %yea %yearname $+ , %mon %monthname $+ , %wee %weekname $+ , %day %dayname $+ , %hou %hourname $+ , %min %minutename $+ , %sec %secondname %oldname }
   elseif ( %format == divs ) {
     var %secyear $calc(365.242199 *24 *60 *60)
     var %secmonth $calc(%secyear /12)
