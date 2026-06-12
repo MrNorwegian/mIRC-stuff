@@ -135,8 +135,6 @@ on ^1:notice:*:?:{
     elseif ( $3 == detached ) && ($network == UnderNet) { echo 3 -st $nick $1- }
     halt
   }
-  ; Check if nick is eg idlerpg and echo only to status window 
-  if ( $istok(%nx.echo.status.nicks,$nick,32) ) { set -u1 %nx.notice.status true | nx.echo.notice $1- | halt }
 
   nx.echo.notice $1-
   halt
@@ -466,9 +464,9 @@ on 1:input:#:{
 
 on ^1:open:?:{
   ; IDEA, echo time and date on open
-  ; TODO, check if pr server $cid is working right
+  ; TODO, check if pr server $cid is working right, it did not, added [$+[ ]]
 
-  ; check for own botnet or znc
+  ; check for own botnet or * nicks from znc
   if ( $istok(%nx.botnet_ [ $+ [ $network ] ],$nick,32) ) || ($left($nick,1) = $chr(42) ) { return }
   else {
     var %nx.flood.query.ugh 2
@@ -479,21 +477,23 @@ on ^1:open:?:{
     inc -u10 %nx.flood.query. $+ $cid 1
 
     if (%nx.flood.query. [ $+ [ $cid ] ] >= %nx.flood.query.godhelpme) {
-      echo 4 -st Anti Query flood has blocked %nx.flood.query. $+ $cid query's, this time $nick, now ignoring *!~*@* for 10 seconds
+      echo 4 -st Anti Query flood has blocked %nx.flood.query. [ $+ [ $cid ] ] query's, this time $nick $+ , now ignoring *!~*@* for 10 seconds and usermode +d for 1 minute
+      ; Some times we gets spammed with *!ident@* also so need some check, maby a level over gothelpme ?
       ignore -u10 *!~*@*
+      if ( d isincs $hget(settings_ [ $+ [ $cid ] ],usermodes) ) { mode $me +d | .timer_nx.flood.query.-d. $+ $cid 1 60 mode $me -d }
       .timer_nx.flood.query. $+ $cid 1 %nx.flood.query.time dec %nx.flood.query. $+ $cid
       close -m $nick
     }
     elseif (%nx.flood.query. [ $+ [ $cid ] ] >= %nx.flood.query.max) {
-      echo 4 -st Anti Query flood has blocked %nx.flood.query. $+ $cid query's, this time $nick
-      ignore -u120 $address($nick,2)
+      echo 4 -st Anti Query flood has blocked %nx.flood.query. [ $+ [ $cid ] ] query's, this time $nick
+      ignore -u120 $iif($address($nick,2),$address($nick,2),$nick)
       .timer_nx.flood.query. $+ $cid 1 %nx.flood.query.time dec %nx.flood.query. $+ $cid
       close -m $nick
       ; Check for an usermode and see if i can set mode $me +something to prevent unauthed users to query me, it has to be pr server, ircu does not support this
     }
     elseif (%nx.flood.query. [ $+ [ $cid ] ]  >= %nx.flood.query.ugh) {
-      echo 4 -st Anti Query flood has blocked %nx.flood.query query's, this time $nick
-      ignore -u60 $address($nick,2)
+      echo 4 -st Anti Query flood has blocked %nx.flood.query. [ $+ [ $cid ] ] query's, this time $nick
+      ignore -u60 $iif($address($nick,2),$address($nick,2),$nick)
       .timer_nx.flood.query. $+ $cid 1 %nx.flood.query.time dec %nx.flood.query. $+ $cid
       close -m $nick
     }

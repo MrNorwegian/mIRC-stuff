@@ -77,11 +77,12 @@ alias nx.echo.quit {
 
 ; Flood limit this incase of flood attack, also consider echo to a own "notice window" or to a status window in addition to echo to active window
 alias nx.echo.notice { 
-  if ( %nx.notice.status ) { echo %nx.thm.nc -st $p(Priv Notice) - $nick $+ : $1- | unset %nx.notice.status }
-  elseif ( %nx.notice.active ) { echo %nx.thm.nc -at $p(Priv Notice) - $nick $+ : $1- | unset %nx.notice.active }
-  elseif ( $active = Status Window ) { echo %nx.thm.nc -st $p(Priv Notice) - $nick $+ : $1- }
+  if ( %nx.notice.status ) { echo %nx.thm.nc -st $p(Priv Notice) - $+ $nick $+ - $1- | unset %nx.notice.status }
+  elseif ( %nx.notice.active ) { echo %nx.thm.nc -at $p(Priv Notice) - $+ $nick $+ - $1- | unset %nx.notice.active }
+  elseif ( $active = Status Window ) { echo %nx.thm.nc -st $p(Priv Notice) - $+ $nick $+ - $1- }
+  elseif ( $active == $nick ) { echo %nx.thm.nc -t $nick - $+ $nick $+ - $1- }
   ; TODO, need to check if notice is not in active network or something, now if echo is on same network it goes to else
-  else { echo %nx.thm.nc -at $p(Priv Notice) - $nick @ $network $+ : $1- | echo %nx.thm.nc -st $p(Priv Notice) - $nick $+ : $1- }
+  else { echo %nx.thm.nc -at $p(Priv Notice) - $+ $nick @ $network $+ - $1- | echo %nx.thm.nc -st $p(Priv Notice) - $+ $nick $+ : $1- }
 }
 
 alias nx.echo.snotice {
@@ -208,11 +209,11 @@ alias nx.report.rbl {
 
   ; Check if $1 is a nick and get the hostname
   if ( $gettok($address($1,5),2,64) ) {
+    var %tmphost $v1
 
     ; ignore pylink nicks
     if ($istok(unet ircn,$gettok($1,2,124),32)) { return }
 
-    var %tmphost $v1
     ; is a ip ?
     if ( $iptype(%tmphost) == ipv4 ) { var %host %tmphost }
 

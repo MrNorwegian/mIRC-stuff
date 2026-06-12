@@ -288,7 +288,7 @@ raw *:*:{
     ; nick ident host * realname
     if ($event = 311) { echo %nx.echo.color %whois.window $chr(45) | echo %nx.echo.color %whois.window $2 is $+($3,@,$4-) }
     ; is identified for this nick
-    elseif ($event = 307) { echo %nx.echo.color %whois.window $2 on $3- }
+    elseif ($event = 307) { echo %nx.echo.color %whois.window $2 $3- }
     ; away
     elseif ($event = 301) { echo %nx.echo.color %whois.window $2 is away: $3- }
     ; nick is using modes
@@ -297,7 +297,24 @@ raw *:*:{
     elseif ($event = 378) { echo %nx.echo.color %whois.window $2- }
     ; whois nick is on channel
     ; TODO coloriing channels from good to bad
-    elseif ($event = 319) { echo %nx.echo.color %whois.window $2 on $3- }
+    elseif ($event = 319) { 
+      var %c $comchan($2,0)
+      while (%c) {
+        var %ch $addtok(%ch,$comchan($2,%c),32)
+        dec %c
+      }
+      if (%ch) { echo %nx.echo.color %whois.window $2 is on common chans: %ch }
+      var %c $numtok($3-,32)
+      while (%c) { 
+        if ( $left($gettok($3-,%c,32),1) == @ ) { var %cho $addtok(%cho,$gettok($3-,%c,32),32) }
+        elseif ( $left($gettok($3-,%c,32),1) == + ) { var %chv $addtok(%chv,$gettok($3-,%c,32),32) }
+        else { var %ch $addtok(%ch,$gettok($3-,%c,32),32) }
+        dec %c
+      }
+      if ( %cho ) { echo %nx.echo.color %whois.window $2 is operator in %cho }
+      if ( %chv ) { echo %nx.echo.color %whois.window $2 is voiced in %chv }
+      if ( %ch ) { echo %nx.echo.color %whois.window $2 is regular in %ch }
+    }
     ; whois nick using server
     elseif ($event = 312) { echo %nx.echo.color %whois.window $2 using $3- }
     ; Is connected via the webircgateway
@@ -669,7 +686,7 @@ raw *:*:{
    }
 
   ; You're not an channel operator
-  elseif ($event = 482) { echo -at * $+($1,:) You're not channel operator | halt }
+  elseif ($event = 482) { echo -at * $+($1,:) You're not an channel operator | halt }
 
   ; No Operator block for your host
   elseif ($event = 491) { echo -at * $+($1,:) No Operator block for your host | halt }
