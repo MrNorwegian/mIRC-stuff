@@ -191,6 +191,9 @@ raw *:*:{
   ; $2 sets mode +i ( Not when connected to znc )
   elseif ($event = 221) { return }
 
+  ; glines
+  elseif ($event = 223) { nx.echo.snotice $2- | halt }
+  
   ; stats v
   elseif ($event = 236) { 
     if ($2 != Servername) && ( $istok($nx.db(read,settings,ircd,ircu2),$network,32) ) { 
@@ -656,7 +659,7 @@ raw *:*:{
   ; :Cannot join channel (+i) ( $2 = channel )
   ; TODO use %nx.loggedon or something before .msg 
   ; Todo, use settings to get the botname (uworld) because it can change
-  elseif ( $event = 473 ) { if ( $istok($nx.db(read,settings,operchans,$network),$2,32)) { .timer_ai_ $+ $2 1 10 .msg euworld invite $2 $me } | return }
+  elseif ( $event = 473 ) { if ( $istok($nx.db(read,settings,operchans,$network),$2,32)) { .timer_ai_ $+ $2 1 10 .msg uworld invite $2 $me } | return }
 
   ; invalid password
   elseif ($event = 464) { return }

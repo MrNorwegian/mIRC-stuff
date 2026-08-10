@@ -157,7 +157,7 @@ on ^1:NOTICE:*:#:{
     }
     spamkickban $chan $nick Spam
   }
-  nx.echo.channotice $ctime $chan $iif($nick,$nick,$iif($server,$server,Unknown)) $1-
+  nx.echo.channotice $ctime $chan $nick $1-
   halt
 }
 on ^1:SNOTICE:*:{ nx.echo.snotice $1- | halt }
@@ -304,6 +304,8 @@ on ^*:part:#:{
   if ( $nick == $me ) { 
     nx.echo.joinpart part $chan $me
     unset %nx.joined. $+ $cid $+ $chan
+    unset %nx.ialupdate. $cid $+ $2
+    .timer_nx_ialfill_ $+ $cid $+ _ $+ $chan off 
     halt
   }
   elseif ( %mechfloodprotect != $chan ) {
@@ -320,10 +322,6 @@ on ^*:part:#:{
       dec %nx.onpart.i
     }
 
-    if ( ~ isin %nx.tmp.ident ) && ( $+(.,users.,$lower($network),.) !isin %nx.tmp.host ) && (!$istok(%nx.botnet_ [ $+ [ $network ] ],$2,32)) {
-      unset %score_joined_ $+ $cid $+ $chan $+ $address($nick,1)
-    }
-
     ; join\part flood detection
     if ( $istok(%nx.prot.jpflood,$chan,32) ) && ( $network == Dev ) && (!%nx.partflood.protect. [ $+ [ $cid ] $+ [ $chan ] ] ) {
       inc -u10 %nx.partflood. $+ $cid $+ $chan
@@ -338,10 +336,12 @@ on ^*:part:#:{
       }
     }
 
+    nx.antispam p $chan $nick $1-
     ; Reop if i'm thelast one without op in the channel
     if ( $me !isop $chan ) && ( $nick($chan,0) <= 2 ) {
       !hop $chan
     }
+    unset %score_joined_ $+ $cid $+ $chan $+ $address($nick,1)
   }
   halt
 }
@@ -446,14 +446,14 @@ on ^*:TEXT:*:#: {
   ; TODO fix nick coloring of @+modes
   nx.handle.highlight $chan $nick $1-
   nx.echo.chanmsg $ctime $chan $nick $1-
-  nx.antispam $chan $nick $1-
+  nx.antispam t $chan $nick $1-
   halt
 }
 
 on ^*:ACTION:*:#:{
   nx.handle.highlight $chan $nick $1-
   nx.echo.chanaction $ctime $chan $nick $1-
-  nx.antispam $chan $nick $1-
+  nx.antispam a $chan $nick $1-
   halt
 }
 

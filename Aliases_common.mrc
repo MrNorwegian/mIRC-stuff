@@ -40,7 +40,7 @@ alias dev.chkmodes {
 }
 ; ctime chan nick message
 alias nx.echo.chanmsg {
-  var %pnick $iif($3 == $server, $server, $nick($2,$3).pnick)
+  var %pnick $iif($3 !ison $2, $3, $nick($2,$3).pnick)
   var %modecolor $dev.chkmodes($2,$3)
   if ( %nx.highlight.active ) { var %c 4 | unset %nx.highlight.active | window -g2 $2 }
   else { window -g1 $2 }
@@ -48,7 +48,7 @@ alias nx.echo.chanmsg {
 
 }
 alias nx.echo.chanaction {
-  var %pnick $iif($3 == $server, $server, $nick($2,$3).pnick)
+  var %pnick $iif($3 !ison $2, $3, $nick($2,$3).pnick)
   var %modecolor $dev.chkmodes($2,$3)
   if ( %nx.highlight.active ) { var %c 4 | unset %nx.highlight.active | window -g2 $2 }
   else { var %c 6 | window -g1 $2 }
@@ -56,7 +56,7 @@ alias nx.echo.chanaction {
 }
 
 alias nx.echo.channotice {
-  var %pnick $iif($3 == $server, $server, $nick($2,$3).pnick)
+  var %pnick $iif($3 !ison $2, $3, $nick($2,$3).pnick)
   var %modecolor $dev.chkmodes($2,$3)
   if ( %nx.highlight.active ) { var %c 4 | unset %nx.highlight.active | window -g2 $2 }
   else { var %c %nx.thm.nc | window -g1 $2 }
@@ -144,52 +144,47 @@ alias nx.announce.newday {
 }
 
 alias nx.antispam {
-  ; $2 = nick, $1 = chan, $3- = message
-  if ( $2 isreg $1 ) {
-    var %nx.tmp.ident $gettok($gettok($address($2,5),1,64),2,33)
-    var %nx.tmp.host $gettok($address($2,5),2,64)
+  ; $1 = t\p\a\n, $2 = chan, $3 = nick, , $4- = message
+  var %nx.tmp.ident $gettok($gettok($address($3,5),1,64),2,33)
+  var %nx.tmp.host $gettok($address($3,5),2,64)
+  ; ignore *.users. "network" .* hosts
+  if ( $+(.,users.,$lower($network),.) !isin %nx.tmp.host ) && (!$istok(%nx.botnet_ [ $+ [ $network ] ],$3,32)) {
+    ; Does not have ident and has joined in the last 300 secs
+    if ( ~ isin %nx.tmp.ident ) && ( %score_joined_ [ $+ [ $cid ] ] [ $+ [ $2 ] ] [ $+ [ $address($3,1) ] ]) {
 
-    ; ignore *.users. "network" .* hosts
-    if ( $+(.,users.,$lower($network),.) !isin %nx.tmp.host ) && (!$istok(%nx.botnet_ [ $+ [ $network ] ],$2,32)) {
-
-      ; Does not have ident and has joined in the last 300 secs
-      if ( ~ isin %nx.tmp.ident ) && ( %score_joined_ [ $+ [ $cid ] ] [ $+ [ $chan ] ] [ $+ [ $address($nick,1) ] ]) {
+      ; Last check if nick is regular user
+      var %pnick $left($nick($chan,$3).pnick,1)
+      var %pqaovh ~ & @ % +
+      if (!$istok(%pqaovh,%pnick,32)) {
         ; Check for spamtext in message
         var %i = 1
         while ( %nx.spamtext. [ $+ [ %i ] ] ) {
-          if ( %nx.spamtext. [ $+ [ %i ] ] iswm $3- ) {
-            nx.report.rbl $2
-            spamkickban $1 $2 Spamming is not allowed in this channel. $p(%i)
+          if ( %nx.spamtext. [ $+ [ %i ] ] iswm $4- ) {
+            nx.report.rbl $3
+            spamkickban $2 $3 Spamming is not allowed in this channel. $p(%i)
           }
           inc %i
         }
-
-        ; Check for #chan #chan1 #chan2 etc, #chan need to be repeated atleast 4 times
-        var %wordcount $numtok($2-,32)
-        var %chancount
-        while (%wordcount) {
-          if ( $left($gettok($3-,1,32),1) == $chr(35) ) {
-            inc %chancount
-            if ( %chancount > 4 ) { spamkickban $1 $2 Spamming channels is not allowed. | return }
-          }
-          dec %wordcount
-        }
-        ; Nick repeat flood protection in defined channels
-        if ( $istok(%nx.flood.protected.channels,$1,32) ) { antiflood_check_nickrepeat $1 $2 $3- }
       }
-      ; Has ident
-      elseif ( %nx.tmp.ident == webchat ) {
-        ; TODO Need to fix this regex
-        var %nx.troll.regex ^\(\s*(?:\._\.|-__-|\-\.\-)\s*\)$
-        if ( $regex($1-,%nx.troll.regex) ) && ( $iptype(%nx.tmp.host) == ipv6 ) { 
-          spamkickban $1 $2 Troll
-          if (!$istok(%nx.trollnicks,$2,32)) { set %nx.trollnicks $addtok(%nx.trollnicks,$2,32) | whois $2 } 
-        }
-      }
+      ; Nick repeat flood protection in defined channels
+      if ( $istok(%nx.flood.protected.channels,$2,32) ) { antiflood_check_nickrepeat $2 $3 $4- }
     }
   }
 }
 
+
+
+alias smileytroll {
+    ; Has ident
+  elseif ( %nx.tmp.ident == webchat ) {
+    ; TODO Need to fix this regex
+    var %nx.troll.regex ^\(\s*(?:\._\.|-__-|\-\.\-)\s*\)$
+    if ( $regex($1-,%nx.troll.regex) ) && ( $iptype(%nx.tmp.host) == ipv6 ) { 
+      spamkickban $1 $2 Troll
+      if (!$istok(%nx.trollnicks,$2,32)) { set %nx.trollnicks $addtok(%nx.trollnicks,$2,32) | whois $2 } 
+    }
+  }
+}
 on *:dns:{
   var %d $dns(0)
   while (%d) {
@@ -380,18 +375,21 @@ alias antiflood_check_chanflood {
 }
 alias spamkickban { 
   ; spamkickban <chan> <nick> <reason>
+
+  ; Later need to optimize this, spamkickban is called by on part and later on quit, isreg and ison might not work as expected.
+  ; I started adding j,p,n,a to alias nx.antispam, passing this along might be usefull
   if ( $2 isreg $1 ) {
     if ( $2 ison $1 ) {
-      var %unbantimer $calc(60*60*3)
+      var %unbantimer $calc(60*60*1)
       if ( $me isop $1 ) {
         ; Later, need to fix nx.ban to deal with anti excess flood
         ban -ku $+ %unbantimer $1 $2 2 $3-
         ; nx.kick $1 $2 $3-
         ; nx.mode $1 +b $address($2,2)
-        ; unban after 3 hours
-        .timer_unban_ $+ $1 $+ _ $+ $2 1 %unbantimer nx.mode $1 -b $address($2,2)
+        ; unban after 1 hours
+        ; .timer_unban_ $+ $1 $+ _ $+ $2 1 %unbantimer nx.mode $1 -b $address($2,2)
       }
-      elseif ( X ison $1 ) && ( $istok(%nx.X.chans. [ $+ [ $network ] ],$chan,32) ) { .nx.msg X ban $1 $address($2,2) %unbantimer $3- }
+      elseif ( X ison $1 ) && ( $istok(%nx.X.chans. [ $+ [ $network ] ],$chan,32) ) { .nx.msg X ban $1 $address($2,2) 1h $3- }
       ; Here elseif botnet is in the channel and dcc chat is active with botnet, send ban thru botnet
       else { echo 4 -t $chan Unable to ban/kick $2 in $1, insufficient rights. }
     }

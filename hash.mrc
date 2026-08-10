@@ -13,33 +13,37 @@ menu status,channel,query {
 }
 alias hedit { dialog -m hedit hedit }
 
+; Some changes by deep3d in hedit
 dialog hedit {
   title "Hash Table Editor"
-  size -1 -1 400 348
+  size -1 -1 453 366
   option dbu
-  edit "", 1, 1 336 395 10, read autohs left
-  box "Tables", 2, 2 3 75 330
-  list 3, 6 11 65 320, sort vsbar
-  button "Add", 4, 7 305 32 11
-  button "Remove", 5, 40 305 32 11
-  button "Rename", 6, 7 317 32 11
-  button "Clear", 7, 40 317 32 11
-  box "Items", 8, 80 3 316 330
-  list 9, 85 11 65 319, sort vsbar
-  button "Add", 10, 83 305 32 11
-  button "Remove", 11, 117 305 32 11
-  box "Data", 12, 155 9 239 63
-  text "Item", 13, 158 17 22 6
-  edit "", 14, 158 25 230 11, autohs
-  text "Data", 15, 158 37 20 6
-  edit "", 16, 158 45 230 11, autohs
-  button "Update", 17, 264 58 30 11
-  box "Search", 18, 155 74 239 51
-  check "Data", 19, 179 83 24 9
-  check "Table", 20, 207 83 24 9
-  edit "", 21, 158 95 230 11, autohs
-  check "Regular Ex.", 22, 179 111 35 9
-  button "Clear", 23, 263 106 35 11
+  edit "", 1, 8 348 392 10, read autohs
+  box "Tables", 2, 8 5 87 336
+  list 3, 16 16 71 275, sort vsbar
+  button "Add", 4, 18 298 32 11
+  button "Remove", 5, 52 298 32 11
+  button "Rename", 6, 18 311 32 11
+  button "Clear", 7, 52 311 32 11
+  box "Items", 8, 103 5 340 336
+  list 9, 111 16 71 302, sort vsbar
+  button "Add", 10, 114 324 32 11
+  button "Remove", 11, 148 324 32 11
+  box "Data", 12, 189 14 245 75
+  text "Item", 13, 197 24 22 6
+  edit "", 14, 196 32 230 11, autohs
+  text "Data", 15, 197 46 20 6
+  edit "", 16, 196 53 230 11, autohs
+  button "Update", 17, 393 70 32 11
+  box "Search", 18, 189 94 245 60
+  check "Data", 19, 196 105 24 9
+  check "Table", 20, 223 105 24 9
+  edit "", 21, 195 117 230 11, autohs
+  check "Regular Ex.", 22, 196 138 35 9
+  button "Clear", 23, 392 135 32 11
+  button "Exit", 24, 405 347 37 12, ok cancel
+  button "Save .ini", 25, 18 324 32 11, disable
+  button "Load .ini", 26, 52 324 32 11, disable
 }
 
 on *:Dialog:hedit:*:*:{
