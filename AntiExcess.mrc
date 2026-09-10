@@ -46,14 +46,18 @@ alias nx.kick { nx.anti.excess !kick $1- }
 alias nx.ctcp { nx.anti.excess !ctcp $1- }
 alias nx.topic { nx.anti.excess !topic $1- }
 alias nx.whois { 
-  ;if (!%nx.whois.active) { set -u10 %nx.whois.active manual ;}
+  ; An idea here is in the future when whoising multiple nicks at once, we can /!whois nick,nick1,nick2,nick3 bypassing excess flood by alot (works in ircu2)
   if ( $1 ) {
     var %numnicks $numtok($1-,44), %i 1
-    set -u120 %nx.whois.active multiple %numnicks
-    ; Check for multiple nicks separated by ,
     while ( %i <= %numnicks ) {
       var %tmpnick $gettok($1-,%i,44)
-      ; Check if we want to check idletime (dubble nick)
+
+      ; For now use multiple, manual\single is the same (echo -at)
+      if (!$istok(%nx.whois.multiple. [ $+ [ $cid ] ],$gettok(%tmpnick,1,32),44)) {
+        set -u10 %nx.whois.multiple. $+ $cid $addtok(%nx.whois.multiple. [ $+ [ $cid ] ],$gettok(%tmpnick,1,32),44)
+      }
+
+      ; Check if we want to check idletime (/nx.whois nick nick))
       if ( $gettok(%tmpnick,1,32) == $gettok(%tmpnick,2,32) ) {
         nx.anti.excess !whois %tmpnick
       }
@@ -61,7 +65,6 @@ alias nx.whois {
       inc %i
     }
   }
-  ; nx.anti.excess !whois $1-
 }
 alias nx.who { nx.anti.excess !who $1- }
 alias nx.stats { nx.anti.excess !stats $1- }

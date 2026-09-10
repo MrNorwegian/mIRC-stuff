@@ -276,20 +276,32 @@ raw *:*:{
   elseif ($event = 329) { return }
 
   ; WHOIS
-  ; nick ident host * realname
-  ; TODO, use %nx.echoquery.whois. $+ $cid $+ . $+ $nick
-  ; replace -at with $window or something ? or a whole new echo line with elseif 
-  ; %nx.mcz
-  if ( %nx.whois.active ) {
+  if ( $istok(%nx.whois.query. [ $+ [ $cid ] ],$2,44) || $istok(%nx.whois.manual. [ $+ [ $cid ] ],$2,44) || $istok(%nx.whois.multiple. [ $+ [ $cid ] ],$2,44) ) {
 
     ; Start of whois
-    if ( $gettok(%nx.whois.active,1,32) == manual ) { set -u10 %whois.window -at }
-    elseif ( $gettok(%nx.whois.active,1,32) == multiple ) { set -u10 %whois.window -at }
-    elseif ( $gettok(%nx.whois.active,1,32) == query ) { set -u10 %whois.window -t $gettok(%nx.whois.active,2,32) }
+    ; %nx.whois.query. [ $+ [ $cid ] ] nick1, nick2
+    ; %nx.whois.multiple. [ $+ [ $cid ] ] nick1, nick2
+    ; %nx.whois.manual. [ $+ [ $cid ] ] nick1
+    ; multiple is multiple nicknames being whois'ed at one time (eg /whois nick1 nick2 or from the nicklist)
+    
+    ; If whois is from on query return to the query window
+    if ( $istok(%nx.whois.query. [ $+ [ $cid ] ],$2,44) ) { set -u10 %whois.window -t $2 }
+ 
+    ; Returns to the active window
+    elseif ( $istok(%nx.whois.manual. [ $+ [ $cid ] ],$2,44) ) { set -u10 %whois.window -at }
+    elseif ( $istok(%nx.whois.multiple. [ $+ [ $cid ] ],$2,44) ) { set -u10 %whois.window -at }
+
+    ; Defaults to server window
     else { set -u10 %whois.window -st }
 
     ; nick ident host * realname
-    if ($event = 311) { echo %nx.echo.color %whois.window $chr(45) | echo %nx.echo.color %whois.window $2 is $+($3,@,$4-) }
+    if ($event = 311) {
+      if ($istok(%nx.whois.query. [ $+ [ $cid ] ],$2,44)) {
+        echo %nx.echo.color %whois.window Received query at $date(dddd dd mmm yyyy HH:mm)
+      }
+      echo %nx.echo.color %whois.window -
+      echo %nx.echo.color %whois.window $2 is $+($3,@,$4-)
+    }
     ; is identified for this nick
     elseif ($event = 307) { echo %nx.echo.color %whois.window $2 $3- }
     ; away
@@ -299,7 +311,7 @@ raw *:*:{
     ; nick is connecting from
     elseif ($event = 378) { echo %nx.echo.color %whois.window $2- }
     ; whois nick is on channel
-    ; TODO coloriing channels from good to bad
+    ; TODO coloring channels from good to bad
     elseif ($event = 319) { 
       var %c $comchan($2,0)
       while (%c) {
@@ -347,15 +359,13 @@ raw *:*:{
     ; End of whois list
     elseif ($event = 318) {
       echo %nx.echo.color %whois.window $2-
-      echo %nx.echo.color %whois.window $chr(45)
-      ; %nx.whois.active manual 3 means its whoising 3 nicks and we'll dec the value 
-      if ( $gettok(%nx.whois.active,1,32) == multiple ) {
-        set -u120 %nx.whois.active $gettok(%nx.whois.active,1,32) $calc($gettok(%nx.whois.active,2,32) - 1)
-        ; is it the last one ?
-        if ($gettok(%nx.whois.active,2,32) <= 0) {
-          unset %nx.whois.active %whois.window
-        }
-      }
+      echo %nx.echo.color %whois.window -
+
+      ; I made a bug but too lazy to fix, when no more nicks is in the variables the variable becames empty (:
+      if ( $istok(%nx.whois.query. [ $+ [ $cid ] ],$2,44) ) { set -u10 %nx.whois.query. [ $+ [ $cid ] ] $remtok(%nx.whois.query. [ $+ [ $cid ] ],$2,44) }
+      if ( $istok(%nx.whois.multiple. [ $+ [ $cid ] ],$2,44) ) { set -u10 %nx.whois.multiple. [ $+ [ $cid ] ] $remtok(%nx.whois.multiple. [ $+ [ $cid ] ],$2,44) }
+      if ( $istok(%nx.whois.manual. [ $+ [ $cid ] ],$2,44) ) { set -u10 %nx.whois.manual. [ $+ [ $cid ] ] $remtok(%nx.whois.manual. [ $+ [ $cid ] ],$2,44) }
+      unset %nx.whois.active %whois.window
     }
     halt
   }
@@ -454,9 +464,17 @@ raw *:*:{
           ; Dont color or output ( client asked with -c )
         }
       }
+    }
+    if ( %nx.checkspambots ) {
+      ; echo -st checking $3 and $10-
+      ; return is yournick * ~Jopucia 123.123.123.123 irc.SERVER.tld stejo H 0 0PNP ste!ju chi!nio f3de'wu
+      ; Checking realanme that is $10- if its just random characters and numbers, if so, echo it as a possible spammer
+      if ( $numtok($10-,32) > 3 ) && ( ~ isin $3 ) { 
+        ; more than 3 words in realname and ~identd
+        echo 4 -st Possible spambot detected in : $4 is $+($3,@,$4) realname: $10-
+      }
       halt
     }
-
     ; ial update stuff to be finished later
     if ( %nx.joined. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) || ( %nx.ialupdate. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) { 
       inc -u10 %nx.ialchanusers. $+ $cid $+ $2
@@ -504,6 +522,7 @@ raw *:*:{
       unset %nx.grepwho %nx.grep.count %nx.grepsetting
       halt
     }
+    if ( %nx.checkspambots ) { unset %nx.checkspambots | halt }
     elseif ( %nx.joined. [ $+ [ $cid ] ] [ $+ [ $2 ] ] ) {
       echo 12 -st Updated IAL for $2 with %nx.ialchanusers. [ $+ [ $cid ] ] [ $+ [ $2 ] ] users.
       unset %nx.joined. $+ $cid $+ $2 | unset %nx.ialchanusers. $+ $cid $+ $2 

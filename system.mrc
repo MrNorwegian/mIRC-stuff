@@ -160,7 +160,11 @@ on ^1:NOTICE:*:#:{
   nx.echo.channotice $ctime $chan $nick $1-
   halt
 }
-on ^1:SNOTICE:*:{ nx.echo.snotice $1- | halt }
+on ^1:SNOTICE:*:{ 
+  if ( $5 == realhost:s ) && ( $len($6) > 30 ) { halt }
+  nx.echo.snotice $1-
+  halt
+}
 on ^1:WALLOPS:*:{ nx.echo.wallops $1- | halt }
 
 ; When on znc i need this to make sure snotice windows is up 
@@ -418,7 +422,6 @@ on ^1:text:*:?:{
   }
 
   ; TODO move this echo to echo alias? for theme
-  if ( $istok(%nx.whois.active,$nick,32) ) {  echo -t $nick Query opened at $date(ddd ddoo mmm yyyy hh:mmt) }
   echo -t $nick < $+ $nick $+ > $1-
   halt
 }
@@ -468,6 +471,7 @@ on ^1:open:?:{
 
   ; check for own botnet or * nicks from znc
   if ( $istok(%nx.botnet_ [ $+ [ $network ] ],$nick,32) ) || ($left($nick,1) = $chr(42) ) { return }
+
   else {
     var %nx.flood.query.ugh 2
     var %nx.flood.query.max 5
@@ -475,6 +479,9 @@ on ^1:open:?:{
     var %nx.flood.query.time 10
 
     inc -u10 %nx.flood.query. $+ $cid 1
+
+    ; This is so unessary, but im so tired getting 10x pm's every day but cant use ignore since my spamscript also kicks him in the channels WHEN he spams lol
+    if ( $nick == ARICIU2K- ) { close -m $nick }
 
     if (%nx.flood.query. [ $+ [ $cid ] ] >= %nx.flood.query.godhelpme) {
       echo 4 -st Anti Query flood has blocked %nx.flood.query. [ $+ [ $cid ] ] query's, this time $nick $+ , now ignoring *!~*@* for 10 seconds and usermode +d for 1 minute
@@ -498,8 +505,8 @@ on ^1:open:?:{
       close -m $nick
     }
     else {
-      set -u10 %nx.whois.active query $nick
-      echo -st Received query from $nick
+      set -u10 %nx.whois.query. $+ $cid $addtok(%nx.whois.query. [ $+ [ $cid ] ],$nick,44)
+      echo -st Received query from $nick at $date(HH:mm - dddd dd mmm yyyy)
       nx.whois $nick $nick
       .timer_nx.flood.query. $+ $cid 1 %nx.flood.query.time dec %nx.flood.query. $+ $cid
     }

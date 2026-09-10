@@ -2,7 +2,8 @@
 
 menu Query {
   Info:/uwho $$1
-  Whois:/nx.whois $1 $1
+  Whois:/nx.whois $1
+  WhoisEx:/nx.whois $1 $1
   Query:/query $$1
   -
   Ignore:/ignore $$1 1 | /closemsg $$1
