@@ -318,17 +318,17 @@ raw *:*:{
         var %ch $addtok(%ch,$comchan($2,%c),32)
         dec %c
       }
-      if (%ch) { echo %nx.echo.color %whois.window $2 is on common chans: %ch }
+      if (%ch) { echo %nx.echo.color %whois.window $2 is on $numtok(%ch,32) common chans: %ch }
       var %c $numtok($3-,32)
-      while (%c) { 
+      while (%c) {
         if ( $left($gettok($3-,%c,32),1) == @ ) { var %cho $addtok(%cho,$gettok($3-,%c,32),32) }
         elseif ( $left($gettok($3-,%c,32),1) == + ) { var %chv $addtok(%chv,$gettok($3-,%c,32),32) }
-        else { var %ch $addtok(%ch,$gettok($3-,%c,32),32) }
+        else { var %chr $addtok(%chr,$gettok($3-,%c,32),32) }
         dec %c
       }
       if ( %cho ) { echo %nx.echo.color %whois.window $2 is operator in %cho }
       if ( %chv ) { echo %nx.echo.color %whois.window $2 is voiced in %chv }
-      if ( %ch ) { echo %nx.echo.color %whois.window $2 is regular in %ch }
+      if ( %chr ) { echo %nx.echo.color %whois.window $2 is regular in %chr }
     }
     ; whois nick using server
     elseif ($event = 312) { echo %nx.echo.color %whois.window $2 using $3- }
