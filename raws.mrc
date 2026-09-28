@@ -308,25 +308,33 @@ raw *:*:{
     elseif ($event = 301) { echo %nx.echo.color %whois.window $2 is away: $3- }
     ; nick is using modes
     elseif ($event = 379) { echo %nx.echo.color %whois.window $2- }
-    ; nick is connecting from
+    ; nick is connecting from *@host ip
     elseif ($event = 378) { echo %nx.echo.color %whois.window $2- }
     ; whois nick is on channel
     ; TODO coloring channels from good to bad
     elseif ($event = 319) { 
-      var %c $comchan($2,0)
-      while (%c) {
-        var %ch $addtok(%ch,$comchan($2,%c),32)
-        dec %c
+      if ( $2 != $me ) {
+        var %c $comchan($2,0)
+        while (%c) {
+          var %ch $addtok(%ch,$comchan($2,%c),32)
+          dec %c
+        }
       }
-      if (%ch) { echo %nx.echo.color %whois.window $2 is on $numtok(%ch,32) common chans: %ch }
       var %c $numtok($3-,32)
       while (%c) {
-        if ( $left($gettok($3-,%c,32),1) == @ ) { var %cho $addtok(%cho,$gettok($3-,%c,32),32) }
+        if ( $left($gettok($3-,%c,32),1) == ~ ) { var %chq $addtok(%chq,$gettok($3-,%c,32),32) }
+        elseif ( $left($gettok($3-,%c,32),1) == & ) { var %cha $addtok(%cha,$gettok($3-,%c,32),32) }
+        elseif ( $left($gettok($3-,%c,32),1) == @ ) { var %cho $addtok(%cho,$gettok($3-,%c,32),32) }
+        elseif ( $left($gettok($3-,%c,32),1) == $chr(37) ) { var %chh $addtok(%chh,$gettok($3-,%c,32),32) }
         elseif ( $left($gettok($3-,%c,32),1) == + ) { var %chv $addtok(%chv,$gettok($3-,%c,32),32) }
         else { var %chr $addtok(%chr,$gettok($3-,%c,32),32) }
         dec %c
       }
+      if (%ch) { echo %nx.echo.color %whois.window $2 is on $numtok(%ch,32) common chans: %ch }
+      if ( %chq ) { echo %nx.echo.color %whois.window $2 is owner in %chq }
+      if ( %cha ) { echo %nx.echo.color %whois.window $2 is admin in %cha }
       if ( %cho ) { echo %nx.echo.color %whois.window $2 is operator in %cho }
+      if ( %chh ) { echo %nx.echo.color %whois.window $2 is halfop in %chh }
       if ( %chv ) { echo %nx.echo.color %whois.window $2 is voiced in %chv }
       if ( %chr ) { echo %nx.echo.color %whois.window $2 is regular in %chr }
     }
@@ -344,8 +352,9 @@ raw *:*:{
     elseif ($event = 335) { echo %nx.echo.color %whois.window $2- }
     ; is aviaible for help
     elseif ($event = 310) { echo %nx.echo.color %whois.window $2- }
-    ; nick "landcode" is connecting from "land"
-    elseif ($event = 344) { echo %nx.echo.color %whois.window $2- }
+    ; nick "landcode" is connecting from "country"
+    elseif ($event = 344) { set -u1 %nx.whois.country_ $+ $2 $2 $4- }
+    elseif ($event = 569) { echo %nx.echo.color %whois.window %nx.whois.country_ [ $+ [ $2 ] ] $p($7-) }
     ; nick is using ip with a reputation 
     elseif ($event = 320) { echo %nx.echo.color %whois.window $2- }
     ; nick is using a secure connection
@@ -437,6 +446,11 @@ raw *:*:{
       else { halt }
     }
 
+    ; Trusted users functionality
+    ; Idea, level up with grades (rectruit, major, colonel, general, etc.)
+    ; Grades could determine the level of trust to avoid certain actions like antispam.
+
+    
     ; grepwho functionality
     if ( %nx.grepwho ) {
       ; server\chan
