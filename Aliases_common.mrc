@@ -1,5 +1,19 @@
 ; Starting with theme stuff, this is going to be moved to own file later
 alias p { return $+($chr(40),$1-,$chr(41)) }
+
+; alias adding color
+alias c { 
+  if ( $1 == green ) { var %c_output $+($chr(3),9,$chr(32),$2,$chr(3)) }
+  if ( $1 == red ) { var %c_output $+($chr(3),4,$chr(32),$2,$chr(3)) }
+  if ( $1 == blue ) { var %c_output $+($chr(3),12,$chr(32),$2,$chr(3)) }
+  if ( $1 == yellow ) { var %c_output $+($chr(3),8,$chr(32),$2,$chr(3)) }
+  if ( $1 == cyan ) { var %c_output $+($chr(3),11,$chr(32),$2,$chr(3)) }
+  if ( $1 == magenta ) { var %c_output $+($chr(3),13,$chr(32),$2,$chr(3)) }
+  if ( $1 == white ) { var %c_output $+($chr(3),0,$chr(32),$2,$chr(3)) }
+  ; remove leading and trailing spaces from the output
+  return %c_output
+}
+
 ; alias for -
 alias dash { return $+($chr(45),$1-,$chr(45)) }
 alias p1 { return $+($chr(60),$1-,$chr(62)) }
@@ -74,6 +88,9 @@ alias nx.echo.quit {
   if ( $left($1,1) == $chr(35) ) { echo 12 -t $1 * $2 $p($3) has quit $p($4-) }
   else { echo 12 -t $+ $1 $2 * $3 $p($4) has quit $p($5-)  }
 }
+
+; $1 = timestamp, $2 = chan, $3 = nick, $4 = old host, $5 = new host
+alias nx.echo.chghost { echo 43 -t $+ $1 $2 * $3 $p($4) has changed host to: $5 }
 
 ; Flood limit this incase of flood attack, also consider echo to a own "notice window" or to a status window in addition to echo to active window
 alias nx.echo.notice { 

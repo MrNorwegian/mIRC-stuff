@@ -1,7 +1,7 @@
 alias nx.masmode.deall {
   if ( q isin $nickmode ) { nx.massmode $iif($1 == user,deowner,$iif($1 == oper, oper_deowner, botnet_deowner)) $2 $$3- }
   if ( a isin $nickmode ) { nx.massmode $iif($1 == user,deadmin,$iif($1 == oper, oper_deadmin, botnet_deadmin)) $2 $$3- }
-  if ( o isin $nickmode ) { nx.massmode $iif($1 == user,deop,$iif($1 == oper, oper_deop, botnet_deop)) $2 $$2- }
+  if ( o isin $nickmode ) { nx.massmode $iif($1 == user,deop,$iif($1 == oper, oper_deop, botnet_deop)) $2 $$3- }
   if ( h isin $nickmode ) { nx.massmode $iif($1 == user,dehalfop,$iif($1 == oper, oper_dehalfop, botnet_dehalfop)) $2 $$3- }
   if ( v isin $nickmode ) { nx.massmode $iif($1 == user,devoice,$iif($1 == oper, oper_devoice, botnet_devoice)) $2 $$3- }
 }
@@ -322,9 +322,8 @@ alias power {
   } 
   unset %totalchans %totalusers %opchans %peons %chan %cids %laenge %wertaktiv %wertgesamt %bar %aktiv %i %sumoper %sumchannels %sumpower %totalnetworks %opernets
 }
-alias age { bursdag $1- }
-alias bursdag {
-  ; 3008 1986
+alias age { birthday $1- }
+alias birthday {
   if (!%bday) { set %bday $?="mm dd åååå hh:mm:ss (Jan 01 1990 10:15:00)" | halt }
   if ( $1 == short ) { var %format short }
   elseif ( $1 == long ) { var %format long }
@@ -388,4 +387,11 @@ alias grepwho {
 
   } 
   else { echo -at Usage: /grepwho <irc.server.net|*|#chan> <string> [-c for count] }
+}
+
+alias spamwho {
+  if ( $network == IRCNet ) {
+    set -u10 %nx.checkspambots 1
+    who $server
+  }
 }

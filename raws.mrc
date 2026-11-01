@@ -1,15 +1,29 @@
 raw *:*:{
   if ($eval(% $+ debug_raw_ $+ $cid,2)) { echo -t $+(@,$network,_,$cid,_,raw) Event: $event Text: $1- }
   if ($event = ack) { return }
-  elseif ($event = cap) { return }
-
-  ; batch +eJ2YePPoPApi8e95KGaJfU chathistory #opers ; batch -eJ2YePPoPApi8e95KGaJfU
+  elseif ($event = account) { 
+    ; Handle account event
+    return
+  }
+  elseif ($event = away) { return }
+  ; batch +eJ2YePPoPApi8e95KGaJfU chathistory #channel ; batch -eJ2YePPoPApi8e95KGaJfU
   elseif ($event = batch) { return }
 
-  elseif ($event = chghost) { return }
-  elseif ($event = account) { return }
+  elseif ($event = cap) { return }
+  elseif ($event = chghost) { 
+    var %nick $gettok($address($nick,5),1,33)
+    var %newhost $2
+    var %oldhost $gettok($gettok($rawmsg,2,33),1,32)
+    var %i $chan(0)
+    while (%i) {
+      if ( $nick ison $chan(%i) ) {
+        nx.echo.chghost $msgstamp $chan(%i) %nick %oldhost %newhost
+      }
+      dec %i
+    }
+    return
+  }
   elseif ($event = tagmsg) { return }
-  elseif ($event = away) { return }
   elseif ($event = invite) { return }
 
   ; Welcome to the SERVER DESC, NICK
@@ -143,7 +157,53 @@ raw *:*:{
   elseif ($event = 210) { nx.echo.snotice $2- | halt }
 
   ; stats l
-  elseif ($event = 211) { nx.echo.snotice $2- | halt }
+  elseif ($event = 211) { 
+    if ( $network == IRCNet ) { 
+      ;clientname[username@host.name] 0 181 11431 37 318 :6442
+
+      ; 1st field is client info (client can be server, too).
+      ; 2nd field is sendQ, 3rd received lines, 4th received bytes, 5th sent lines, 6th sent bytes, 7th is client uptime.
+
+      var %clientinfo $gettok($2,1,$asc([))
+      var %uptime $8 
+
+      ; Color the sendQ if it's greater than 0
+      var %sendq $iif($3 <= 0,$c(green,$3),$c(red,$3))
+
+      ; Color the received lines
+      var %lowline 0.5
+      var %midline 1
+      var %sentlines $6
+      var %sentlinespersec $round($calc(%sentlines / %uptime),2)
+      var %sentlinesperseccolor $iif(%sentlinespersec <= %lowline,$c(green,%sentlinespersec),$iif(%sentlinespersec <= %midline,$c(yellow,%sentlinespersec),$c(red,%sentlinespersec)))
+      var %receivedlines $4
+      var %receivedlinespersec $round($calc(%receivedlines / %uptime),2)
+      var %receivedlinesperseccolor $iif(%receivedlinespersec <= %lowline,$c(green,%receivedlinespersec),$iif(%receivedlinespersec <= %midline,$c(yellow,%receivedlinespersec),$c(red,%receivedlinespersec)))
+      var %sentlinescolor $iif(%sentlinespersec <= %lowline,$c(green,%sentlines),$iif(%sentlinespersec <= %midline,$c(yellow,%sentlines),$c(red,%sentlines))) 
+      var %receivedlinescolor $iif(%receivedlinespersec <= %lowline,$c(green,%receivedlines),$iif(%receivedlinespersec <= %midline,$c(yellow,%receivedlines),$c(red,%receivedlines)))
+
+      ; Color the received bytes
+      var %lowbytes 1
+      var %midbytes 2
+      var %sentbytes $7
+      var %sentbytespersec $round($calc(%sentbytes / %uptime),2)
+      var %sentbytesperseccolor $iif(%sentbytespersec <= %lowbytes,$c(green,%sentbytespersec),$iif(%sentbytespersec <= %midbytes,$c(yellow,%sentbytespersec),$c(red,%sentbytespersec)))
+      var %receivedbytespersec $round($calc(%receivedbytes / %uptime),2)
+      var %receivedbytesperseccolor $iif(%receivedbytespersec <= %lowbytes,$c(green,%receivedbytespersec),$iif(%receivedbytespersec <= %midbytes,$c(yellow,%receivedbytespersec),$c(red,%receivedbytespersec)))
+      var %receivedbytes $5
+      var %sentbytescolor $iif(%sentbytespersec <= %lowbytes,$c(green,%sentbytes),$iif(%sentbytespersec <= %midbytes,$c(yellow,%sentbytes),$c(red,%sentbytes)))
+      var %receivedbytescolor $iif(%receivedbytespersec <= %lowbytes,$c(green,%receivedbytes),$iif(%receivedbytespersec <= %midbytes,$c(yellow,%receivedbytes),$c(red,%receivedbytes)))
+
+      var %uptime $8 secs
+
+      var %txtsentreq Lines: $+ $+(%sentlinescolor,\,%receivedlinescolor) $p(Per\Sec: $+ $+(%sentlinesperseccolor,\,%receivedlinesperseccolor)) 
+      var %txtbytes Bytes: $+ $+(%sentbytescolor,\,%receivedbytescolor) $p(Per\Sec: $+ $+(%sentbytesperseccolor,\,%receivedbytesperseccolor)) 
+
+      nx.echo.snotice %clientinfo $+ : SendQ: $+ %sendq %txtsentreq %txtbytes %uptime
+    }
+    else { nx.echo.snotice $2- }
+    halt 
+  }
 
   ; stats m
   elseif ($event = 212) { nx.echo.snotice $2- | halt }
@@ -165,8 +225,8 @@ raw *:*:{
 
   ; stats y
   elseif ($event = 218) { 
-    
-    ; [21:01:27] Event: 218 Text: naka Y 6003064 120 0 1000 800000.0 0.3 0.3 15 3/64
+
+    ; [21:01:27] Event: 218 Text: NICKNAME Y 6003064 120 0 1000 800000.0 0.3 0.3 15 3/64
     if ( $hget(settings_ $+ $cid,serverversion) iswm 2.11.2p3+0PNv1.06 ) {
       if ( $2 == Y ) {
         var %class $+(Class:,$3)
@@ -181,7 +241,7 @@ raw *:*:{
       }
     }
     else { nx.echo.snotice $2- }
-  
+
     halt
   }
 
@@ -193,12 +253,12 @@ raw *:*:{
 
   ; glines
   elseif ($event = 223) { nx.echo.snotice $2- | halt }
-  
+
   ; stats v
   elseif ($event = 236) { 
     if ($2 != Servername) && ( $istok($nx.db(read,settings,ircd,ircu2),$network,32) ) { 
       ; Servername             Uplink              Flags Hops Numeric Lag RTT   Up Down ? Clients/Max Proto LinkTS      Info
-      ; chainless.deepnet.chat hub.eu.deepnet.chat --H-6 3    AC      2   60000 0  0    0 1 1023      P10   1749640691  shells.chat IRC Services
+      ; leaf.server hub.server --H-6 3    AC      2   60000 0  0    0 1 1023      P10   1749640691  Server Desc
       nx.echo.snotice ( $6 $4 ) Servername: $+($chr(40),$2 $12,\,$13,$chr(41)) -> ( $+ $5 hops $+ ) Uplink: $3
       ; nx.echo.snotice Lag: $7
       ; nx.echo.snotice RTT: $8
@@ -224,7 +284,7 @@ raw *:*:{
   ; stats p (ircnet)
   elseif ($event = 246) { nx.echo.snotice $2- | halt }
 
-  ; stats t
+  ; stats t and ? at IRCNet
   elseif ($event = 249) { nx.echo.snotice $2- | halt }
 
   ; Permission denied
@@ -283,10 +343,10 @@ raw *:*:{
     ; %nx.whois.multiple. [ $+ [ $cid ] ] nick1, nick2
     ; %nx.whois.manual. [ $+ [ $cid ] ] nick1
     ; multiple is multiple nicknames being whois'ed at one time (eg /whois nick1 nick2 or from the nicklist)
-    
+
     ; If whois is from on query return to the query window
     if ( $istok(%nx.whois.query. [ $+ [ $cid ] ],$2,44) ) { set -u10 %whois.window -t $2 }
- 
+
     ; Returns to the active window
     elseif ( $istok(%nx.whois.manual. [ $+ [ $cid ] ],$2,44) ) { set -u10 %whois.window -at }
     elseif ( $istok(%nx.whois.multiple. [ $+ [ $cid ] ],$2,44) ) { set -u10 %whois.window -at }
@@ -323,6 +383,8 @@ raw *:*:{
       var %c $numtok($3-,32)
       while (%c) {
         if ( $left($gettok($3-,%c,32),1) == ~ ) { var %chq $addtok(%chq,$gettok($3-,%c,32),32) }
+
+        ; BUG, local channels with & might conflict with admin of local channels which is &&, idea is before this while pick out &local and #global channels 
         elseif ( $left($gettok($3-,%c,32),1) == & ) { var %cha $addtok(%cha,$gettok($3-,%c,32),32) }
         elseif ( $left($gettok($3-,%c,32),1) == @ ) { var %cho $addtok(%cho,$gettok($3-,%c,32),32) }
         elseif ( $left($gettok($3-,%c,32),1) == $chr(37) ) { var %chh $addtok(%chh,$gettok($3-,%c,32),32) }
@@ -450,14 +512,14 @@ raw *:*:{
     ; Idea, level up with grades (rectruit, major, colonel, general, etc.)
     ; Grades could determine the level of trust to avoid certain actions like antispam.
 
-    
+
     ; grepwho functionality
     if ( %nx.grepwho ) {
       ; server\chan
       var %arg1 $gettok(%nx.grepwho,1,32)
       ; searchstring
       var %arg2 $gettok(%nx.grepwho,2,32)
-      
+
       if (( %arg1 == $server ) && ( $2 == $chr(42) ) || ( %arg1 == $2 )) {
         if ( %arg2 isin $2- ) {
           set %nx.grep.count $calc(%nx.grep.count + 1)
@@ -719,7 +781,7 @@ raw *:*:{
   elseif ($event = 478) { 
     echo -t $2 * $+($3,:) Banlist is full $p(Maxbans: $hget(settings_ [ $+ [ $cid ] ],maxbans))
     halt
-   }
+  }
 
   ; You're not an channel operator
   elseif ($event = 482) { echo -at * $+($1,:) You're not an channel operator | halt }
