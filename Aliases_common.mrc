@@ -139,6 +139,11 @@ alias nx.handle.highlight {
   }
 }
 
+; comare channels on multiple nicks, max 6 at a time so we dont flood with whois requests
+alias nx.comchan {
+  if ($numtok($1-,44) > 6) { echo -a Too many channels to compare max 6 | halt }
+  else { set -u10 %nx.cchans $1 | set -u10 %nx.ccnum $numtok($1,44) | set -u10 %nx.cctnum $numtok($1,44) | nx.whois $1 }
+}
 
 alias nx.specialday {
   var %d = $asctime(ddmm)
@@ -190,18 +195,6 @@ alias nx.antispam {
 }
 
 
-
-alias smileytroll {
-    ; Has ident
-  elseif ( %nx.tmp.ident == webchat ) {
-    ; TODO Need to fix this regex
-    var %nx.troll.regex ^\(\s*(?:\._\.|-__-|\-\.\-)\s*\)$
-    if ( $regex($1-,%nx.troll.regex) ) && ( $iptype(%nx.tmp.host) == ipv6 ) { 
-      spamkickban $1 $2 Troll
-      if (!$istok(%nx.trollnicks,$2,32)) { set %nx.trollnicks $addtok(%nx.trollnicks,$2,32) | whois $2 } 
-    }
-  }
-}
 on *:dns:{
   var %d $dns(0)
   while (%d) {

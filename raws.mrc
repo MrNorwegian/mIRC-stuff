@@ -1,5 +1,8 @@
 raw *:*:{
-  if ($eval(% $+ debug_raw_ $+ $cid,2)) { echo -t $+(@,$network,_,$cid,_,raw) Event: $event Text: $1- }
+  if ($eval(% $+ debug_raw_ $+ $cid,2)) { 
+    echo -t $+(@,$network,_,$cid,_,raw) Event: $event Text: $1-
+    echo -t $+(@,$network,_,$cid,_,raw) rawmsg: $rawmsg
+  }
   if ($event = ack) { return }
   elseif ($event = account) { 
     ; Handle account event
@@ -373,6 +376,8 @@ raw *:*:{
     ; whois nick is on channel
     ; TODO coloring channels from good to bad
     elseif ($event = 319) { 
+
+      ; Collect the common channels for this nick if its not myself
       if ( $2 != $me ) {
         var %c $comchan($2,0)
         while (%c) {
@@ -380,6 +385,8 @@ raw *:*:{
           dec %c
         }
       }
+
+      ; Now process the channels the nick is on and categorize them by prefix
       var %c $numtok($3-,32)
       while (%c) {
         if ( $left($gettok($3-,%c,32),1) == ~ ) { var %chq $addtok(%chq,$gettok($3-,%c,32),32) }
@@ -392,6 +399,8 @@ raw *:*:{
         else { var %chr $addtok(%chr,$gettok($3-,%c,32),32) }
         dec %c
       }
+
+      ; Echo the categorized channels for this nick
       if (%ch) { echo %nx.echo.color %whois.window $2 is on $numtok(%ch,32) common chans: %ch }
       if ( %chq ) { echo %nx.echo.color %whois.window $2 is owner in %chq }
       if ( %cha ) { echo %nx.echo.color %whois.window $2 is admin in %cha }
@@ -399,6 +408,12 @@ raw *:*:{
       if ( %chh ) { echo %nx.echo.color %whois.window $2 is halfop in %chh }
       if ( %chv ) { echo %nx.echo.color %whois.window $2 is voiced in %chv }
       if ( %chr ) { echo %nx.echo.color %whois.window $2 is regular in %chr }
+
+      ; Check if this nick is in the list of channels to compare and update the count accordingly
+      if ($istok(%nx.cchans,$2,44)) { 
+        set -u10 %nx.cchans_ $+ $2 $remove($3-,~,&,@,$chr(37),+)
+        dec %nx.ccnum
+      }
     }
     ; whois nick using server
     elseif ($event = 312) { echo %nx.echo.color %whois.window $2 using $3- }
@@ -436,6 +451,41 @@ raw *:*:{
       if ( $istok(%nx.whois.query. [ $+ [ $cid ] ],$2,44) ) { set -u10 %nx.whois.query. [ $+ [ $cid ] ] $remtok(%nx.whois.query. [ $+ [ $cid ] ],$2,44) }
       if ( $istok(%nx.whois.multiple. [ $+ [ $cid ] ],$2,44) ) { set -u10 %nx.whois.multiple. [ $+ [ $cid ] ] $remtok(%nx.whois.multiple. [ $+ [ $cid ] ],$2,44) }
       if ( $istok(%nx.whois.manual. [ $+ [ $cid ] ],$2,44) ) { set -u10 %nx.whois.manual. [ $+ [ $cid ] ] $remtok(%nx.whois.manual. [ $+ [ $cid ] ],$2,44) }
+
+      ; Check if nick is in comare list and if we are finshed.
+      if ($istok(%nx.cchans,$2,44)) && (!%nx.ccnum) {
+        
+        ; Looping nicks
+        var %n $numtok(%nx.cchans,44) 
+        while (%n) {
+          var %nick $gettok(%nx.cchans,%n,44)
+          
+          ; Looping chans each nick is on
+          var %c $numtok(%nx.cchans_ [ $+ [ %nick ] ],32)
+          while (%c) {
+            var %chan $gettok(%nx.cchans_ [ $+ [ %nick ] ],%c,32)
+
+            ; Check if this channel has already been counted
+            if (!$istok(%cchans,%chan,32)) { var %cchans $addtok(%cchans,%chan,32) }
+
+            ; Inc the count of how many times this channel has been seen
+            inc %nx.cchans_ [ $+ [ %chan ] ]
+            dec %c
+          }
+          dec %n
+        }
+
+        ; Now we have counted how many times each channel has been seen, time to find common channels
+        var %c $numtok(%cchans,32)
+        while (%c) {
+          var %chan $gettok(%cchans,%c,32)
+
+          ; Check if this channel has been seen more than once, indicating it is common among the nicks
+          if (%nx.cchans_ [ $+ [ %chan ] ] > 1) { echo %nx.echo.color -at Common channel found: %chan $p($v1) }
+          dec %c
+        }
+        unset %nx.cchans* %nx.ccnum
+      }
       unset %nx.whois.active %whois.window
     }
     halt
